@@ -664,6 +664,10 @@ Worth it? H1 is about an hour once and serves all three uses; the code changes
 are small (a config overlay, one flag, one script, tests). The VM's value is
 that it is always on and Linux, not that it is fast.
 
+Progress 2026-09-28: the code side is done (`--skip-flagged` with a test,
+`pipeline/cron/new-episodes.sh`, the worker section in `pipeline/README.md`).
+H1 to H4 wait for the VM setup, which needs Jeremy's SSH access.
+
 ### Track G: later
 
 T-1 read-the-shot cards (needs D1's `toEnd` replay and the `asks` field), T-3
