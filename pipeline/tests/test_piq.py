@@ -24,10 +24,28 @@ class TempData(unittest.TestCase):
         shutil.copytree(HERE.parent / "config", cfg_dir)
         cfg = (cfg_dir / "piq.yaml").read_text().replace("data_dir: ../pickleball-iq-data", f"data_dir: {self.tmp / 'data'}")
         (cfg_dir / "piq.yaml").write_text(cfg)
+        (cfg_dir / piq.LOCAL_CONFIG_NAME).unlink(missing_ok=True)  # this machine's overlay must not leak into tests
         self.ctx = piq.Ctx(cfg_dir / "piq.yaml")
 
     def tearDown(self):
         shutil.rmtree(self.tmp)
+
+
+class ConfigTests(TempData):
+    def test_local_overlay_merges_one_level_deep(self):
+        cfg_dir = self.ctx.config_path.parent
+        (cfg_dir / piq.LOCAL_CONFIG_NAME).write_text("transcribe:\n  device: cpu\n  compute_type: int8\nuser_agent: local-agent\n", encoding="utf-8")
+        ctx = piq.Ctx(self.ctx.config_path)
+        self.assertEqual(ctx.cfg["transcribe"]["device"], "cpu")
+        self.assertEqual(ctx.cfg["transcribe"]["compute_type"], "int8")
+        self.assertEqual(ctx.cfg["transcribe"]["model"], "large-v3", "keys the overlay does not name survive")
+        self.assertEqual(ctx.cfg["user_agent"], "local-agent", "top-level scalars are replaced")
+        self.assertEqual(ctx.cfg["deck"]["deck_id"], "court-sense", "sections the overlay does not name survive")
+
+    def test_without_an_overlay_the_shared_config_stands(self):
+        self.assertEqual(self.ctx.cfg["transcribe"]["device"], "cuda")
+        self.assertEqual(piq.merge_config({"a": {"x": 1}}, {}), {"a": {"x": 1}})
+        self.assertEqual(piq.merge_config({"a": {"x": 1}}, {"a": None}), {"a": None}, "a non-dict value replaces the section")
 
 
 class FeedTests(unittest.TestCase):

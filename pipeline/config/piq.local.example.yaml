@@ -1,0 +1,22 @@
+# Machine-specific pipeline settings. Copy this file to piq.local.yaml (same directory,
+# gitignored). Its sections merge over piq.yaml one level deep: a section here changes
+# only the keys it names, so list just what differs on this machine.
+
+# Where this machine keeps its clone of the private data repo (or export PIQ_DATA_DIR).
+# data_dir: ../pickleball-iq-data
+
+transcribe:
+  # Full path to the whisperx executable in its own environment.
+  # command: C:/code/pickleball-iq/.venv-whisperx/Scripts/whisperx.exe   # Windows
+  # command: /home/piq/whisperx/bin/whisperx                             # Linux
+  #
+  # A 6 GB GPU (GeForce GTX 1660 Ti): keep float16 and lower the batch size;
+  # switch to int8 if it still runs out of memory.
+  device: cuda
+  compute_type: float16
+  batch_size: 4
+  #
+  # CPU only (for example the Oracle ARM VM): around real time or slower.
+  # device: cpu
+  # compute_type: int8
+  # batch_size: 4

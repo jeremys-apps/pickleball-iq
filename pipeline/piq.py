@@ -57,10 +57,36 @@ def load_yaml(path: Path) -> dict:
     return yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
 
 
+LOCAL_CONFIG_NAME = "piq.local.yaml"
+
+
+def merge_config(base: dict, over: dict) -> dict:
+    """Overlay one level deep: top-level dicts merge key by key, anything else is replaced."""
+    out = dict(base)
+    for k, v in (over or {}).items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = {**out[k], **v}
+        else:
+            out[k] = v
+    return out
+
+
+def load_config(path: Path) -> dict:
+    """piq.yaml with piq.local.yaml from the same directory merged over it.
+
+    The local file is gitignored and holds what differs per machine: the whisperx
+    command path, device, compute_type, batch_size, data_dir. See piq.local.example.yaml.
+    """
+    path = Path(path)
+    cfg = load_yaml(path)
+    local = path.with_name(LOCAL_CONFIG_NAME)
+    return merge_config(cfg, load_yaml(local)) if local.exists() else cfg
+
+
 class Ctx:
     def __init__(self, config_path: Path):
         self.config_path = Path(config_path)
-        self.cfg = load_yaml(self.config_path)
+        self.cfg = load_config(self.config_path)
         cfg_dir = self.config_path.parent
         self.shows = {s["id"]: s for s in load_yaml(cfg_dir / "sources.yaml").get("shows", [])}
         self.speakers = {s["id"]: s for s in load_yaml(cfg_dir / "speakers.yaml").get("speakers", [])}

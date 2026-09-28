@@ -7,12 +7,15 @@ data_dir: ../pickleball-iq-data
 user_agent: "court-sense-pipeline/0.1 (personal use)"
 
 transcribe:
+  # Machine-specific values (command path, device, compute_type, batch_size, and data_dir
+  # above) belong in piq.local.yaml next to this file, which is gitignored and merged
+  # over this one. See piq.local.example.yaml for a 6 GB GPU and for CPU-only machines.
   command: whisperx
   model: large-v3
   language: en
   device: cuda            # cpu works, but expect days for the full corpus instead of hours
   compute_type: float16   # use int8 on CPU
-  batch_size: 16          # lower it if the GPU runs out of memory
+  batch_size: 16          # lower it if the GPU runs out of memory (4 on a 6 GB card)
   diarize: true
   min_speakers: 2
   max_speakers: 4

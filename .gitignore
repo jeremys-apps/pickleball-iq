@@ -1,5 +1,8 @@
 node_modules/
 .venv/
+.venv-whisperx/
+# Machine-specific pipeline settings (see pipeline/config/piq.local.example.yaml)
+pipeline/config/piq.local.yaml
 __pycache__/
 *.pyc
 *.part
