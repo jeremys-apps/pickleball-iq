@@ -46,6 +46,7 @@ function currentFrame() {
 function draw(frame = currentFrame()) {
   const fp = renderFirstPerson(frame, { ...size(), mode: S.mode, aids: S.aids });
   out.fp.innerHTML = fp.svg;
+  out.views.classList.toggle('is-phone', S.viewport === 'phone');
   out.td.innerHTML = S.show.topdown ? renderTopDown(frame, { variant: 'full', showBackhand: true, crop: 'auto', camera: fp.camera }).svg : '';
   out.mini.innerHTML = S.show.mini ? renderTopDown(frame, { variant: 'mini', camera: fp.camera }).svg : '';
   out.side.innerHTML = S.show.side ? renderSideView(frame).svg : '';
@@ -154,39 +155,52 @@ function build() {
   out.td = h('div', { class: 'td' });
   out.mini = h('div', { class: 'mini' });
   out.side = h('div', { class: 'side-view' });
-  out.wrap = h('div', { class: 'lab-out' }, out.fp, h('div', { class: 'lab-panels' }, out.td, out.mini, out.side), out.readout, out.note);
 
-  const controls = h(
-    'div',
-    { class: 'lab-controls' },
-    h('label', {}, 'Scene ', out.select),
-    h('fieldset', {}, h('legend', {}, 'Camera'),
-      radio('mode', 'over_shoulder', 'Over the shoulder', true, () => { S.mode = 'over_shoulder'; draw(); }),
-      radio('mode', 'first_person', 'Through your eyes', false, () => { S.mode = 'first_person'; draw(); }),
-      check('Mirror left to right', false, (e) => { S.mirror = e.target.checked; listIssues(); draw(); })),
-    h('fieldset', {}, h('legend', {}, 'Screen'),
-      radio('vp', 'laptop', 'Laptop (800 x 500)', true, () => { S.viewport = 'laptop'; draw(); }),
-      radio('vp', 'phone', 'Phone (360 x 380)', false, () => { S.viewport = 'phone'; draw(); })),
-    h('fieldset', {}, h('legend', {}, 'Aids'),
-      check('Ball path', true, (e) => { S.aids.path = e.target.checked; draw(); }),
-      check('Shadow', true, (e) => { S.aids.shadow = e.target.checked; draw(); }),
-      check('Height stalk and net tick', true, (e) => { S.aids.stalk = e.target.checked; draw(); })),
-    h('fieldset', {}, h('legend', {}, 'Panels'),
-      check('Top-down', true, (e) => { S.show.topdown = e.target.checked; draw(); }),
-      check('Mini-map', true, (e) => { S.show.mini = e.target.checked; draw(); }),
-      check('Side view', true, (e) => { S.show.side = e.target.checked; draw(); }),
-      check('Show the answer', false, (e) => { S.reveal = e.target.checked; draw(); })),
-    h('fieldset', {}, h('legend', {}, 'Motion'),
-      h('label', {}, 'Time ', out.slider),
-      h('label', {}, 'Speed ', h('select', { onchange: (e) => { S.speed = Number(e.target.value); } },
-        h('option', { value: 0.6 }, '0.6x (new cards)'), h('option', { value: 0.85 }, '0.85x'), h('option', { value: 1, selected: true }, 'Real speed'))),
-      h('label', {}, 'Freeze ', h('select', { onchange: (e) => { S.freezeLeadMs = Number(e.target.value); } },
-        h('option', { value: 0, selected: true }, 'As authored (stage A)'), h('option', { value: 120 }, '120 ms earlier (stage B)'), h('option', { value: 250 }, '250 ms earlier (stage C)'))),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: play }, 'Play'), h('button', { class: 'btn', type: 'button', onclick: downloadSvg }, 'Download SVG'))),
-    h('fieldset', {}, h('legend', {}, 'Scene checks'), out.issues),
-    h('fieldset', {}, h('legend', {}, 'Paste a scene'), out.paste, h('button', { class: 'btn', type: 'button', onclick: loadPasted }, 'Load scene'), out.pasteMsg),
+  // Settings first (collapsible, so a phone can fold them away), then the stage:
+  // the motion bar with Play directly above the picture, the picture, and the
+  // panels beside it on a laptop or below it on a phone. Everything that matters
+  // while a shot plays is in view at once.
+  const settings = h(
+    'details',
+    { class: 'lab-settings-wrap', open: true },
+    h('summary', {}, 'Scene and settings'),
+    h(
+      'div',
+      { class: 'lab-settings' },
+      h('fieldset', {}, h('legend', {}, 'Scene'), h('label', {}, 'Scene ', out.select), out.issues),
+      h('fieldset', {}, h('legend', {}, 'Camera'),
+        radio('mode', 'over_shoulder', 'Over the shoulder', true, () => { S.mode = 'over_shoulder'; draw(); }),
+        radio('mode', 'first_person', 'Through your eyes', false, () => { S.mode = 'first_person'; draw(); }),
+        check('Mirror left to right', false, (e) => { S.mirror = e.target.checked; listIssues(); draw(); })),
+      h('fieldset', {}, h('legend', {}, 'Screen'),
+        radio('vp', 'laptop', 'Laptop (800 x 500)', true, () => { S.viewport = 'laptop'; draw(); }),
+        radio('vp', 'phone', 'Phone (360 x 380)', false, () => { S.viewport = 'phone'; draw(); })),
+      h('fieldset', {}, h('legend', {}, 'Aids'),
+        check('Ball path', true, (e) => { S.aids.path = e.target.checked; draw(); }),
+        check('Shadow', true, (e) => { S.aids.shadow = e.target.checked; draw(); }),
+        check('Height stalk and net tick', true, (e) => { S.aids.stalk = e.target.checked; draw(); })),
+      h('fieldset', {}, h('legend', {}, 'Panels'),
+        check('Top-down', true, (e) => { S.show.topdown = e.target.checked; draw(); }),
+        check('Mini-map', true, (e) => { S.show.mini = e.target.checked; draw(); }),
+        check('Side view', true, (e) => { S.show.side = e.target.checked; draw(); }),
+        check('Show the answer', false, (e) => { S.reveal = e.target.checked; draw(); })),
+      h('fieldset', {}, h('legend', {}, 'Paste a scene'), out.paste, h('button', { class: 'btn', type: 'button', onclick: loadPasted }, 'Load scene'), out.pasteMsg),
+    ),
   );
-  root.replaceChildren(controls, out.wrap);
+  const motion = h(
+    'div',
+    { class: 'lab-motion' },
+    h('button', { class: 'btn primary', type: 'button', onclick: play }, 'Play'),
+    h('label', { class: 'time' }, 'Time ', out.slider),
+    h('label', {}, 'Speed ', h('select', { onchange: (e) => { S.speed = Number(e.target.value); } },
+      h('option', { value: 0.6 }, '0.6x (new cards)'), h('option', { value: 0.85 }, '0.85x'), h('option', { value: 1, selected: true }, 'Real speed'))),
+    h('label', {}, 'Freeze ', h('select', { onchange: (e) => { S.freezeLeadMs = Number(e.target.value); } },
+      h('option', { value: 0, selected: true }, 'As authored (stage A)'), h('option', { value: 120 }, '120 ms earlier (stage B)'), h('option', { value: 250 }, '250 ms earlier (stage C)'))),
+    h('button', { class: 'btn', type: 'button', onclick: downloadSvg }, 'Download SVG'),
+  );
+  out.views = h('div', { class: 'lab-views' }, out.fp, h('div', { class: 'lab-panels' }, out.td, out.mini, out.side));
+  out.wrap = h('div', { class: 'lab-stage' }, motion, out.views, out.readout, out.note);
+  root.replaceChildren(settings, out.wrap);
 }
 
 async function init() {

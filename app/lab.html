@@ -8,21 +8,35 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <style>
+    /* Settings on top, then the stage: Play sits directly above the picture, and on a
+       laptop the picture is sized to the window height with the panels beside it, so
+       nothing has to scroll while a shot plays. */
     .lab { display: grid; gap: 20px; }
-    .lab-controls { display: grid; gap: 12px; align-content: start; }
-    .lab-controls fieldset { gap: 8px; }
-    .lab-controls label { display: flex; gap: 8px; align-items: center; }
-    .lab-out { display: grid; gap: 12px; }
-    .lab-out .fp { background: var(--stage); border-radius: 12px; overflow: hidden; }
-    .lab-out svg { display: block; width: 100%; height: auto; }
+    .lab-settings-wrap > summary { cursor: pointer; font-family: var(--font-head); font-weight: 600; font-size: var(--step-1); margin-bottom: 10px; }
+    .lab-settings { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: start; }
+    .lab-settings fieldset { gap: 8px; margin: 0; }
+    .lab-settings label { display: flex; gap: 8px; align-items: center; }
+    .lab-settings .issues { margin: 0; padding-left: 1.2em; }
+    .lab-stage { display: grid; gap: 12px; }
+    .lab-motion { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+    .lab-motion label { display: flex; gap: 8px; align-items: center; }
+    .lab-motion .time { flex: 1 1 220px; }
+    .lab-motion .time input { flex: 1; }
+    .lab-views { display: grid; gap: 12px; align-items: start; }
+    .lab-stage .fp { background: var(--stage); border-radius: 12px; overflow: hidden; }
+    .lab-stage svg { display: block; width: 100%; height: auto; }
     .lab-panels { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
     .lab-panels .td { width: min(300px, 100%); }
     .lab-panels .mini { width: 110px; }
     .lab-panels .side-view { width: min(360px, 100%); }
-    .lab textarea { width: 100%; min-height: 150px; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .lab textarea { width: 100%; min-height: 120px; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
     .lab .readout { font-variant-numeric: tabular-nums; }
     .lab .issues li.error { color: var(--bad); }
-    @media (min-width: 1000px) { .lab { grid-template-columns: 300px minmax(0, 1fr); } }
+    @media (min-width: 1000px) {
+      /* The picture's column is capped by the window height (800 x 500 is 1.6 wide; the phone preview 360 x 380 is 0.95). */
+      .lab-views { grid-template-columns: minmax(0, calc((100vh - 240px) * 1.6)) minmax(300px, 1fr); }
+      .lab-views.is-phone { grid-template-columns: minmax(0, calc((100vh - 240px) * 0.95)) minmax(300px, 1fr); }
+    }
   </style>
   <script type="module" src="src/ui/lab.js"></script>
 </head>

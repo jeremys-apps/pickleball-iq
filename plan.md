@@ -600,6 +600,13 @@ three instructional ones ("Mastering the Midcourt", "3rd Shot Drops & Drives",
 
 Exit: AC-2 to AC-5 marked passing on devices in the PRD. Daily use begins here.
 
+Progress 2026-09-28: the first fix from real use, before the pilot deck exists.
+Jeremy's look at the lab on the laptop and the phone showed the picture scaled
+to the full column width, pushing Play and the panels out of view. Reworked:
+settings on top and collapsible, a motion bar with Play directly above the
+picture, and on laptops the picture capped by the window height with the panels
+beside it. Lab-only change, with the lab's first jsdom smoke test.
+
 ### Track D: features the goal implies (two or three sessions; runs alongside B and C)
 
 | Step | Work | Tests |
