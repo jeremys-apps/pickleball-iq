@@ -20,6 +20,8 @@ npm run serve        # http://localhost:8000 (the app) and /lab.html (renderer l
 python -m venv .venv && source .venv/bin/activate
 pip install -r pipeline/requirements.txt
 python -m unittest discover -s pipeline/tests
+# Machine-specific pipeline settings (GPU size, whisperx path) go in a gitignored overlay:
+cp pipeline/config/piq.local.example.yaml pipeline/config/piq.local.yaml
 ```
 
 ![A floater from over your shoulder](docs/img/s-floater-backhands-over_shoulder.svg)
@@ -31,8 +33,9 @@ preview any of them at each aid level, including the timed occlusion card.
 
 ## Deploy the app
 
-1. Create a free GitHub organization and push this repository there. It contains no podcast content, so it can be public. The organization gives the app its own origin, `<org>.github.io`, so its stored token is not shared with the other Pages project on your account (PRD section 9).
-2. Settings, Pages, Source: **GitHub Actions**. The workflow in `.github/workflows/pages.yml` publishes `app/`.
+0. Put the code under git if it is not yet: `git init -b main`, commit everything (`node_modules`, `.venv` and real decks are ignored), and push it to a new repository.
+1. Create a free GitHub organization from your personal account (a namespace you own, not a second login) and transfer or push this repository there. It contains no podcast content, so make it public: GitHub Pages is free only for public repositories. The organization gives the app its own origin, `<org>.github.io`, so its stored token is not shared with the other Pages project on your account (PRD section 9).
+2. Settings, Pages, Source: **GitHub Actions**. The workflow in `.github/workflows/pages.yml` publishes `app/`. Run it once by hand from the Actions tab after switching the source; pushes made before the switch fail at the deploy step.
 3. Create the private data repository under your personal account (see `pipeline/README.md`) and a fine-grained
    token limited to it with Contents read and write and an expiry date.
 4. Open the app, go to Settings, enter the repository and token, and name the device.

@@ -21,8 +21,8 @@ Check each item and report everything missing at once, with the fix:
 
 - `python pipeline/piq.py --help` runs (install `pipeline/requirements.txt` if not).
 - `ffmpeg -version` runs.
-- WhisperX: the `transcribe.command` in `pipeline/config/piq.yaml` runs with `--help`.
-- `HF_TOKEN` is set, and Jeremy has accepted the terms for the pyannote models WhisperX uses. You cannot accept those terms for him.
+- WhisperX: the `transcribe.command` (from `pipeline/config/piq.local.yaml`, merged over `piq.yaml`) runs with `--help`. Machine settings live in that local file; a 6 GB card needs `batch_size: 4`.
+- `HF_TOKEN` is set, and Jeremy has accepted the terms for the pyannote model WhisperX uses (`pyannote/speaker-diarization-community-1` in the current README). You cannot accept those terms for him. Claude Code sessions started before the variable was set do not see it; read it from the user registry at run time or restart the session.
 - A GPU: `nvidia-smi`. Without one, warn that five hour-long episodes can take most of a day on CPU (set `device: cpu` and `compute_type: int8`) and ask whether to continue.
 - DATA exists and is a git repository with a private GitHub remote. If not, set it up as in `pipeline/README.md`. Creating the private GitHub repository needs Jeremy, or `gh repo create <name> --private` if the GitHub CLI is signed in.
 
