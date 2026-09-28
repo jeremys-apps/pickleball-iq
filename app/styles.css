@@ -248,6 +248,16 @@ legend { font-family: var(--font-head); font-weight: 600; padding: 0 6px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .status { white-space: nowrap; }
 
+/* Progress view: plain tables, weakest topics first, then the drills. */
+table.stats { border-collapse: collapse; width: 100%; max-width: 72ch; font-variant-numeric: tabular-nums; margin: 4px 0 20px; }
+.stats th, .stats td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.stats th { font-weight: 600; color: var(--muted); font-size: var(--step--1); }
+.stats .num { text-align: right; white-space: nowrap; }
+.progress .drill { display: grid; gap: 6px; max-width: 72ch; margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--raised); }
+.progress .drill p, .progress .drill ul { margin: 0; }
+.progress .drill ul { padding-left: 1.2em; }
+@media (max-width: 899px) { .topbar .lab-link { display: none; } }
+
 /* Timed cards: on phones, cap the court's height so the frozen picture and the
    choices fit on one screen (viewBox 360 x 380). */
 .timed-hint { margin: 0; }

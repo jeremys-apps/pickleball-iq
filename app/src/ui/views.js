@@ -10,6 +10,7 @@ import { loadSyncConfig, saveSyncConfig } from '../store/github-sync.js';
 import { exportProgress, importProgress, mergeProgress, saveProgress, emptyProgress } from '../store/progress.js';
 import { syncNow } from '../sync.js';
 import { canMirror } from '../court/mirror.js';
+import { timedTrend, topicStats, drillPlan } from '../stats.js';
 
 const TYPE_LABEL = {
   scenario_mc: 'Court decision',
@@ -48,6 +49,8 @@ export function renderHome(root, app) {
   } else {
     parts.push(h('p', {}, 'The deck is empty.'));
   }
+  const cue = app.progress.settings?.last_cue;
+  if (cue?.text) parts.push(h('div', { class: 'takeaway' }, h('p', { class: 'note' }, 'Take this to the court'), h('p', { class: 'focus-cue' }, cue.text)));
   if (app.deckSource === 'sample') {
     parts.push(h('p', { class: 'banner' }, 'This is the sample deck: a few cards written to exercise the app. Connect your data repository in Settings to load your real deck.'));
   }
@@ -55,8 +58,82 @@ export function renderHome(root, app) {
     parts.push(h('p', { class: 'banner warn' }, `Your deck could not be loaded from GitHub, so ${app.deckSource === 'cache' ? 'the copy saved on this device' : 'the sample deck'} is in use. ${app.deckError}`));
   }
   if (app.sync?.message) parts.push(h('p', { class: 'note' }, app.sync.message));
-  parts.push(h('p', { class: 'note' }, h('a', { href: '#/cards' }, `Browse all ${app.index.deck.cards.length} cards`)));
+  parts.push(
+    h('p', { class: 'note' }, h('a', { href: '#/cards' }, `Browse all ${app.index.deck.cards.length} cards`), ' or see your ', h('a', { href: '#/progress' }, 'progress and drills'), '.'),
+  );
   root.replaceChildren(topbar(), h('main', { class: 'page' }, h('section', { class: 'today' }, ...parts)));
+}
+
+const pct = (v) => `${Math.round(v * 100)}%`;
+const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
+
+// Progress: are timed reads getting faster, which topics are weak, and which
+// drill to practice. Everything is derived from the review log (stats.js).
+export function renderProgress(root, app) {
+  const { index, progress, scheduler } = app;
+  const rows = topicStats(index, progress, { scheduler });
+  const timedIds = new Set(index.deck.cards.filter((c) => c.type === 'timed_decision').map((c) => c.id));
+  const overall = timedTrend(progress.logs.filter((l) => timedIds.has(l.card_id)));
+  const headline = overall
+    ? `Timed reads: ${secs(overall.earlyMedianMs)} at first, ${secs(overall.lateMedianMs)} lately, over ${overall.n} clocked reviews${overall.timeouts ? `, ${overall.timeouts} timed out` : ''}.`
+    : 'Timed reads: not enough clocked reviews yet. Reviews of timed cards past the new stage count; new cards have no clock.';
+  const cell = (text, num = false) => h('td', { class: num ? 'num' : null }, text);
+  const table = h(
+    'table',
+    { class: 'stats' },
+    h('thead', {}, h('tr', {}, h('th', {}, 'Topic'), h('th', { class: 'num' }, 'Seen'), h('th', { class: 'num' }, 'Right'), h('th', { class: 'num' }, 'Retention'), h('th', { class: 'num' }, 'Lapses'), h('th', {}, 'Timed reads'))),
+    h(
+      'tbody',
+      {},
+      rows.map((r) =>
+        h(
+          'tr',
+          {},
+          cell(r.topic.replaceAll('_', ' ')),
+          cell(`${r.seen}/${r.cards}`, true),
+          cell(r.accuracy == null ? '-' : pct(r.accuracy), true),
+          cell(r.retrievability == null ? '-' : pct(r.retrievability), true),
+          cell(String(r.lapses), true),
+          cell(r.timed ? `${secs(r.timed.earlyMedianMs)} to ${secs(r.timed.lateMedianMs)}` : '-'),
+        ),
+      ),
+    ),
+  );
+  const drills = drillPlan(index, progress, { scheduler });
+  const drillBlocks = drills.length
+    ? drills.map((d) =>
+        h(
+          'section',
+          { class: 'drill' },
+          h('p', { class: 'focus-cue' }, d.drill.statement),
+          h('p', {}, d.drill.action),
+          h(
+            'ul',
+            { class: 'note' },
+            d.trains.length
+              ? d.trains.map((t) =>
+                  h('li', {}, `${t.principle.statement} `, t.retrievability == null ? '(not seen yet)' : `(retention ${pct(t.retrievability)}${t.lapses ? `, ${t.lapses} ${t.lapses === 1 ? 'lapse' : 'lapses'}` : ''})`),
+                )
+              : h('li', {}, 'Not linked to a principle yet.'),
+          ),
+          h('p', { class: 'note' }, d.cards.map((c, i) => [i ? ', ' : 'Cards: ', h('a', { href: `#/preview/${encodeURIComponent(c.id)}` }, c.prompt)])),
+        ),
+      )
+    : [h('p', { class: 'note' }, 'No drills in the deck yet.')];
+  root.replaceChildren(
+    topbar(),
+    h(
+      'main',
+      { class: 'page progress' },
+      h('h1', {}, 'Progress'),
+      h('p', {}, headline),
+      h('p', { class: 'note' }, "Weakest topics first. Retention is the scheduler's estimate of what you would recall right now."),
+      table,
+      h('h2', {}, 'Drills'),
+      h('p', { class: 'note' }, 'What to practice, starting with the drill whose lesson you are most likely to forget.'),
+      ...drillBlocks,
+    ),
+  );
 }
 
 function nextDueText(app) {

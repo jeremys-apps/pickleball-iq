@@ -141,6 +141,7 @@ Code repository layout:
 app/                 the web app (no build step; served as-is)
   src/court/         deterministic renderer: geometry, camera, trajectory, views, playback
   src/srs/           FSRS scheduler wrapper and aid-fading stages
+  src/stats.js       progress statistics derived from the review log
   src/store/         progress, settings, GitHub sync
   src/ui/            card view, session, views, renderer lab
   data/              sample deck (illustrative content only)
@@ -332,6 +333,19 @@ strategy talk, so strategy will probably lead; `build-deck` prints the actual
 mix. Form is taught as the pros' verbal cues and named mistakes; the court
 figures show positions and ball flight, not stroke mechanics.
 
+### 8.11 Progress view
+
+Everything here is derived from the review log; nothing new is stored except
+the last court cue. The Progress page shows, weakest topic first, how many of a
+topic's cards you have seen, how often you were right, the scheduler's estimate
+of what you would recall now, lapses, and for timed cards the median time to
+choose early on against lately (T-5; stage B and C reviews only, since new
+cards have no clock, with timeouts counted separately). Below the table, drills
+are ranked by the retention of the principles they train, so the drill whose
+lesson you are most likely to forget comes first, with links to its cards. Home
+carries the last batch's "take this to the court" cue until the next batch
+replaces it; it lives in the synced settings, newest wins.
+
 ## 9. Sync, hosting and privacy
 
 The app shell is public on GitHub Pages; it contains no podcast content. The
@@ -398,11 +412,13 @@ ramping from 0.6x to real speed. Still to build:
 | T-2 | Earlier freeze points as a card matures (less ball flight shown means harder reading). Built: stages B and C freeze 120 and 250 ms earlier than authored (section 8.4, D21). |
 | T-3 | A drag model for ball flight (pickleballs slow sharply), behind the existing arc interface. |
 | T-4 | Opponent cues (paddle face, backswing size, body position) only where a pro names them as tells. |
-| T-5 | Response-time trends per topic, to show whether reads are getting faster. |
+| T-5 | Response-time trends per topic, to show whether reads are getting faster. Built: the Progress view (section 8.11). |
 | T-6 | Two- and three-shot sequences (a dink rally ending in a pop-up) for the kitchen-battle principles. |
 
-**Phase 6, extras.** A stats view (retention, weak topics), suspend and edit from the card browser,  links from sources to the episode audio at the timestamp, a
-weak-topic practice mode, and possibly sharing a deck with a partner.
+**Phase 6, extras.** Built: the Progress view with retention, weak topics and
+a ranked drill list (section 8.11). Remaining: suspend and edit from the card
+browser, links from sources to the episode audio at the timestamp, a weak-topic
+practice mode, and possibly sharing a deck with a partner.
 
 ## 11. Acceptance criteria for the MVP
 

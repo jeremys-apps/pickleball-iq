@@ -111,13 +111,15 @@ export function finalizePending(app, storage = globalThis.localStorage) {
   return true;
 }
 
+// The cue to carry onto the court: from a missed card first, then a new one.
 function focusCue(results) {
   const pool = [
     ...results.filter((r) => r.correct === false || r.rating === Rating.Again),
     ...results.filter((r) => r.kind === 'new'),
     ...results,
   ];
-  return pool.find((r) => r.card.focus_cue)?.card.focus_cue ?? null;
+  const hit = pool.find((r) => r.card.focus_cue);
+  return hit ? { text: hit.card.focus_cue, card_id: hit.card.id } : null;
 }
 
 // A drill that trains something you missed in this batch.
@@ -260,6 +262,12 @@ export function runSession(root, app, { onBatchEnd } = {}) {
         ? 'Nothing is due and you have seen every card. Practice ahead brings back the cards due soonest; they count as reviews.'
         : `Next batch: ${dueNext} due and ${newNext} new.`;
     const sessionMin = Math.max(1, Math.round((Date.now() - sessionStart) / 60000));
+    if (cue) {
+      // Kept in the synced settings so Home can show it until the next batch (newest wins on merge).
+      const stamp = new Date().toISOString();
+      app.progress.settings = { ...(app.progress.settings ?? {}), last_cue: { text: cue.text, card_id: cue.card_id, at: stamp }, updated_at: stamp };
+      saveProgress(app.progress);
+    }
     const keepGoing = label ? h('button', { class: 'btn primary', type: 'button', onclick: () => startBatch() }, label) : null;
     host.replaceChildren(
       h(
@@ -274,7 +282,7 @@ export function runSession(root, app, { onBatchEnd } = {}) {
           count(minutes, minutes === 1 ? 'minute' : 'minutes'),
         ),
         totals.batches > 1 ? h('p', { class: 'note' }, `This session: ${totals.cards} cards in ${totals.batches} batches over ${sessionMin} minutes.`) : null,
-        cue ? takeaway('Take this to the court', cue) : null,
+        cue ? takeaway('Take this to the court', cue.text) : null,
         drill ? takeaway('Drill to try', drill) : null,
         h('p', { class: 'note' }, note),
         h('div', { class: 'row' }, keepGoing, h('a', { class: `btn${keepGoing ? '' : ' primary'}`, href: '#/' }, 'Done')),

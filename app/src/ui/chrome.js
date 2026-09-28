@@ -9,7 +9,8 @@ export function topbar() {
       'nav',
       { 'aria-label': 'Main' },
       h('a', { class: 'btn quiet', href: '#/cards' }, 'Cards'),
-      h('a', { class: 'btn quiet', href: 'lab.html' }, 'Lab'),
+      h('a', { class: 'btn quiet lab-link', href: 'lab.html' }, 'Lab'), // laptop only; hidden below 900 px in styles.css
+      h('a', { class: 'btn quiet', href: '#/progress' }, 'Progress'),
       h('a', { class: 'btn quiet', href: '#/settings' }, 'Settings'),
     ),
   );

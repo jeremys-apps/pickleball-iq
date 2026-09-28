@@ -5,7 +5,7 @@ import { loadProgress } from './store/progress.js';
 import { loadSettings } from './store/settings.js';
 import { makeScheduler } from './srs/scheduler.js';
 import { loadDeck, indexDeck } from './deck.js';
-import { renderHome, renderCards, renderPreview, renderSettings } from './ui/views.js';
+import { renderHome, renderCards, renderPreview, renderSettings, renderProgress } from './ui/views.js';
 import { runSession, finalizePending } from './ui/session.js';
 import { canSync, syncNow } from './sync.js';
 
@@ -32,6 +32,8 @@ function route() {
     app.teardown = runSession(root, app, { onBatchEnd: () => autoSync() }).destroy;
   } else if (name === 'settings') {
     renderSettings(root, app);
+  } else if (name === 'progress') {
+    renderProgress(root, app);
   } else if (name === 'cards') {
     renderCards(root, app);
   } else if (name === 'preview') {

@@ -152,6 +152,7 @@
       "priority": 0.5,
       "distractor_candidates": [],
       "tension_with": [],
+      "trains": ["p-below-net-reset"],
       "claude_note": null
     }
   ],

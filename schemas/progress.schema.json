@@ -179,9 +179,30 @@
     },
     "settings": {
       "type": "object",
+      "description": "Synced, device-independent state; the newest updated_at wins on merge.",
       "properties": {
         "updated_at": {
           "type": "string"
+        },
+        "last_cue": {
+          "type": "object",
+          "description": "The focus cue from the most recent batch summary, shown on Home as the cue to carry onto the court.",
+          "required": [
+            "text",
+            "at"
+          ],
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "card_id": {
+              "type": "string"
+            },
+            "at": {
+              "type": "string"
+            }
+          }
         }
       }
     }

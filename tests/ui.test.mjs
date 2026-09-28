@@ -223,6 +223,29 @@ test('a batch runs to its summary, records progress, and offers to keep going', 
   assert.ok(root.querySelector('.card-view'), 'another batch started');
 });
 
+test('the Progress view lists topics weakest first with drills, and Home shows the last court cue', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const root = document.getElementById('app');
+  m.views.renderProgress(root, app);
+  assert.equal(root.querySelectorAll('table.stats tbody tr').length, 4, 'one row per topic in the sample deck');
+  assert.match(root.textContent, /not enough clocked reviews/);
+  assert.equal(root.querySelectorAll('.drill').length, 1);
+  assert.match(root.querySelector('.drill').textContent, /not seen yet/);
+  assert.ok(root.querySelector('.topbar a[href="#/progress"]'), 'the topbar links to Progress');
+  m.runSession(root, app, {});
+  answerUntilSummary(root, app);
+  const cue = root.querySelector('.takeaway .focus-cue').textContent;
+  assert.equal(app.progress.settings.last_cue.text, cue, 'the summary cue is stored');
+  assert.ok(app.progress.settings.updated_at > '2026', 'and the settings timestamp moves, so sync keeps the newest');
+  m.views.renderHome(root, app);
+  assert.equal(root.querySelector('.takeaway .focus-cue').textContent, cue, 'Home shows the cue');
+  m.views.renderProgress(root, app);
+  assert.doesNotMatch(root.querySelector('.drill').textContent, /not seen yet/, 'after a batch the drill reports retention');
+  assert.ok(root.querySelector('table.stats tbody tr td').textContent.length > 0);
+});
+
 test('closing after answering but before rating loses nothing', { skip }, async () => {
   setupDom();
   const m = await modules();

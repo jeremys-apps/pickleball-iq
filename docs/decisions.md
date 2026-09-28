@@ -99,3 +99,10 @@ it starts at the freeze, after the question and the choices were read with no
 limit (D16). A "Time to choose" setting stretches only that clock, for a slower
 search among the choices, and the suggested rating keeps the card's own window
 so the stretch never inflates ratings.
+
+**D22. Progress views derive from the log.** The Progress page computes topic
+retention, accuracy and timed-read trends from the review log and the scheduler
+at render time, and ranks drills by the retention of what they train. Nothing is
+precomputed or stored; the only addition to progress is the last court cue,
+kept in the synced settings so Home can show it. Timed-read trends use stage B
+and C reviews only, because stage A has no clock and runs in slow motion.
