@@ -11,6 +11,7 @@ import { mirrorScene } from '../court/mirror.js';
 import { h } from './dom.js';
 
 const root = document.getElementById('lab');
+const SETTINGS_OPEN_KEY = 'piq.lab.settingsOpen.v1';
 installRendererStyles();
 
 const S = {
@@ -160,9 +161,27 @@ function build() {
   // the motion bar with Play directly above the picture, the picture, and the
   // panels beside it on a laptop or below it on a phone. Everything that matters
   // while a shot plays is in view at once.
+  // Whether the settings block is open is remembered on this device, so the
+  // stage comes up first once you have folded the settings away.
+  let settingsOpen = true;
+  try {
+    settingsOpen = localStorage.getItem(SETTINGS_OPEN_KEY) !== 'false';
+  } catch {
+    /* storage unavailable: stay open */
+  }
   const settings = h(
     'details',
-    { class: 'lab-settings-wrap', open: true },
+    {
+      class: 'lab-settings-wrap',
+      open: settingsOpen,
+      ontoggle: (e) => {
+        try {
+          localStorage.setItem(SETTINGS_OPEN_KEY, String(e.target.open));
+        } catch {
+          /* ignore */
+        }
+      },
+    },
     h('summary', {}, 'Scene and settings'),
     h(
       'div',

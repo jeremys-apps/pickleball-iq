@@ -26,16 +26,18 @@
     .lab-stage .fp { background: var(--stage); border-radius: 12px; overflow: hidden; }
     .lab-stage svg { display: block; width: 100%; height: auto; }
     .lab-panels { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
-    .lab-panels .td { width: min(300px, 100%); }
-    .lab-panels .mini { width: 110px; }
-    .lab-panels .side-view { width: min(360px, 100%); }
-    .lab textarea { width: 100%; min-height: 120px; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .lab-panels .td { width: min(360px, 100%); }
+    .lab-panels .mini { width: 120px; }
+    .lab-panels .side-view { width: min(420px, 100%); }
+    .lab textarea { width: 100%; min-height: 80px; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
     .lab .readout { font-variant-numeric: tabular-nums; }
     .lab .issues li.error { color: var(--bad); }
     @media (min-width: 1000px) {
-      /* The picture's column is capped by the window height (800 x 500 is 1.6 wide; the phone preview 360 x 380 is 0.95). */
-      .lab-views { grid-template-columns: minmax(0, calc((100vh - 240px) * 1.6)) minmax(300px, 1fr); }
-      .lab-views.is-phone { grid-template-columns: minmax(0, calc((100vh - 240px) * 0.95)) minmax(300px, 1fr); }
+      /* The picture takes the largest box that fits both ways: the window height less the
+         motion bar and readout (about 170 px), and the window width less the panels column.
+         800 x 500 is 1.6 wide; the phone preview 360 x 380 is 0.95. */
+      .lab-views { grid-template-columns: minmax(0, calc((100vh - 170px) * 1.6)) minmax(320px, 1fr); }
+      .lab-views.is-phone { grid-template-columns: minmax(0, calc((100vh - 170px) * 0.95)) minmax(320px, 1fr); }
     }
   </style>
   <script type="module" src="src/ui/lab.js"></script>
