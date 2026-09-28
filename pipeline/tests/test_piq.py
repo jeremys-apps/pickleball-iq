@@ -1,5 +1,9 @@
 """Pipeline tests. Run from the repo root: python -m unittest discover -s pipeline/tests"""
+import argparse
+import contextlib
+import io
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -7,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
@@ -69,6 +74,24 @@ class FeedTests(unittest.TestCase):
         for e in a:
             self.assertRegex(e["id"], r"^402p-\d{8}-[0-9a-f]{6}$")
             self.assertRegex(e["id"] + "-t001", tip_re)
+
+
+class TranscribeTests(TempData):
+    def test_a_failed_run_reports_the_command_with_the_token_masked(self):
+        eid = "cheatcode-20250101-abcdef"
+        manifest = {"show_id": "cheatcode", "episodes": [{"id": eid, "show_id": "cheatcode", "title": "Test", "published": "2025-01-01T00:00:00+00:00", "audio_url": "x"}]}
+        self.ctx.out("work", "episodes", "cheatcode.json").write_text(json.dumps(manifest), encoding="utf-8")
+        # The "audio" is a script that exits non-zero, and the "whisperx" command is this Python, which runs it.
+        self.ctx.out("work", "audio", f"{eid}.mp3").write_text("import sys; sys.exit(3)\n", encoding="utf-8")
+        self.ctx.cfg["transcribe"]["command"] = sys.executable
+        args = argparse.Namespace(show=None, episodes=eid, match=None, limit=None, oldest_first=False, force=False, dry_run=False)
+        with mock.patch.dict(os.environ, {"HF_TOKEN": "hf_secret_token"}), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit) as cm:
+                piq.cmd_transcribe(self.ctx, args)
+        message = str(cm.exception)
+        self.assertIn("exited with status 3", message)
+        self.assertIn("$HF_TOKEN", message)
+        self.assertNotIn("hf_secret_token", message)
 
 
 class TranscriptTests(unittest.TestCase):

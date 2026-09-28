@@ -338,7 +338,11 @@ def cmd_transcribe(ctx: Ctx, args):
             continue
         print(f"{ep['id']}: transcribing ({ep['title'][:60]})")
         started = time.time()
-        subprocess.run(cmd, check=True)
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            # Never echo the real command: it carries the Hugging Face token.
+            sys.exit(f"{ep['id']}: whisperx exited with status {e.returncode} after {(time.time() - started) / 60:.1f} min. Command (token masked): {shown}")
         print(f"{ep['id']}: done in {(time.time() - started) / 60:.1f} min")
 
 
