@@ -2,7 +2,15 @@
 
 Written 2026-09-27 against the repository as found (PRD 0.4, CLAUDE.md). PRD
 requirement ids (P-, A-, T-, AC-, Q-) are used throughout. Items this plan adds
-to the PRD carry N- ids and Q9 to Q12, all proposed, none decided.
+to the PRD carry N- ids and Q9 to Q13.
+
+Revised the same evening after Jeremy's decisions and an audit against the goal
+and the PRD (section 9), and on 2026-09-28 to add the idle Oracle VM as a worker
+(Track H). Decided: Q9 video sources on hold until everything else
+is done; Q10 nothing beyond the Claude Code subscription is ever billed, so no
+API calls; Q11 earlier freezes accepted, provided reading time is never on the
+clock (section 4.1); Q12 the Progress view accepted, folded into one view; A14
+the pilot stays on Pickleball Cheat Code. Open: Q13 (section 8).
 
 ## 0. Summary
 
@@ -29,11 +37,16 @@ The shortest path to the goal is therefore not more building. It is:
    whether reads are getting faster and which topics are weak, and a drill list
    ranked by the weakness it would fix (Track D, in parallel with B and C).
 5. Fix two storage limits before the full corpus (Track E), then run the corpus.
-6. Add video sources, the one part of the goal the PRD leaves out, behind a
-   decision (Track F). Later work is listed in Track G.
+6. Video sources, the one part of the goal the PRD leaves out, are designed in
+   Track F and on hold until everything else is done (Q9). Later work is listed
+   in Track G.
+7. Use the always-on Oracle VM as a Linux worker: the transcription fallback,
+   the host for the headless extraction loop, and a daily job that keeps up with
+   new episodes once the corpus is done (Track H).
 
-Dependencies: A before B; B before C; C before E; D runs alongside B and C; F
-any time after A; G after E.
+Dependencies: A before B; B before C; C before E; D runs alongside B and C; G
+after E; F only after G, when Q9 is reopened. H1 any time after A (needed early
+only if the Windows WhisperX install fails); H4 after E4.
 
 ## 1. Repository analysis
 
@@ -70,7 +83,7 @@ Not read anywhere: `tags`, `levels`, `format`, `topic`. Track D2 starts reading
 
 | Item | Found |
 |---|---|
-| Git | Not a repository (no `.git`, no history) |
+| Git | Not a repository at the first pass. Since then Jeremy initialized it, committed once ("Initial commit", 112 files, this plan included), pushed it, then on 2026-09-28 transferred it to the free organization `jeremys-apps`, made it public and enabled Pages. Remote `git@github.com:jeremys-apps/pickleball-iq.git`, branch `main`; the app is live at https://jeremys-apps.github.io/pickleball-iq/ (app and lab load; the deployed manifest version matches this clone). `node_modules` and `.venv` ignored |
 | Data repo `../pickleball-iq-data` | Does not exist |
 | Node, Python | Node 24.15, Python 3.13.5 |
 | `node_modules`, `.venv` | Were absent; created today for the test runs (both are gitignored) |
@@ -80,7 +93,9 @@ Not read anywhere: `tags`, `levels`, `format`, `topic`. Track D2 starts reading
 | `HF_TOKEN` | Not set |
 | `gh` CLI | Not installed |
 | `claude` CLI | Installed (headless loops possible) |
+| `ANTHROPIC_API_KEY` | Unset, which keeps Claude Code on the subscription (A15) |
 | `yt-dlp` | Not installed (only needed for Track F) |
+| Oracle Cloud VM | VM.Standard.A1.Flex: 4 OCPU (Ampere, ARM), 24 GB memory, block storage, Ubuntu 24.04, PostgreSQL already running, otherwise idle. No GPU. Public IP with SSH |
 
 The GPU matters: `pipeline/config/piq.yaml` defaults to `large-v3`, `float16`,
 `batch_size: 16`, which is sized for a card with more memory. See A4.
@@ -164,16 +179,18 @@ that the right play becomes instinct in fast games.
 
 | Goal element | PRD and code today | Gap | Proposal |
 |---|---|---|---|
-| Videos as a source | Two podcasts (section 4.1). YouTube is "not in the pipeline yet"; `download` reads RSS enclosures only | Real gap | Track F: `kind: youtube` shows resolved and downloaded with yt-dlp, same transcription, speaker and endorsement rules; provenance links jump to the timestamp. Decision Q9 |
+| Videos as a source | Two podcasts (section 4.1). YouTube is "not in the pipeline yet"; `download` reads RSS enclosures only | Real gap, on hold by Q9 | Track F, designed and parked: `kind: youtube` shows resolved and downloaded with yt-dlp, same transcription, speaker and endorsement rules; provenance links jump to the timestamp. Revisit after Track G |
+| No cost beyond the Claude Code subscription (Q10) | The PRD offers an API extraction path (`extract-api`, D9) and assumes GitHub Pages; the repository as pushed is private on the personal account | Pages on a private repository is a paid feature, and the API path bills per token | No API calls anywhere (A15, Track E4); the app repository becomes public (decided); where it is served from is Q13 |
 | Instinct in fast games | Timed occlusion cards, stage fading, real speed at maturity: built. T-2 (earlier freeze as cards mature) and T-5 (response-time trends) deferred to Phase 5 | The app cannot yet show whether reads are getting faster, and timed cards never get harder to read | Track D1 (T-2) and D2 (T-5, a Progress view). Both are pure app work with no content dependency; promote them to the MVP |
-| Drills: what to practice for the fastest improvement | `drill_recall` cards; the batch summary suggests a drill after a miss (A-4); `trains` links drills to principles | No place to ask "what should I drill this week?" | Track D3: a Drills view ranked by the retention of what each drill trains (N-2) |
+| Drills: what to practice for the fastest improvement | `drill_recall` cards; the batch summary suggests a drill after a miss (A-4); `trains` links drills to principles | No place to ask "what should I drill this week?" | Track D3: a drills section in the Progress view, ranked by the retention of what each drill trains (N-2) |
 | Remind me | Spaced repetition; one court cue per batch summary (G5) | The cue is gone once the summary closes | Track D4: keep the last cue on the Home screen and sync it (N-3). Small |
 | Form | `form_cue` recall and `text_mc` fix-the-mistake cards; external-focus cues; form taught as the pros' words, not drawn (8.10) | Adequate for a quiz app. Videos add a limit: a demonstration that is shown, not said, cannot be extracted | Track F adds a prompt rule: flag tips that depend on a visual demonstration for review |
 | Strategy | Court cards, scenes, formations, mirroring, choice pools: built | None | Content (Track B, E4) |
 | Short daily habit | Batches, Keep going, phone layout: built | Unverified on a real phone | Track C |
 | Trustworthy, private | Endorsement rules, provenance, private data repo, CSP: built | Unverified against real GitHub | Track C4, C5 |
 | Full corpus (about 120 episodes, 70 hours) | Headless loop documented | Two storage limits: the deck cache lives in localStorage (about 5 MB on iOS Safari, shared with progress); progress grows by roughly 2 to 5 MB a year | Track E1 (deck cache to Cache Storage), E2 (fetch the deck only when it changed), E3 (progress to IndexedDB when it nears the limit) |
-| Run it here | PRD section 3 assumes a GPU machine | 6 GB GPU; WhisperX not installed; no git; no data repo | Track A |
+| Run it here | PRD section 3 assumes a GPU machine | 6 GB GPU; WhisperX not installed; no git; no data repo | Track A, with the VM as the Linux fallback (Track H2) |
+| Keep up with new episodes | The PRD ends at Phase 4, the full corpus; nothing runs afterwards without a manual session | New episodes arrive weekly and would pile up | Track H4: a daily job on the VM fetches, downloads and transcribes what is new and commits the transcripts; the Claude steps run on demand (N-6) |
 
 Things considered and left alone, because the PRD already serves the goal well:
 the no-framework decision, FSRS at 90 percent retention, the endorsement
@@ -232,6 +249,29 @@ stage A freeze). `prompts/generate-cards.md` keeps its 100 to 200 ms rule; the
 prompt gains one sentence saying the app freezes up to 250 ms earlier for mature
 cards, so the last segment should last at least 400 ms.
 
+Reading time is never on the clock (Q5, Q11). The question and the choices are
+on screen before Play with no limit; the same choices stay in the same positions
+after the freeze, so the clock covers only reading the ball and tapping a choice
+already located (keys 1 to 4 on the laptop). Stage A has no clock. T-2 shortens
+the visible flight, not the clock. Two additions make this checkable and
+tunable (N-5):
+
+```js
+// app/src/store/settings.js
+export const DEFAULT_SETTINGS = Object.freeze({ /* existing */ chooseTimeScale: 1 });
+// 1, 1.25, 1.5 or 2. Settings label: "Time to choose on timed cards".
+
+// app/src/ui/card-view.js
+// designWindowMs: response_window_ms x stage.windowScale (unchanged; drives the rating suggestion)
+// windowMs:       designWindowMs x settings.chooseTimeScale (drives the clock and the timeout)
+// suggestRating({ correct, responseMs, windowMs: designWindowMs })   a stretched clock never inflates ratings
+```
+
+The Progress view reports timeouts on timed cards separately from wrong answers
+(`timedTrend().timeouts`). If timeouts cluster on cards with four long choices,
+the fix is the multiplier or shorter choices (the validator already warns above
+60 characters), never a later freeze.
+
 ### 4.2 Track D2: progress statistics (T-5) and Track D3: drill ranking (N-2)
 
 ```js
@@ -242,7 +282,8 @@ cards, so the last segment should last at least 400 ms.
 // early = first k logs by reviewed_at, late = last k, k = min(window, floor(n / 2)).
 export function timedTrend(logs, { window = 10 } = {})
 // logs: progress log entries (any order) of timed_decision cards with response_ms != null
-// -> { n, earlyMedianMs, lateMedianMs, deltaMs, earlyAccuracy, lateAccuracy } | null when n < 6
+// -> { n, timeouts, earlyMedianMs, lateMedianMs, deltaMs, earlyAccuracy, lateAccuracy } | null when n < 6
+//    timeouts: logs with choice == null (time ran out before a choice), so a search problem shows up as such
 
 // One row per topic (principle.topic, falling back to principle.category).
 // Only cards present in the current deck count; logs for unknown cards are ignored.
@@ -274,19 +315,20 @@ export function drillPlan(index, progress, { scheduler, now = new Date() } = {})
 Views, in `app/src/ui/views.js`:
 
 ```js
-export function renderProgress(root, app)  // route #/progress. Headline: timedTrend over all timed logs. Table from topicStats. Plain HTML tables.
-export function renderDrills(root, app)    // route #/drills. One block per drillPlan entry: statement, action, what it trains with retention percentages, links to preview its cards.
+export function renderProgress(root, app)
+// route #/progress, one view in three parts: the headline (timedTrend over all timed logs, with timeouts),
+// a table from topicStats, and a Drills section (one block per drillPlan entry: statement, action, what it
+// trains with retention percentages, links to preview its cards). Plain HTML tables and lists.
 ```
 
-Navigation: `app/src/ui/chrome.js` shows Cards and Settings at every width; Lab,
-Drills and Progress only at 900 px and wider (the phone topbar has no room for
-five links). `renderHome` links to Drills and Progress next to "Browse all N
-cards", so both are one tap from Home on the phone.
+Navigation: `app/src/ui/chrome.js` gains one link, Progress, so the topbar holds
+Cards, Lab, Progress and Settings; Lab hides below 900 px, where it is not
+useful. `renderHome` also links to Progress next to "Browse all N cards".
 
 Data contract: nothing new is stored. `principle.topic` becomes load-bearing
 for grouping; it stays optional in the schema (fallback to `category`). The
 sample deck's drill principle gets `trains: ["p-below-net-reset"]` so the
-Drills view and the existing summary suggestion are exercised by tests.
+drills section and the existing summary suggestion are exercised by tests.
 
 ### 4.3 Track D4: the last court cue on Home (N-3)
 
@@ -426,6 +468,51 @@ so only pro-run channels are worth adding.
 - Weak-topic practice: `planBatch` gets an optional `topics` filter and reuses
   `topicStats`.
 
+### 4.9 Track H: the VM as a worker (N-6)
+
+Machine-specific pipeline settings move out of the shared config, which the
+laptop needs as well (Track A4):
+
+```python
+# pipeline/piq.py
+def load_config(path: Path) -> dict:
+    """piq.yaml with piq.local.yaml from the same directory merged over it, one level deep:
+    top-level scalars replace, top-level dicts merge key by key. piq.local.yaml is gitignored and
+    holds what differs per machine: transcribe.device, compute_type, batch_size, command, data_dir."""
+# Ctx.__init__ calls load_config; nothing else changes. pipeline/config/piq.local.example.yaml documents it.
+
+# cmd_list gains one flag for unattended runs:
+#   list --stage extract --pending --skip-flagged
+#   leaves out episodes whose speaker map has needs_review: true; those wait for Jeremy on the laptop.
+```
+
+```bash
+# pipeline/cron/new-episodes.sh   (runs on the VM from cron; usable by hand for the backlog)
+# Environment from ~/.config/piq/env (chmod 600): HF_TOKEN, PIQ_CODE_DIR, PIQ_DATA_DIR,
+#   PIQ_MAX_EPISODES (default 2), PIQ_RUN_CLAUDE (default 0).
+# 1. flock on $PIQ_DATA_DIR/.cron.lock; exit quietly if a previous run is still transcribing.
+# 2. git pull --rebase in the data repo.
+# 3. piq.py feeds; then for at most PIQ_MAX_EPISODES episodes from `list --stage download --pending`:
+#    download, then transcribe (CPU settings from piq.local.yaml).
+# 4. If PIQ_RUN_CLAUDE=1: for each `list --stage speakers --pending`, `claude -p` with the map-speakers
+#    skill; prepare; for each `list --stage extract --pending --skip-flagged`, `claude -p` with the
+#    extract-episode skill. Allowed tools limited to Read, Grep, Write and Bash for `python pipeline/piq.py`.
+# 5. git add work/episodes work/transcripts work/speakers work/prepared work/tips; commit; push, with
+#    one pull --rebase and retry if the app committed a progress file in between.
+# The VM writes only these paths. The laptop owns work/review, content and deck; the app owns progress.
+# Logs go to ~/piq-logs/, outside both repositories. A run with nothing new still commits the refreshed
+# manifests; that is harmless.
+```
+
+Steady state after Track E: the job runs daily at 03:00 with `PIQ_MAX_EPISODES=2`.
+Jeremy, when he has time: `git pull` in the data repo, `/review-queue`,
+`/merge-principles`, `/generate-cards`, `validate`, `build-deck`, push; the app
+picks up the new deck at its next sync. The same script with
+`PIQ_MAX_EPISODES=200` and `PIQ_RUN_CLAUDE=1`, started by hand in `tmux`, is the
+loop host for Track E4. One optional trim while there: `cmd_transcribe` writes
+every WhisperX output format, and only the JSON is read, so `--output_format
+json` would keep the data repo several times smaller.
+
 ## 5. Assumptions
 
 Flagged C where a wrong assumption changes correctness, S where it changes only
@@ -436,17 +523,22 @@ schedule or scope.
 | A1 | The PRD's decisions Q1 to Q8 stand (pro tiers, implicit endorsements kept, no caps, reduced motion respected, own origin) | C | Content rules and session behavior change; nothing in this plan depends on reversing them |
 | A2 | Phone is an iPhone with Safari, laptop runs Chrome (PRD section 3). Both support Cache Storage and IndexedDB; iOS Safari's localStorage quota is treated as 5 MB shared by the origin | C for E1 timing | If the quota is larger, E1 and E3 can wait longer; the design is the same |
 | A3 | GitHub contents API: raw reads work up to 100 MB; `If-None-Match` returns 304 on the raw media type; PUT accepts files of several MB | C for E2, S for progress growth | C5 verifies with throwaway requests; E2 falls back to the sha comparison; a PUT limit would force splitting progress files, which changes the merge and needs its own design |
-| A4 | WhisperX large-v3 runs on the 6 GB GTX 1660 Ti with `batch_size: 4` (`int8` if float16 runs out of memory); a Windows CUDA install may need the cuDNN wheel (`nvidia-cudnn-cu12`) on PATH; roughly 10 to 20 minutes per hour of audio | S | CPU with `int8` takes days for the corpus; a rented GPU or a smaller model (`large-v3-turbo` if the installed WhisperX supports it) are the fallbacks; the pilot's dry run and first episode decide |
+| A4 | WhisperX large-v3 runs on the 6 GB GTX 1660 Ti with `batch_size: 4` (`int8` if float16 runs out of memory); a Windows CUDA install may need the cuDNN wheel (`nvidia-cudnn-cu12`) on PATH, and WhisperX's pins may not accept the laptop's Python 3.13, so its venv should use 3.12; roughly 10 to 20 minutes per hour of audio | S | The VM (Track H2) is the fallback: an easy Linux install, but CPU only, around real time or slower, so about a week of unattended work for the corpus; a smaller model (`large-v3-turbo` if the installed WhisperX supports it) is the other lever; the pilot's dry run and first episode decide |
 | A5 | A review log entry is about 330 bytes; 20 to 40 cards a day is 2.4 to 4.8 MB a year | C for when E3 triggers | The Settings size readout (E1) makes the real rate visible |
 | A6 | The full corpus yields roughly 600 principles and 1,500 cards, a deck of 3 to 6 MB (3.1 KB per card in the sample deck) | C for E1 | Any deck over about 2 MB already needs E1, so the conclusion holds for any plausible corpus |
 | A7 | Replay-from-full-history stays the merge rule; logs are never compacted | C | Compaction would need a per-card base state and a floor agreed across devices; not planned |
 | A8 | `merge-principles` fills `principle.topic` (the prompt asks for it; the schema leaves it optional) | S | Progress rows fall back to `category`, which is coarser but correct |
 | A9 | Timed-card response times are comparable only within stages B and C (clock starts at the freeze; stage A is untimed and slowed) | C for T-5 | `timedTrend` excludes stage A by contract; if the earlier freeze in C skews trends, report B and C separately |
-| A10 | Jeremy is comfortable downloading YouTube audio with yt-dlp for personal study (YouTube's terms restrict downloading) and will name pro-run channels whose credentials he verifies | S | Track F is skipped; nothing else depends on it |
+| A10 | On hold with Track F (Q9). When revisited: Jeremy is comfortable downloading YouTube audio with yt-dlp for personal study (YouTube's terms restrict downloading) and names pro-run channels whose credentials he verifies | S | Track F stays parked; nothing else depends on it |
 | A11 | Freeze leads of 120 ms (B) and 250 ms (C) are starting values | S | Tune in the lab with the pilot's timed scenes; the clamp keeps every card playable |
 | A12 | One user, two devices, each device writes only its own progress file (D6) | C | A third device works the same way; concurrent tabs on one device already refresh the sha once |
 | A13 | The Pages site is served from a free organization's origin (Q7, D14); the repository name is free | S | A personal-account project site would share storage with the other Pages project, which the PRD rules out |
 | A14 | The pilot show stays Pickleball Cheat Code, first five episodes (`/run-pilot cheatcode 5`) | S | Any show in `sources.yaml` works; only the speaker map evidence differs |
+| A15 | Every Claude step runs inside Claude Code on the subscription: the interactive skills, subagents, and the headless `claude -p` loop. Claude Code bills per token only when it runs on an API key, so `ANTHROPIC_API_KEY` stays unset (it is unset today) and `extract-api` is never run. Quality is not the trade-off: the subscription runs the same or stronger models than the API path. Pace is: plan usage limits spread the corpus over more days | C for cost | If a headless run ever prompts for or picks up an API key, stop and fix the environment first; if usage limits make the corpus slow, the answer is more days, never money |
+| A16 | GitHub Pages is free only for public repositories, and the PRD wants the app on its own origin (Q7, D14). The repository is on the personal account; Jeremy will make it public and has no organization | C for token isolation | Q13 decides between a free organization, the personal account with the shared-origin risk accepted, or a free static host with its own origin. Whichever it is, the token stays scoped to one private repository with an expiry, so the worst case is exposure of the deck and progress, not of anything else |
+| A17 | Reading time stays off the clock (Q5): choices are read before Play and keep their positions at the freeze | C for timed cards | If real use still produces timeouts before a choice is found, raise `chooseTimeScale` (N-5) or show fewer choices on timed cards; never lengthen the freeze |
+| A18 | The VM is disposable: everything it produces is committed to the data repo, and audio can be re-downloaded. Oracle may reclaim Always Free instances that stay idle for a week (95th-percentile CPU under 20 percent) on accounts never upgraded to pay-as-you-go; a daily job of an hour or two does not change that | S | Reclamation costs a rebuild from the H1 checklist, nothing else; upgrading the account to pay-as-you-go removes the rule and stays free for these resources |
+| A19 | WhisperX, ctranslate2 and PyTorch have Linux aarch64 wheels, and Claude Code has a Linux ARM64 build whose subscription login works over SSH without a browser on the VM | S for H2 and H3 | If a wheel is missing, H2 uses a smaller model or is dropped; if Claude Code cannot log in headless, H3 runs on the laptop and the cron stays mechanical |
 
 ## 6. Implementation plan
 
@@ -458,11 +550,11 @@ the requirement id in the message.
 
 | Step | Work | Verify |
 |---|---|---|
-| A1 | `git init`, commit everything (this plan included). `node_modules`, `.venv`, `app/data/deck.json` are already ignored | `npm test`, pipeline tests, `npm run sw` (manifest unchanged), `git status` clean |
-| A2 | Jeremy: create the free GitHub organization and an empty public repository; push. Enable Pages with source GitHub Actions. The workflow publishes `app/` | The Pages URL serves the sample deck; `lab.html` opens; the app installs on the phone |
-| A3 | Jeremy: create the private data repository under the personal account and the fine-grained token (that repo only, Contents read and write, expiry). Claude: clone it next to this repo with the `.gitignore` from `pipeline/README.md`, or set `PIQ_DATA_DIR` | `python pipeline/piq.py status` reports no manifests yet rather than a missing directory |
-| A4 | WhisperX environment: separate venv, CUDA build of PyTorch matching the driver, `pip install whisperx`, `whisperx --help`. Jeremy: Hugging Face read token, accept the pyannote model terms, `export HF_TOKEN`. Set `transcribe.batch_size: 4` in `piq.yaml` with a comment about 6 GB cards; keep `float16`, note `int8` as the fallback | `python pipeline/piq.py transcribe --episodes <id> --dry-run` prints the command with the token masked |
-| A5 | Optional: `gh` CLI (repo creation from the terminal), `yt-dlp` into the pipeline venv if Q9 is yes | `gh auth status`, `yt-dlp --version` |
+| A1 | Done by Jeremy: initialized, one commit ("Initial commit", 112 files, this plan included), pushed. `node_modules`, `.venv`, `app/data/deck.json` are ignored | Verified: clean working tree, ignores in force |
+| A2 | Done 2026-09-28: organization `jeremys-apps` created, repository transferred and made public, Pages source set to GitHub Actions, workflow run by hand and succeeded (the push-triggered run before that setting had failed, as expected). This clone's remote repointed | Verified through the API and by fetching the site: https://jeremys-apps.github.io/pickleball-iq/ serves the sample deck, `lab.html` opens, the deployed manifest matches this clone; Jeremy sees it on the laptop and the phone |
+| A3 | Done 2026-09-28: `ViciousJ/pickleball-iq-data` created private on GitHub by Jeremy; initialized locally at `../pickleball-iq-data` with the ignore rules (audio, spot-check clips, partial downloads, the cron lock) and `origin` attached; first push by Jeremy, since the permission system declines pushes from this session. The fine-grained token waits until the pilot deck exists (Track C) | `python pipeline/piq.py status` reports no manifests yet rather than a missing directory |
+| A4 | First land the config overlay from section 4.9 (`load_config`, `piq.local.example.yaml`, gitignore, test). Then the WhisperX environment: separate venv on Python 3.12, CUDA build of PyTorch matching the driver, `pip install whisperx`, `whisperx --help`. Jeremy: Hugging Face read token; accept the terms on `pyannote/speaker-diarization-community-1` (the model the current WhisperX README names; the older `pyannote/speaker-diarization-3.1` and `pyannote/segmentation-3.0` pages are worth accepting too, in case an installed release still uses them); `HF_TOKEN` as a Windows user environment variable. The laptop's `piq.local.yaml`: `batch_size: 4` for the 6 GB card, `float16` with `int8` as the fallback, the venv's `whisperx` path. Time box: if CUDA on Windows is not working after one session, switch to Track H2 rather than keep digging | `python pipeline/piq.py transcribe --episodes <id> --dry-run` prints the command with the token masked; the pipeline tests cover the overlay |
+| A5 | Optional: `gh` CLI (repository creation and transfer from the terminal). No `yt-dlp` while Track F is on hold | `gh auth status` |
 | A6 | Docs: README step 0 (`git init`), pipeline README GPU-memory paragraph and the Windows cuDNN note, PRD section 3 machine facts and test date | Read-through |
 
 Exit: repository online, Pages live on the sample deck, data repo cloned, WhisperX
@@ -505,9 +597,9 @@ Exit: AC-2 to AC-5 marked passing on devices in the PRD. Daily use begins here.
 
 | Step | Work | Tests |
 |---|---|---|
-| D1 (T-2) | `freezeLeadMs` on the stages, clamped early freeze in `compileTimeline`, `play(0, { toEnd: true })` for the post-answer replay, lab control, prompt sentence about minimum last-segment length, PRD 8.4 gains a Freeze column, T-2 marked built, decision D21 | `compileTimeline(occlusionScene, { freezeLeadMs: 250 }).freezeAt === 2080`; the clamp on a scene with a short last segment; `applyAidPreference` keeps the lead; a card-view test that stage C freezes earlier than stage A and that the replay reaches the end |
+| D1 (T-2, N-5) | `freezeLeadMs` on the stages, clamped early freeze in `compileTimeline`, `play(0, { toEnd: true })` for the post-answer replay, lab control, prompt sentence about minimum last-segment length; `chooseTimeScale` in Settings applied to the clock only; PRD 8.4 gains a Freeze column and A-8 the new setting, T-2 marked built, decision D21 | `compileTimeline(occlusionScene, { freezeLeadMs: 250 }).freezeAt === 2080`; the clamp on a scene with a short last segment; `applyAidPreference` keeps the lead; a card-view test that stage C freezes earlier than stage A and that the replay reaches the end; a card-view test that a 2x multiplier doubles the timeout and leaves the suggested rating unchanged |
 | D2 (T-5) | `app/src/stats.js` with `timedTrend` and `topicStats`; Progress view and route; nav rules; PRD section 8.11 (N-4 Progress view) and T-5 marked built | Median and window arithmetic on synthetic logs; stage A logs excluded; unknown cards ignored; topic fallback to category; ordering; a jsdom render with the sample deck after a batch |
-| D3 (N-2) | `drillPlan`; Drills view and route; `trains` added to the sample drill principle; PRD Phase 6 item moved to built | Ranking with two drills where one trains a lapsed principle; drills without seen targets sort last; render smoke test |
+| D3 (N-2) | `drillPlan`; the Drills section inside the Progress view; `trains` added to the sample drill principle; PRD Phase 6 item moved to built | Ranking with two drills where one trains a lapsed principle; drills without seen targets sort last; render smoke test |
 | D4 (N-3) | `focusCue` returns the card; `endBatch` stores `last_cue`; Home shows it; schema documents it | After a batch, `progress.settings.last_cue.text` equals the summary cue; Home renders it; merge keeps the newer cue |
 
 All four: `npm test`, `npm run sw`, decisions.md entries (D21 earlier freeze by
@@ -519,18 +611,27 @@ the last cue), PRD status rows.
 | Step | Work | Trigger and tests |
 |---|---|---|
 | E1 | Deck cache in Cache Storage with localStorage migration; Settings size readout; PRD 8.7 updated; decision D23 (deck cache off localStorage; logs never compacted, A7) | Before the first deck over 1 MB. Tests with an in-memory `caches` stub: write, read, migrate, fallback without `caches` |
-| E2 | `getTextIfChanged`, `pullDeck` with etag, the etag key; sync skips re-indexing when unchanged | After C5 decides ETag or sha. Fake-API test returns 304 on a matching `If-None-Match` |
+| E2 (optional) | `getTextIfChanged`, `pullDeck` with etag, the etag key; sync skips re-indexing when unchanged | Only if deck pulls feel slow on the phone after E1; a few MB per sync on Wi-Fi is acceptable. After C5 decides ETag or sha. Fake-API test returns 304 on a matching `If-None-Match` |
 | E3 | `kv.js` with the three stores; `loadProgress` async with migration; write-behind `saveProgress`; `syncNow` awaits the queue | When Settings shows progress above 2 MB, or before the second year of use, whichever first. Existing progress, session and UI tests switch to `memoryStore` |
-| E4 | Phase 4: `feeds` for both shows, `download` in batches, `transcribe` overnight, the headless `claude -p` loop from `pipeline/README.md` per episode, review in batches, merge, cards, deck. Decide the extraction path (Q10) | Same exit criteria as the pilot per batch of episodes; `build-deck` warnings clean; lab checks on a sample of new scenes |
+| E4 | Phase 4: `feeds` for both shows, `download` in batches, `transcribe` overnight on the GPU (or on the VM, H2), the headless `claude -p` loop per episode on the laptop or on the VM with `pipeline/cron/new-episodes.sh` (H3; subscription only, Q10), review in batches, merge, cards, deck | Same exit criteria as the pilot per batch of episodes; `build-deck` warnings clean; lab checks on a sample of new scenes |
 
-Cost note for Q10: the optional `extract-api` path is priced per token. A one-hour
-episode is roughly 15k input and 5k output tokens, so the corpus is about $25
-with `claude-opus-5` ($5 and $25 per million tokens) or about $10 with the
-configured `claude-sonnet-5` ($2 and $10). Endorsement judgment is the step the
-spot-check gates, so if the API path is used, run it on `claude-opus-5`. The
-default path (skills inside Claude Code) has no per-token cost.
+Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
+subscription, interactively or through the headless `claude -p` loop in
+`pipeline/README.md`. The `extract-api` command is never run; its `extract:`
+block in `piq.yaml` stays as documentation only. Before a headless loop, check
+that `ANTHROPIC_API_KEY` is unset in that shell. Quality does not suffer: the
+subscription runs the same or stronger models. What changes is pace: the corpus
+is about 120 transcripts of roughly 15k tokens each, so plan usage limits will
+spread it over several days. The loop is resumable per episode
+(`piq.py list --stage extract --pending`), so stopping and restarting costs
+nothing. Everything else in this plan is free: WhisperX runs locally, the
+Hugging Face token and the GitHub organization cost nothing, and Pages is free
+once the repository is public (Q13).
 
-### Track F: video sources (one or two sessions; only after Q9 is yes)
+### Track F: video sources (on hold by Q9; one or two sessions when reopened, after Track G)
+
+Nothing here starts until Jeremy reopens Q9. The design in section 4.7 is kept
+so that the decision can be made with the work known.
 
 | Step | Work | Tests |
 |---|---|---|
@@ -543,6 +644,19 @@ default path (skills inside Claude Code) has no per-token cost.
 Exit: one channel's first videos through the whole pipeline with the same
 spot-check bar as the pilot.
 
+### Track H: the VM as a worker (setup any time after A; the daily job after E4)
+
+| Step | Work | Verify |
+|---|---|---|
+| H1 | Setup on the VM, once: a `piq` user, `git`, `ffmpeg`, a Python 3.12 venv with `pipeline/requirements.txt` and `whisperx` (CPU wheels), a deploy key with write access to the private data repo and a plain clone of the public code repo, `~/.config/piq/env` with `HF_TOKEN` and the paths, `piq.local.yaml` with `device: cpu` and `compute_type: int8`, `.cron.lock` in the data repo's `.gitignore`, unattended security updates. Nothing else lives on the VM | `python pipeline/piq.py transcribe --dry-run` prints a CPU command; a test commit from the VM reaches the data repo |
+| H2 | Transcription fallback for Track B or E4: run `feeds`, `download`, `transcribe` on the VM for the chosen episodes, commit, push; continue on the laptop after `git pull` | Transcripts appear in the data repo; `piq.py status` on the laptop shows them |
+| H3 | Loop host for E4: Claude Code installed on the VM and logged in with the subscription; `pipeline/cron/new-episodes.sh` run by hand in `tmux` with `PIQ_MAX_EPISODES=200 PIQ_RUN_CLAUDE=1`; review, merge and cards stay on the laptop | `ANTHROPIC_API_KEY` unset on the VM (A15); tips files land in the data repo and pass `validate` |
+| H4 | Keeping up (N-6): `pipeline/cron/new-episodes.sh` in the VM's crontab, daily at 03:00, `PIQ_MAX_EPISODES=2`, mechanical stages only until the pilot and E4 have shown headless extraction to be trustworthy, then `PIQ_RUN_CLAUDE=1`. `--skip-flagged` keeps doubtful speaker maps for Jeremy. PRD section 10 gets a steady-state paragraph; decision D24 | A new episode is transcribed within a day of release without anyone touching the laptop; `~/piq-logs/` shows the run; `git log` in the data repo shows the cron commit |
+
+Worth it? H1 is about an hour once and serves all three uses; the code changes
+are small (a config overlay, one flag, one script, tests). The VM's value is
+that it is always on and Linux, not that it is fast.
+
 ### Track G: later
 
 T-1 read-the-shot cards (needs D1's `toEnd` replay and the `asks` field), T-3
@@ -554,9 +668,9 @@ idea to evaluate after the Progress view shows real trends.
 ### When the goal is being met
 
 Daily sessions on real content; the Progress view shows timed-read medians
-falling or holding at stage C with accuracy steady; weak topics are visible and
-the Drills view names what to practice; every card still shows who said it and
-where.
+falling or holding at stage C with accuracy steady and few timeouts; weak topics
+are visible and the drills section names what to practice; every card still
+shows who said it and where.
 
 ## 7. Files to modify
 
@@ -567,11 +681,15 @@ are content, not code.
 
 | File | Change |
 |---|---|
-| `.git/` (new) | Repository initialized, first commit |
-| `plan.md` (new) | This plan |
-| `README.md` | Step 0: `git init` and first commit before the deploy steps |
-| `pipeline/README.md` | GPU-memory settings for 6 GB cards; Windows CUDA and cuDNN note; `yt-dlp` install line if Q9 is yes |
-| `pipeline/config/piq.yaml` | `transcribe.batch_size: 4` with a comment; `int8` fallback comment |
+| `.git/` | Done: initialized and pushed by Jeremy; remote updated after the transfer (Q13) |
+| `plan.md` | This plan, revised |
+| `README.md` | Step 0: `git init` and first commit before the deploy steps; note that the repository must be public for free Pages |
+| `pipeline/README.md` | GPU-memory settings for 6 GB cards; Windows CUDA and cuDNN note; the headless loop runs on the subscription with `ANTHROPIC_API_KEY` unset |
+| `pipeline/config/piq.yaml` | Comment pointing to `piq.local.yaml` for machine settings, with the 6 GB GPU and CPU examples |
+| `pipeline/piq.py` | `load_config` with the `piq.local.yaml` overlay (section 4.9) |
+| `pipeline/config/piq.local.example.yaml` (new) | Documented example of the overlay |
+| `.gitignore` | `pipeline/config/piq.local.yaml` |
+| `pipeline/tests/test_piq.py` | Overlay test: a local file changes `transcribe.device` and leaves the other keys intact |
 | `docs/PRD.md` | Section 3 machine facts; status line with the test date |
 | `.claude/skills/run-pilot/SKILL.md` | Preflight line: on cards with 6 GB or less, batch size 4 |
 
@@ -600,6 +718,8 @@ own commit with the reason).
 | `app/src/court/playback.js` | `MIN_FLIGHT_MS`, `compileTimeline(scene, { freezeLeadMs })`, `authoredFreezeAt`, `play(fromMs, { toEnd })` |
 | `app/src/ui/card-view.js` | Pass the lead; replay to the end after the answer |
 | `app/src/ui/lab.js` | Freeze control and readout |
+| `app/src/store/settings.js` | `chooseTimeScale` default (N-5) |
+| `app/src/ui/views.js` | Settings field "Time to choose on timed cards" (N-5) |
 | `prompts/generate-cards.md` | Minimum last-segment duration note |
 | `tests/render.test.mjs`, `tests/scheduler.test.mjs`, `tests/ui.test.mjs` | Tests listed in section 6 |
 | `docs/PRD.md`, `docs/decisions.md`, `docs/rendering-notes.md` | 8.4 Freeze column, T-2 built, D21, playback paragraph |
@@ -611,15 +731,15 @@ own commit with the reason).
 |---|---|
 | `app/src/stats.js` (new) | `timedTrend`, `topicStats`, `drillPlan` |
 | `tests/stats.test.mjs` (new) | Unit tests for all three |
-| `app/src/ui/views.js` | `renderProgress`, `renderDrills`, Home links and last cue |
-| `app/src/ui/chrome.js` | Nav links with the width rule |
-| `app/src/main.js` | Routes `progress` and `drills` |
+| `app/src/ui/views.js` | `renderProgress` with the drills section, Home link and last cue |
+| `app/src/ui/chrome.js` | Progress link; Lab hidden below 900 px |
+| `app/src/main.js` | Route `progress` |
 | `app/src/ui/session.js` | `focusCue` returns the card; `endBatch` stores `last_cue` |
 | `app/styles.css` | Table styles for the Progress view; nav visibility below 900 px |
 | `app/data/deck.sample.json` | `trains` on the sample drill principle |
 | `schemas/progress.schema.json` | Document `settings.last_cue` |
 | `tests/ui.test.mjs`, `tests/session.test.mjs` | Render smoke tests; last-cue test |
-| `docs/PRD.md`, `docs/decisions.md` | Section 8.11 Progress view (N-4), Drills view (N-2), Home cue (N-3), T-5 built, D22 |
+| `docs/PRD.md`, `docs/decisions.md` | Section 8.11 Progress view (N-4) with its drills section (N-2), Home cue (N-3), the time-to-choose setting in A-8 (N-5), T-5 built, D22 |
 | `app/sw-manifest.js` | Regenerated |
 
 ### Track E
@@ -633,10 +753,19 @@ own commit with the reason).
 | `tests/deck.test.mjs` (new), `tests/github-sync.test.mjs`, `tests/ui.test.mjs` | Cache stub tests; 304 handling |
 | `app/src/store/kv.js` (new), `app/src/store/progress.js`, `app/src/main.js`, `app/src/ui/session.js`, `app/src/ui/views.js`, `tests/progress.test.mjs`, `tests/session.test.mjs` | E3, when triggered |
 | `docs/PRD.md`, `docs/decisions.md` | 8.7 storage paragraph with the numbers; risk table row; D23 |
-| `pipeline/config/piq.yaml` | `extract.model` if the API path is chosen for E4 |
 | `app/sw-manifest.js` | Regenerated |
 
-### Track F
+### Track H
+
+| File | Change |
+|---|---|
+| `pipeline/piq.py` | `--skip-flagged` on `list`; optionally `--output_format json` in `cmd_transcribe` |
+| `pipeline/cron/new-episodes.sh` (new) | The job described in section 4.9 |
+| `pipeline/tests/test_piq.py` | `--skip-flagged` test with a flagged and an unflagged speaker map |
+| `pipeline/README.md` | "VM worker" section: setup checklist, env file, crontab line, what the VM owns and what it never touches |
+| `docs/PRD.md`, `docs/decisions.md` | Section 5 layout (`pipeline/cron/`), section 10 steady state after Phase 4 (N-6), D24 (the VM runs mechanical stages; everything it makes is in git, so it is disposable) |
+
+### Track F (on hold, Q9)
 
 | File | Change |
 |---|---|
@@ -652,12 +781,43 @@ own commit with the reason).
 | `docs/sources.md`, `docs/PRD.md`, `pipeline/README.md` | Channels, sections 4.1 and 10, etiquette |
 | `app/sw-manifest.js` | Regenerated |
 
-## 8. Decisions needed from Jeremy
+## 8. Decisions
 
-| Id | Question | Default in this plan |
+Decided by Jeremy on 2026-09-27:
+
+| Id | Question | Decision |
 |---|---|---|
-| Q9 | Add video sources? Which pro-run channels, and is downloading their audio with yt-dlp for personal study acceptable to you (YouTube's terms restrict it)? | Track F planned but not started |
-| Q10 | Extraction for the full corpus: skills inside Claude Code (no per-token cost, one episode per fresh context) or the API path (`extract-api`, about $25 on `claude-opus-5`, unattended)? | Skills for the pilot; decide for the corpus after seeing pilot quality |
-| Q11 | Should timed cards freeze earlier as they mature (T-2), with 120 ms at stage B and 250 ms at stage C as the starting values? | Yes |
-| Q12 | Progress and Drills views in the app, with Lab, Drills and Progress in the topbar only at laptop width and linked from Home on the phone? | Yes |
-| A14 | Keep the pilot on Pickleball Cheat Code, first five episodes? | Yes |
+| Q9 | Add video sources? | On hold. Track F stays designed and parked; revisit after everything else is done |
+| Q10 | Extraction path for the corpus | Claude Code subscription only; no API calls, ever. Quality is unaffected, pace is (A15, Track E4) |
+| Q11 | Earlier freezes as cards mature, 120 ms at B and 250 ms at C? | Yes, on the condition that reading time is never on the clock. It is not (Q5), T-2 does not touch the clock, and N-5 adds a "Time to choose" multiplier plus a timeout count in Progress (section 4.1) |
+| Q12 | Progress and Drills views? | Yes, folded into one Progress view with a drills section (section 9) |
+| A14 | Pilot on Pickleball Cheat Code, first five episodes? | Yes |
+
+Decided 2026-09-28: Q13, option (a). The organization is `jeremys-apps` and the
+app is live at https://jeremys-apps.github.io/pickleball-iq/. Nothing is open.
+The question as it stood:
+
+| Id | Question | Default, as taken |
+|---|---|---|
+| Q13 | Jeremy will make the repository public (needed for free Pages) but has only a personal account. Served from there, the app lives at `viciousj.github.io/pickleball-iq/`, the same origin as the other Pages project on the account (Q7), so any script running on that project's pages could read the sync token from storage. Options: (a) a free organization, which costs nothing and takes two minutes (github.com/organizations/new, Free plan), then transfer the repository; this is what Q7 and D14 already decided. (b) Stay on the personal account and accept the shared-origin risk, bounded by the token's scope (one private repository, Contents only, with an expiry). (c) A free static host with its own origin (Cloudflare Pages or Netlify) deploying the public repository, or the VM itself behind Caddy with a free DuckDNS name; full isolation, but a new account or a web server to keep. | (a). If Jeremy would rather not create an organization, (b), with the risk added to the PRD's risk table and D14 superseded by a new decision that says so |
+
+## 9. Audit against the goal and the PRD, 2026-09-27
+
+Gaps found and closed in this revision: the no-cost rule made explicit (Q10,
+A15, Track E4); the repository's visibility and origin flagged (Q13, A16);
+reading time on timed cards tied to Q5 and made tunable (Q11, A17, N-5); Track F
+parked (Q9); one Progress view instead of two views; E2 made optional. Added on
+2026-09-28: Track H folds in the idle Oracle VM as the transcription fallback,
+the loop host and the daily job for new episodes, which also closes a gap the
+PRD left open after Phase 4.
+
+Deliberately not covered: T-1, T-3, T-4 and T-6 and the Phase 6 extras (Track
+G), because they need content or real-use data first; Track F until Q9 reopens.
+
+Coverage: about 90 of 100. Every goal element and PRD phase has an owner, a
+verification and an exit criterion. The missing ten points are Q13, which needs
+Jeremy, and the checks only real devices and real GitHub can settle (Track C).
+
+Complexity: the plan adds no framework, no service, no paid product and no new
+process; it finishes the built system. Simplifications taken: one Progress view
+(section 4.2), E2 optional, E3 deferred by trigger, Track F parked.
