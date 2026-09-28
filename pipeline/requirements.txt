@@ -1,0 +1,7 @@
+# Pipeline dependencies (Python 3.11+). WhisperX is installed separately; see README.md.
+PyYAML>=6.0
+requests>=2.31
+jsonschema>=4.21
+referencing>=0.35
+# Optional, only for `piq.py extract-api`:
+# anthropic>=0.40

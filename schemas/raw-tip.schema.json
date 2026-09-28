@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piq.local/schemas/raw-tip.schema.json",
+  "title": "Raw tip",
+  "description": "One actionable claim extracted from one episode, with who said it and whether a pro stood behind it. One JSON object per line in work/tips/<episode_id>.jsonl. Rules: prompts/extract-tips.md.",
+  "type": "object",
+  "required": [
+    "id", "schema_version", "episode_id", "timestamp_start", "speaker_id", "speaker_tier",
+    "endorsement", "category", "situation", "action", "confidence", "needs_review"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+-[a-z0-9-]+-t[0-9]{3}$", "description": "<episode_id>-tNNN" },
+    "schema_version": { "const": 1 },
+    "episode_id": { "type": "string" },
+    "timestamp_start": { "$ref": "#/$defs/ts" },
+    "timestamp_end": { "$ref": "#/$defs/ts" },
+    "speaker_id": { "type": "string", "description": "Registry id from pipeline/config/speakers.yaml, or unknown-<label>." },
+    "speaker_tier": { "$ref": "#/$defs/tier" },
+    "endorsement": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": ["pro_stated", "endorsed_explicit", "endorsed_implicit", "qualified", "refuted", "no_pro_present"],
+          "description": "pro_stated: a pro said it. endorsed_explicit: a non-pro said it and a pro agreed out loud. endorsed_implicit: a pro was in the conversation and did not object. qualified: a pro added a condition (put it in conditions). refuted: a pro disagreed (the pro's correction is extracted as its own tip). no_pro_present: no pro in the conversation."
+        },
+        "endorser_id": { "type": ["string", "null"] },
+        "evidence_timestamp": { "$ref": "#/$defs/ts" },
+        "evidence": { "type": "string", "maxLength": 300, "description": "Paraphrase of the agreement, condition, or disagreement." },
+        "corrected_by_tip_id": { "type": "string", "description": "For refuted: id of the pro's correction tip." }
+      }
+    },
+    "category": { "enum": ["strategy", "form", "drill", "mental", "partner", "rules", "equipment"] },
+    "topic": {
+      "type": "string",
+      "description": "Free-ish tag: serve, return, third_shot, transition, dinking, hands_battle, speed_up, reset, lob, overhead, stacking, poaching, singles, footwork, grip, warmup, practice_plan, targets, ..."
+    },
+    "situation": { "type": "string", "maxLength": 400, "description": "When this applies, in court terms." },
+    "cue": { "type": ["string", "null"], "maxLength": 300, "description": "What you see or feel that triggers it." },
+    "action": { "type": "string", "maxLength": 400, "description": "What to do." },
+    "why": { "type": ["string", "null"], "maxLength": 400, "description": "Reason given by the speaker. Null if none given." },
+    "conditions": { "type": "array", "items": { "type": "string", "maxLength": 200 } },
+    "common_mistake": { "type": ["string", "null"], "maxLength": 300, "description": "Only if the speaker named it." },
+    "level": { "type": "array", "items": { "enum": ["all", "3.0", "3.5", "4.0", "4.5", "5.0", "pro"] } },
+    "format": { "enum": ["doubles", "singles", "both"] },
+    "scene_hint": {
+      "type": ["object", "null"],
+      "description": "Positional facts as stated. Words, not coordinates; card generation turns these into a scene.",
+      "additionalProperties": false,
+      "properties": {
+        "formation": { "type": "string", "description": "e.g. all four at the kitchen; serving team at baseline; partner pulled wide" },
+        "ball_height": { "type": "string", "description": "e.g. at the feet, below the net, net height, above the net" },
+        "handedness": { "type": "string", "description": "e.g. righty-lefty with backhands in the middle" },
+        "stated": { "type": "boolean", "description": "False when you had to assume any of these." }
+      }
+    },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "needs_review": { "type": "boolean" },
+    "review_reasons": { "type": "array", "items": { "type": "string" } },
+    "claude_note": { "type": ["string", "null"], "maxLength": 400, "description": "Claude's own observation. Never shown as a pro's words." }
+  },
+  "$defs": {
+    "ts": { "type": "string", "pattern": "^[0-9]{2}:[0-5][0-9]:[0-5][0-9]$" },
+    "tier": { "enum": ["touring_pro", "senior_pro", "provisional_pro", "elite_coach", "advanced_amateur", "host", "unknown"] }
+  }
+}

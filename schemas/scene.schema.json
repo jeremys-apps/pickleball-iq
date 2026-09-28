@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piq.local/schemas/scene.schema.json",
+  "title": "Scene",
+  "description": "A court situation for a card. Coordinates in feet: x across (0 = your left sideline, 20 = your right), y along (0 = your baseline, 22 = net, 44 = their baseline). Heights in inches (z_in). See docs/rendering-notes.md.",
+  "type": "object",
+  "required": ["id", "schema_version", "format", "players", "camera"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^s-[a-z0-9-]+$" },
+    "schema_version": { "const": 1 },
+    "format": { "enum": ["doubles", "singles"] },
+    "sample": { "type": "boolean" },
+    "players": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/player" }
+    },
+    "ball": {
+      "type": "object",
+      "description": "The incoming ball: where it was struck, where it is now (the decision point), and how the flight looked.",
+      "required": ["from", "now"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "$ref": "#/$defs/point3" },
+        "now": { "$ref": "#/$defs/point3" },
+        "net_clearance_in": { "type": "number", "minimum": 0, "maximum": 240, "description": "How far above the net tape the ball passed. Required when from and now are on opposite sides of the net." },
+        "apex_in": { "type": "number", "minimum": 0, "maximum": 480, "description": "Peak height for paths that stay on one side of the net." },
+        "hitter_id": { "type": "string" },
+        "shot_type": { "enum": ["dink", "drop", "drive", "reset", "lob", "speed_up", "counter", "serve", "return", "overhead", "floater", "other"] }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "required": ["eyes_of"],
+      "additionalProperties": false,
+      "properties": {
+        "eyes_of": { "type": "string", "description": "Player id whose view the first-person camera uses. Must be on team us." },
+        "mode": { "enum": ["over_shoulder", "first_person"], "default": "over_shoulder" },
+        "look_at": { "$ref": "#/$defs/point3", "description": "Optional aim point. Default: on the net plane, slightly toward the paddle side of ball.now." }
+      }
+    },
+    "answer_overlay": {
+      "type": "object",
+      "description": "Shown only after the user commits to an answer.",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "type": "object",
+          "required": ["x", "y"],
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "rx_ft": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 },
+            "ry_ft": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 }
+          }
+        },
+        "shot": {
+          "type": "object",
+          "required": ["to"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "oneOf": [{ "const": "ball" }, { "$ref": "#/$defs/point3" }] },
+            "to": { "$ref": "#/$defs/point3" },
+            "net_clearance_in": { "type": "number", "minimum": 0, "maximum": 240 },
+            "apex_in": { "type": "number", "minimum": 0, "maximum": 480 }
+          }
+        },
+        "moves": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["player_id", "to"],
+            "additionalProperties": false,
+            "properties": { "player_id": { "type": "string" }, "to": { "$ref": "#/$defs/point2" } }
+          }
+        }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "description": "Phase 5 occlusion playback: lead-in shots, then freeze at the decision point.",
+      "required": ["segments"],
+      "additionalProperties": false,
+      "properties": {
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "kind", "from", "to", "duration_ms"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "enum": ["shot", "bounce"] },
+              "hitter_id": { "type": "string" },
+              "from": { "$ref": "#/$defs/point3" },
+              "to": { "$ref": "#/$defs/point3" },
+              "net_clearance_in": { "type": "number", "minimum": 0, "maximum": 240 },
+              "apex_in": { "type": "number", "minimum": 0, "maximum": 480 },
+              "duration_ms": { "type": "integer", "minimum": 50, "maximum": 5000 }
+            }
+          }
+        },
+        "movements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["player_id", "start_ms", "end_ms", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "player_id": { "type": "string" },
+              "start_ms": { "type": "integer", "minimum": 0 },
+              "end_ms": { "type": "integer", "minimum": 0 },
+              "to": { "$ref": "#/$defs/point2" }
+            }
+          }
+        },
+        "freeze_at_ms": { "type": "integer", "minimum": 0 },
+        "response_window_ms": { "type": "integer", "minimum": 1000, "maximum": 10000 }
+      }
+    },
+    "inferred": { "type": "boolean", "description": "True when any position or height was estimated rather than stated in the source." },
+    "inferred_fields": { "type": "array", "items": { "type": "string" }, "description": "JSON pointers or plain names of estimated fields, for example players/partner, ball/now/z_in." },
+    "notes": { "type": "string" }
+  },
+  "$defs": {
+    "player": {
+      "type": "object",
+      "required": ["id", "team", "x", "y", "hand"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+        "team": { "enum": ["us", "them"] },
+        "x": { "type": "number", "minimum": -6, "maximum": 26 },
+        "y": { "type": "number", "minimum": -10, "maximum": 54 },
+        "hand": { "enum": ["R", "L"] },
+        "label": { "type": "string", "maxLength": 4 }
+      }
+    },
+    "point2": {
+      "type": "object",
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "properties": { "x": { "type": "number", "minimum": -6, "maximum": 26 }, "y": { "type": "number", "minimum": -10, "maximum": 54 } }
+    },
+    "point3": {
+      "type": "object",
+      "required": ["x", "y", "z_in"],
+      "additionalProperties": false,
+      "properties": {
+        "x": { "type": "number", "minimum": -6, "maximum": 26 },
+        "y": { "type": "number", "minimum": -10, "maximum": 54 },
+        "z_in": { "type": "number", "minimum": 0, "maximum": 480 }
+      }
+    }
+  }
+}

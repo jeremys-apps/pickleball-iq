@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.github.com; worker-src 'self'; manifest-src 'self'; base-uri 'self'; object-src 'none'">
+  <title>Court Sense renderer lab</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .lab { display: grid; gap: 20px; }
+    .lab-controls { display: grid; gap: 12px; align-content: start; }
+    .lab-controls fieldset { gap: 8px; }
+    .lab-controls label { display: flex; gap: 8px; align-items: center; }
+    .lab-out { display: grid; gap: 12px; }
+    .lab-out .fp { background: var(--stage); border-radius: 12px; overflow: hidden; }
+    .lab-out svg { display: block; width: 100%; height: auto; }
+    .lab-panels { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+    .lab-panels .td { width: min(300px, 100%); }
+    .lab-panels .mini { width: 110px; }
+    .lab-panels .side-view { width: min(360px, 100%); }
+    .lab textarea { width: 100%; min-height: 150px; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .lab .readout { font-variant-numeric: tabular-nums; }
+    .lab .issues li.error { color: var(--bad); }
+    @media (min-width: 1000px) { .lab { grid-template-columns: 300px minmax(0, 1fr); } }
+  </style>
+  <script type="module" src="src/ui/lab.js"></script>
+</head>
+<body>
+  <header class="topbar"><a class="wordmark" href="./">Court Sense</a><span class="note">Renderer lab</span></header>
+  <main id="lab" class="page lab"></main>
+</body>
+</html>

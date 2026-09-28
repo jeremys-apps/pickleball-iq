@@ -1,0 +1,36 @@
+<svg class="piq-svg piq-td" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 213.6" role="img" aria-label="Top-down court view"><style>
+.piq-svg{font-family:"Barlow Semi Condensed", "Barlow", system-ui, sans-serif}
+.piq-backdrop{fill:#1E2B38}
+.piq-surround{fill:#3B6D57}
+.piq-surface{fill:#2D5F8E}
+.piq-kitchen{fill:#27527D}
+.piq-line{fill:#EEF3EF;stroke:#EEF3EF;stroke-width:.6}
+.piq-td-line{stroke:#EEF3EF;fill:none}
+.piq-net-mesh{fill:rgba(12, 18, 24, 0.42)}
+.piq-net-tape{fill:#F4F6F4}
+.piq-net-post{stroke:#12171D;stroke-linecap:round}
+.piq-td-net{stroke:#F4F6F4;stroke-linecap:round}
+.piq-player-us{fill:#F3F2EC;stroke:#1B2A3A;stroke-width:.8}
+.piq-player-them{fill:#E8703E;stroke:#5E2410;stroke-width:.8}
+.piq-arm-us{stroke:#F3F2EC;fill:none}
+.piq-arm-them{stroke:#E8703E;fill:none}
+.piq-label-us{fill:#1B2A3A;font-weight:600;font-size:12px}
+.piq-label-them{fill:#3B1405;font-weight:600;font-size:12px}
+.piq-paddle{fill:#12171D}
+.piq-ball{fill:#D9F03E;stroke:#3D4806;stroke-width:.8}
+.piq-ball-shadow{fill:rgba(0, 0, 0, 0.38)}
+.piq-stalk{stroke:rgba(255, 255, 255, 0.8);stroke-width:1.2;stroke-dasharray:3 3;fill:none}
+.piq-tick{stroke:#FFFFFF;stroke-width:2.4;stroke-linecap:round}
+.piq-path{stroke:#F5C443;fill:none;stroke-linecap:round}
+.piq-path-far{stroke-dasharray:5 4}
+.piq-answer{stroke:#5FE3A8;fill:none;stroke-width:3;stroke-linecap:round}
+.piq-answer-zone{fill:rgba(95, 227, 168, 0.3);stroke:#5FE3A8;stroke-width:1.2;stroke-dasharray:4 3}
+.piq-arrowhead{fill:#5FE3A8}
+.piq-fov{fill:rgba(255, 255, 255, 0.2)}
+.piq-cam{fill:#FFFFFF;stroke:#1E2B38;stroke-width:1}
+.piq-annot{fill:#EEF3EF;font-weight:600;font-size:11px}
+.piq-annot-line{stroke:#EEF3EF;fill:none}
+.piq-reveal{opacity:0;transition:opacity .25s ease}
+.is-revealed .piq-reveal,.piq-reveal.is-on{opacity:1}
+@media (prefers-reduced-motion: reduce){.piq-reveal{transition:none}}
+.piq-reveal{opacity:1}</style><defs><marker id="piq-ah-td1" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path class="piq-arrowhead" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="piq-surround" x="0" y="0" width="200" height="213.6" rx="8"/><rect class="piq-surface" x="20" y="-72.8" width="160" height="352"/><rect class="piq-kitchen" x="20" y="47.2" width="160" height="112"/><rect class="piq-td-line" x="20" y="-72.8" width="160" height="352" stroke-width="1.3"/><line class="piq-td-line" x1="20" y1="159.2" x2="180" y2="159.2" stroke-width="1.3"/><line class="piq-td-line" x1="20" y1="47.2" x2="180" y2="47.2" stroke-width="1.3"/><line class="piq-td-line" x1="100" y1="279.2" x2="100" y2="159.2" stroke-width="1.3"/><line class="piq-td-line" x1="100" y1="47.2" x2="100" y2="-72.8" stroke-width="1.3"/><line class="piq-td-net" x1="12" y1="103.2" x2="188" y2="103.2" stroke-width="3"/><polygon class="piq-fov" points="41.6,189.6 -3.3,104.8 129.8,151.6"/><polyline class="piq-path piq-path-far" stroke-width="1.6" points="58.4,50.4 58.8,54.8 59.3,59.2 59.7,63.6 60.2,68 60.6,72.4 61,76.8 61.5,81.2 61.9,85.6 62.4,90 62.8,94.4 63.2,98.8 63.7,103.2"/><polyline class="piq-path" stroke-width="2.6" points="63.7,103.2 64,106.8 64.4,110.4 64.8,114 65.1,117.6 65.5,121.2 65.8,124.8 66.2,128.4 66.6,132 66.9,135.6 67.3,139.2 67.6,142.8 68,146.4"/><circle class="piq-paddle" cx="75.2" cy="168" r="2.6"/><circle class="piq-player-us" cx="60" cy="168" r="11"/><text class="piq-label-us" x="60" y="168" text-anchor="middle" dominant-baseline="central">You</text><circle class="piq-paddle" cx="155.2" cy="168" r="2.6"/><circle class="piq-player-us" cx="140" cy="168" r="11"/><text class="piq-label-us" x="140" y="168" text-anchor="middle" dominant-baseline="central">P</text><circle class="piq-paddle" cx="44.8" cy="38.4" r="2.6"/><circle class="piq-player-them" cx="60" cy="38.4" r="11"/><text class="piq-label-them" x="60" y="38.4" text-anchor="middle" dominant-baseline="central">R</text><text class="piq-annot" x="75.2" y="19.2" text-anchor="middle" dominant-baseline="central">BH</text><circle class="piq-paddle" cx="155.2" cy="38.4" r="2.6"/><circle class="piq-player-them" cx="140" cy="38.4" r="11"/><text class="piq-label-them" x="140" y="38.4" text-anchor="middle" dominant-baseline="central">L</text><text class="piq-annot" x="124.8" y="19.2" text-anchor="middle" dominant-baseline="central">BH</text><circle class="piq-ball" cx="68" cy="146.4" r="4"/><circle class="piq-cam" cx="41.6" cy="189.6" r="2.8"/><g class="piq-reveal"><ellipse class="piq-answer-zone" cx="100" cy="35.2" rx="19.2" ry="11.2"/><line class="piq-answer" x1="68" y1="146.4" x2="100" y2="37.6" stroke-width="2.5" marker-end="url(#piq-ah-td1)"/></g></svg>

@@ -1,0 +1,37 @@
+# Court Sense pipeline settings. Paths are relative to the repository root.
+
+# Clone of your PRIVATE data repo. Audio stays out of git (see its .gitignore).
+# Override per shell with: export PIQ_DATA_DIR=/path/to/pickleball-iq-data
+data_dir: ../pickleball-iq-data
+
+user_agent: "court-sense-pipeline/0.1 (personal use)"
+
+transcribe:
+  command: whisperx
+  model: large-v3
+  language: en
+  device: cuda            # cpu works, but expect days for the full corpus instead of hours
+  compute_type: float16   # use int8 on CPU
+  batch_size: 16          # lower it if the GPU runs out of memory
+  diarize: true
+  min_speakers: 2
+  max_speakers: 4
+  hf_token_env: HF_TOKEN  # Hugging Face token for the pyannote diarization models
+
+extract:
+  # Only used by `piq.py extract-api`. The default path is the /extract-episode skill.
+  model: claude-sonnet-5
+  max_tokens: 16000
+
+deck:
+  deck_id: court-sense
+  # Speaker tiers whose words count as pro advice.
+  pro_tiers: [touring_pro, senior_pro]
+  # Speakers whose own advice counts unless a full pro contradicts it (their tips
+  # are struck if a pro disagrees). They cannot endorse anyone else's statements.
+  provisional_pro_tiers: [provisional_pro]
+  # Endorsement statuses that let a principle into the deck. Remove
+  # endorsed_implicit to accept only tips a pro said or agreed to out loud.
+  allowed_endorsements: [pro_stated, endorsed_explicit, endorsed_implicit, qualified]
+  # Principles sourced only from episode descriptions stay out unless this is true.
+  allow_show_notes_sources: false

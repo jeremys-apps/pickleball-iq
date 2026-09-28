@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piq.local/schemas/card.schema.json",
+  "title": "Card",
+  "description": "One reviewable item. Several cards (variants) usually share a principle. Rules: prompts/generate-cards.md.",
+  "type": "object",
+  "required": [
+    "id",
+    "schema_version",
+    "principle_id",
+    "type",
+    "prompt",
+    "explanation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^c-[a-z0-9-]+$"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "sample": {
+      "type": "boolean"
+    },
+    "principle_id": {
+      "type": "string",
+      "pattern": "^p-[a-z0-9-]+$"
+    },
+    "type": {
+      "enum": [
+        "scenario_mc",
+        "why",
+        "form_cue",
+        "drill_recall",
+        "timed_decision",
+        "text_mc"
+      ],
+      "description": "scenario_mc: court picture + choices. why: explain the reason (self-graded). form_cue: recall the body cue (self-graded). drill_recall: recall a drill setup and success target (self-graded). timed_decision: animated lead-in, freeze, answer against the clock (phase 5). text_mc: choices without a court picture (form fixes, rules of thumb)."
+    },
+    "prompt": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "scene_id": {
+      "type": "string",
+      "pattern": "^s-[a-z0-9-]+$"
+    },
+    "preferred_view": {
+      "enum": [
+        "first_person",
+        "top_down"
+      ],
+      "description": "Which view leads for new cards. Aid fading may override."
+    },
+    "options": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "correct"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "d",
+              "e",
+              "f",
+              "g",
+              "h",
+              "i"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "correct": {
+            "type": "boolean"
+          },
+          "feedback": {
+            "type": "string",
+            "maxLength": 240,
+            "description": "Shown when this option is chosen."
+          }
+        }
+      },
+      "description": "A pool: one to three phrasings of the correct play (correct: true) and at least two wrong answers. Each showing displays one correct phrasing and up to three wrong answers, shuffled and rotating between reviews."
+    },
+    "answer": {
+      "type": "string",
+      "maxLength": 600,
+      "description": "Model answer for self-graded cards."
+    },
+    "explanation": {
+      "type": "string",
+      "maxLength": 600
+    },
+    "focus_cue": {
+      "type": "string",
+      "maxLength": 80,
+      "description": "A short external cue to carry onto the court, for example 'Paddle out front, punch through the middle'."
+    },
+    "claude_note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 400
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mirrorable": {
+      "type": "boolean",
+      "description": "Court cards only. True when the scene can be flipped left to right, with every player's handedness swapped, without changing the correct answer, and none of the card's text uses a word starting with left or right (or southpaw). The app then alternates the authored and mirrored pictures on successive reviews."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "scenario_mc",
+              "timed_decision"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "scene_id",
+          "options"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "why",
+              "form_cue",
+              "drill_recall"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "answer"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "text_mc"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "options"
+        ]
+      }
+    }
+  ]
+}

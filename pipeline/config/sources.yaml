@@ -1,0 +1,19 @@
+# Podcasts to process. apple_id resolves the RSS feed via the iTunes lookup API:
+#   curl -s "https://itunes.apple.com/lookup?id=<apple_id>" | jq -r '.results[0].feedUrl'
+# Set rss to pin a feed URL instead. Details and credibility notes: docs/sources.md.
+shows:
+  - id: 402p
+    name: 4.0 to Pro
+    apple_id: 1672463911
+    youtube: https://www.youtube.com/@402p
+    notes: >-
+      Hosts Michael O'Neal and Mircea Morariu; earlier episodes co-hosted by Scott
+      Fliegelman. Feed moved from Buzzsprout to Megaphone; the lookup returns the current one.
+
+  - id: cheatcode
+    name: Pickleball Cheat Code
+    apple_id: 1810074023
+    rss: https://rss.buzzsprout.com/2471471.rss
+    notes: >-
+      Produced by CRBN. Hosts Tanner Tomassi and Brodie Smith, with CRBN pro guests.
+      Some singles episodes feature Kevin Tsati without Tanner.

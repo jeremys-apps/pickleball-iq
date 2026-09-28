@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piq.local/schemas/progress.schema.json",
+  "title": "Progress",
+  "description": "Review state for one device. Stored in localStorage and synced as progress/<device_id>.json in the private data repo. Devices never write each other's files; each device merges all files on read (per card, the newer last_review wins; logs are a union by id).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "device_id",
+    "updated_at",
+    "cards",
+    "logs"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{6,64}$"
+    },
+    "device_label": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cards": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "fsrs"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fsrs": {
+            "type": "object",
+            "description": "ts-fsrs Card, JSON-serialized (dates as ISO strings).",
+            "required": [
+              "due",
+              "stability",
+              "difficulty",
+              "elapsed_days",
+              "scheduled_days",
+              "reps",
+              "lapses",
+              "state"
+            ],
+            "properties": {
+              "due": {
+                "type": "string"
+              },
+              "stability": {
+                "type": "number"
+              },
+              "difficulty": {
+                "type": "number"
+              },
+              "elapsed_days": {
+                "type": "number"
+              },
+              "scheduled_days": {
+                "type": "number"
+              },
+              "learning_steps": {
+                "type": "number"
+              },
+              "reps": {
+                "type": "integer"
+              },
+              "lapses": {
+                "type": "integer"
+              },
+              "state": {
+                "enum": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "last_review": {
+                "type": "string"
+              }
+            }
+          },
+          "suspended": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "card_id",
+          "rating",
+          "reviewed_at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "card_id": {
+            "type": "string"
+          },
+          "rating": {
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "reviewed_at": {
+            "type": "string"
+          },
+          "correct": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "choice": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "response_ms": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "stage": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "view": {
+            "type": "string"
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "auto_rated": {
+            "type": "boolean",
+            "description": "Recorded with the suggested rating because the app closed before you rated it."
+          },
+          "mirrored": {
+            "type": "boolean",
+            "description": "The card was shown mirrored left to right for this review."
+          },
+          "shown": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Option ids displayed for this review, in display order."
+          }
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Test Show</title>
+    <item>
+      <title>68: Third and fifth shot combos</title>
+      <guid isPermaLink="false">guid-68</guid>
+      <pubDate>Mon, 15 Jan 2024 12:00:00 +0000</pubDate>
+      <enclosure url="https://example.com/audio/68.mp3?source=feed" length="123" type="audio/mpeg"/>
+      <itunes:duration>01:02:03</itunes:duration>
+      <content:encoded><![CDATA[<p>Drive to set up an easy drop.</p><p>Sponsored by &amp; brought to you by CRBN.</p>]]></content:encoded>
+      <podcast:transcript url="https://example.com/68.srt" type="application/x-subrip"/>
+      <link>https://example.com/episodes/68</link>
+    </item>
+    <item>
+      <title>Getting to the kitchen</title>
+      <guid>guid-gk</guid>
+      <pubDate>Tue, 01 Jul 2025 08:30:00 -0600</pubDate>
+      <enclosure url="https://example.com/audio/gk.m4a" length="456" type="audio/mp4"/>
+      <description>Why driving is overrated for improving players.</description>
+      <itunes:episode>12</itunes:episode>
+    </item>
+  </channel>
+</rss>

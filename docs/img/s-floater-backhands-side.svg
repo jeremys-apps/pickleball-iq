@@ -1,0 +1,36 @@
+<svg class="piq-svg piq-side" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 110" role="img" aria-label="Side view of ball height versus the net"><style>
+.piq-svg{font-family:"Barlow Semi Condensed", "Barlow", system-ui, sans-serif}
+.piq-backdrop{fill:#1E2B38}
+.piq-surround{fill:#3B6D57}
+.piq-surface{fill:#2D5F8E}
+.piq-kitchen{fill:#27527D}
+.piq-line{fill:#EEF3EF;stroke:#EEF3EF;stroke-width:.6}
+.piq-td-line{stroke:#EEF3EF;fill:none}
+.piq-net-mesh{fill:rgba(12, 18, 24, 0.42)}
+.piq-net-tape{fill:#F4F6F4}
+.piq-net-post{stroke:#12171D;stroke-linecap:round}
+.piq-td-net{stroke:#F4F6F4;stroke-linecap:round}
+.piq-player-us{fill:#F3F2EC;stroke:#1B2A3A;stroke-width:.8}
+.piq-player-them{fill:#E8703E;stroke:#5E2410;stroke-width:.8}
+.piq-arm-us{stroke:#F3F2EC;fill:none}
+.piq-arm-them{stroke:#E8703E;fill:none}
+.piq-label-us{fill:#1B2A3A;font-weight:600;font-size:12px}
+.piq-label-them{fill:#3B1405;font-weight:600;font-size:12px}
+.piq-paddle{fill:#12171D}
+.piq-ball{fill:#D9F03E;stroke:#3D4806;stroke-width:.8}
+.piq-ball-shadow{fill:rgba(0, 0, 0, 0.38)}
+.piq-stalk{stroke:rgba(255, 255, 255, 0.8);stroke-width:1.2;stroke-dasharray:3 3;fill:none}
+.piq-tick{stroke:#FFFFFF;stroke-width:2.4;stroke-linecap:round}
+.piq-path{stroke:#F5C443;fill:none;stroke-linecap:round}
+.piq-path-far{stroke-dasharray:5 4}
+.piq-answer{stroke:#5FE3A8;fill:none;stroke-width:3;stroke-linecap:round}
+.piq-answer-zone{fill:rgba(95, 227, 168, 0.3);stroke:#5FE3A8;stroke-width:1.2;stroke-dasharray:4 3}
+.piq-arrowhead{fill:#5FE3A8}
+.piq-fov{fill:rgba(255, 255, 255, 0.2)}
+.piq-cam{fill:#FFFFFF;stroke:#1E2B38;stroke-width:1}
+.piq-annot{fill:#EEF3EF;font-weight:600;font-size:11px}
+.piq-annot-line{stroke:#EEF3EF;fill:none}
+.piq-reveal{opacity:0;transition:opacity .25s ease}
+.is-revealed .piq-reveal,.piq-reveal.is-on{opacity:1}
+@media (prefers-reduced-motion: reduce){.piq-reveal{transition:none}}
+</style><rect class="piq-backdrop" x="0" y="0" width="320" height="110" rx="8"/><rect class="piq-surround" x="0" y="84" width="320" height="26"/><line class="piq-annot-line" x1="12" y1="52.6" x2="308" y2="52.6" stroke-width="1" stroke-dasharray="3 3"/><line class="piq-td-net" x1="148.2" y1="84" x2="148.2" y2="52.6" stroke-width="3"/><polyline class="piq-path piq-path-far" stroke-width="1.6" points="278.4,63.9 271,59 263.6,54.5 256.2,50.2 248.8,46.1 241.4,42.4 234,38.9 226.6,35.7 219.2,32.8 211.8,30.2 204.4,27.8 197,25.7 189.6,23.8 182.2,22.3 174.8,21 167.4,20 160,19.2 152.6,18.8 145.2,18.6"/><polyline class="piq-path" stroke-width="2.6" points="145.2,18.6 137.8,18.7 130.4,19 123,19.7 115.6,20.6 108.2,21.7 100.8,23.2 93.4,24.9 86,26.9 78.6,29.2 71.2,31.7 63.8,34.5 56.4,37.6 49,41 41.6,44.6"/><circle class="piq-ball" cx="41.6" cy="44.6" r="5"/><text class="piq-annot" x="154.2" y="45.6">Net 34 in</text><text class="piq-annot" x="12" y="104">Ball 43 in</text><text class="piq-annot" x="308" y="104" text-anchor="end">Their side</text></svg>

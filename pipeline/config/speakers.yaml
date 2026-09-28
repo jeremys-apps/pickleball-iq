@@ -1,0 +1,67 @@
+# Speaker registry. The tier decides whether a speaker's words count as pro advice
+# (deck.pro_tiers in piq.yaml, by default touring_pro and senior_pro).
+# Tiers: touring_pro, senior_pro, provisional_pro, elite_coach, advanced_amateur, host, unknown
+# provisional_pro: own advice counts unless a pro contradicts it; cannot endorse others.
+# Credentials were checked against public show listings in September 2026. Re-check
+# before relying on them, and fix anything that has changed.
+speakers:
+  - id: mircea-morariu
+    name: Mircea Morariu
+    aliases: [Mircea, Brainsdoc, Dr. Morariu]
+    tier: senior_pro
+    credential: "Senior pro. #1 APP senior pro in 2021, USA Pickleball Nationals gold. Neurologist."
+    shows: [402p]
+
+  - id: michael-oneal
+    name: Michael O'Neal
+    aliases: [Michael, Mike]
+    tier: advanced_amateur
+    credential: "Host. Calls himself a four-point-something player; an episode title mentions his first senior pro win."
+    shows: [402p]
+    decide: "Keep as non-pro (his tips need Mircea's endorsement), or promote if his senior pro results warrant it."
+
+  - id: scott-fliegelman
+    name: Scott Fliegelman
+    aliases: [Scott]
+    tier: senior_pro
+    credential: "Earlier co-host. Senior pro, USA Pickleball Nationals silver."
+    shows: [402p]
+
+  - id: tanner-tomassi
+    name: Tanner Tomassi
+    aliases: [Tanner]
+    tier: touring_pro
+    credential: "Touring pro. APP men's doubles gold (per CRBN)."
+    shows: [cheatcode]
+
+  - id: brodie-smith
+    name: Brodie Smith
+    aliases: [Brodie]
+    tier: elite_coach
+    credential: "Co-host. Described as a high-level coach and aspiring pro."
+    shows: [cheatcode]
+
+  - id: andrei-daescu
+    name: Andrei Daescu
+    aliases: [Andrei]
+    tier: touring_pro
+    credential: "CRBN touring pro (guest)."
+    shows: [cheatcode]
+
+  - id: danni-elle-townsend
+    name: Danni-Elle Townsend
+    aliases: [Danni-Elle, Danni]
+    tier: touring_pro
+    credential: "CRBN touring pro (guest)."
+    shows: [cheatcode]
+
+  - id: kevin-tsati
+    name: Kevin Tsati
+    aliases: [Kevin, Fear the Fro]
+    tier: provisional_pro
+    credential: "Guest on singles episodes. Level not yet verified."
+    shows: [cheatcode]
+    rule: >-
+      Jeremy's decision (September 2026): Kevin's own advice counts, but any pro's
+      advice or endorsement that contradicts him wins, and his tip is struck. He
+      cannot endorse other speakers' statements.

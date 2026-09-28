@@ -1,0 +1,745 @@
+{
+  "schema_version": 1,
+  "deck_id": "sample",
+  "generated_at": "2026-09-27T00:00:00Z",
+  "sample": true,
+  "speakers": {},
+  "shows": {
+    "402p": {
+      "name": "4.0 to Pro"
+    }
+  },
+  "episodes": {},
+  "principles": [
+    {
+      "id": "p-two-backhands-middle",
+      "schema_version": 1,
+      "sample": true,
+      "status": "active",
+      "category": "strategy",
+      "topic": "targets",
+      "format": "doubles",
+      "levels": [
+        "4.0",
+        "4.5"
+      ],
+      "statement": "When their two backhands meet in the middle, the middle is your target.",
+      "situation": "All four at the kitchen. Their righty plays their right side and their lefty plays their left, so both backhands meet in the middle.",
+      "cue": "Their paddles are on the outside and the gap between them is backhand to backhand.",
+      "action": "Send attackable balls low through the middle rather than to either sideline.",
+      "why": null,
+      "conditions": [],
+      "common_mistakes": [
+        "Aiming at a sideline because it looks open"
+      ],
+      "sources": [
+        {
+          "kind": "show_notes",
+          "show_id": "402p",
+          "episode_title": "Episode 66 (stacking discussion)",
+          "note": "Paraphrased from the public episode description. Not yet checked against the transcript or attributed to a speaker."
+        }
+      ],
+      "priority": 1.0,
+      "distractor_candidates": [
+        {
+          "text": "At the lefty's outside hip",
+          "origin": "plausible_alternative"
+        }
+      ],
+      "tension_with": [],
+      "claude_note": "Common reasoning, not yet verified against the episode: backhands meet at the seam, the net is lowest in the middle, and a middle ball can make both players hesitate."
+    },
+    {
+      "id": "p-floater-attack-middle",
+      "schema_version": 1,
+      "sample": true,
+      "status": "active",
+      "category": "strategy",
+      "topic": "speed_up",
+      "format": "doubles",
+      "levels": [
+        "4.0",
+        "4.5"
+      ],
+      "statement": "Pounce on floaters with a short backswing and aim for the safe middle, not the line.",
+      "situation": "A ball floats up above net height within reach at the kitchen.",
+      "cue": "The ball is well above the net tape and still rising or flat as it reaches you.",
+      "action": "Step in and take it early, keep the backswing short with the paddle out front, and hit through the middle.",
+      "why": null,
+      "conditions": [
+        "The ball is above net height at contact"
+      ],
+      "common_mistakes": [
+        "Letting a floater bounce when you could finish it",
+        "Taking a big backswing"
+      ],
+      "sources": [
+        {
+          "kind": "show_notes",
+          "show_id": "402p",
+          "episode_title": "Episode 67 (floaters)",
+          "note": "Paraphrased from the public episode description. Not yet checked against the transcript or attributed to a speaker."
+        }
+      ],
+      "priority": 1.0,
+      "distractor_candidates": [
+        {
+          "text": "Let it bounce so you can take a full swing",
+          "origin": "named_mistake"
+        }
+      ],
+      "tension_with": [],
+      "claude_note": null
+    },
+    {
+      "id": "p-below-net-reset",
+      "schema_version": 1,
+      "sample": true,
+      "status": "active",
+      "category": "strategy",
+      "topic": "reset",
+      "format": "doubles",
+      "levels": [
+        "4.0"
+      ],
+      "statement": "If you would contact the ball below net height, keep it soft instead of speeding it up.",
+      "situation": "A dink or drop is dropping below the net tape as it reaches you.",
+      "cue": "At contact the ball would be below the height of the net.",
+      "action": "Reset or dink it back into their kitchen and wait for a ball you can attack.",
+      "why": "Contact below the net means hitting up, which gives the opponents a ball to attack.",
+      "conditions": [],
+      "common_mistakes": [
+        "Speeding up a ball from below the net"
+      ],
+      "sources": [
+        {
+          "kind": "illustrative",
+          "note": "Development sample written by Claude to exercise the app. Not extracted from any episode."
+        }
+      ],
+      "priority": 0.5,
+      "distractor_candidates": [],
+      "tension_with": [],
+      "claude_note": null
+    },
+    {
+      "id": "p-drop-and-advance",
+      "schema_version": 1,
+      "sample": true,
+      "status": "active",
+      "category": "drill",
+      "topic": "transition",
+      "format": "doubles",
+      "levels": [
+        "4.0"
+      ],
+      "statement": "Drill the drop-and-advance until you can reach the kitchen without popping a ball up.",
+      "situation": "Practice session with a partner feeding from the kitchen.",
+      "cue": null,
+      "action": "Hit a drop from the baseline, move forward, split-step as the feeder contacts, reset, and repeat until you reach the kitchen.",
+      "why": null,
+      "conditions": [],
+      "common_mistakes": [
+        "Running through the split step"
+      ],
+      "sources": [
+        {
+          "kind": "illustrative",
+          "note": "Development sample written by Claude to exercise the app. Not extracted from any episode."
+        }
+      ],
+      "priority": 0.5,
+      "distractor_candidates": [],
+      "tension_with": [],
+      "claude_note": null
+    }
+  ],
+  "scenes": [
+    {
+      "id": "s-floater-backhands",
+      "schema_version": 1,
+      "sample": true,
+      "format": "doubles",
+      "players": [
+        {
+          "id": "you",
+          "team": "us",
+          "x": 5,
+          "y": 13.9,
+          "hand": "R"
+        },
+        {
+          "id": "partner",
+          "team": "us",
+          "x": 15,
+          "y": 13.9,
+          "hand": "R"
+        },
+        {
+          "id": "opp1",
+          "team": "them",
+          "x": 5,
+          "y": 30.1,
+          "hand": "R"
+        },
+        {
+          "id": "opp2",
+          "team": "them",
+          "x": 15,
+          "y": 30.1,
+          "hand": "L"
+        }
+      ],
+      "ball": {
+        "from": {
+          "x": 4.8,
+          "y": 28.6,
+          "z_in": 22
+        },
+        "now": {
+          "x": 6.0,
+          "y": 16.6,
+          "z_in": 43
+        },
+        "net_clearance_in": 37,
+        "hitter_id": "opp1",
+        "shot_type": "floater"
+      },
+      "camera": {
+        "eyes_of": "you",
+        "mode": "over_shoulder"
+      },
+      "answer_overlay": {
+        "target": {
+          "x": 10,
+          "y": 30.5,
+          "rx_ft": 2.4,
+          "ry_ft": 1.4
+        },
+        "shot": {
+          "from": "ball",
+          "to": {
+            "x": 10,
+            "y": 30.2,
+            "z_in": 14
+          },
+          "net_clearance_in": 6
+        }
+      },
+      "inferred": true,
+      "inferred_fields": [
+        "players",
+        "ball"
+      ],
+      "notes": "All four at the kitchen. Their righty on your left, lefty on your right: both backhands in the middle."
+    },
+    {
+      "id": "s-dropping-dink",
+      "schema_version": 1,
+      "sample": true,
+      "format": "doubles",
+      "players": [
+        {
+          "id": "you",
+          "team": "us",
+          "x": 5,
+          "y": 13.9,
+          "hand": "R"
+        },
+        {
+          "id": "partner",
+          "team": "us",
+          "x": 15,
+          "y": 13.9,
+          "hand": "R"
+        },
+        {
+          "id": "opp1",
+          "team": "them",
+          "x": 5,
+          "y": 30.1,
+          "hand": "R"
+        },
+        {
+          "id": "opp2",
+          "team": "them",
+          "x": 15,
+          "y": 30.1,
+          "hand": "L"
+        }
+      ],
+      "ball": {
+        "from": {
+          "x": 4.8,
+          "y": 28.6,
+          "z_in": 14
+        },
+        "now": {
+          "x": 5.6,
+          "y": 16.2,
+          "z_in": 12
+        },
+        "net_clearance_in": 4,
+        "hitter_id": "opp1",
+        "shot_type": "dink"
+      },
+      "camera": {
+        "eyes_of": "you",
+        "mode": "over_shoulder"
+      },
+      "answer_overlay": {
+        "target": {
+          "x": 5.4,
+          "y": 25.6,
+          "rx_ft": 1.8,
+          "ry_ft": 1.3
+        },
+        "shot": {
+          "from": "ball",
+          "to": {
+            "x": 5.3,
+            "y": 25.8,
+            "z_in": 0
+          },
+          "net_clearance_in": 3
+        }
+      },
+      "inferred": true,
+      "inferred_fields": [
+        "players",
+        "ball"
+      ],
+      "notes": "A good dink that barely clears and is dropping below net height as it reaches you."
+    },
+    {
+      "id": "s-occlusion-floater",
+      "schema_version": 1,
+      "sample": true,
+      "format": "doubles",
+      "players": [
+        {
+          "id": "you",
+          "team": "us",
+          "x": 5,
+          "y": 13.9,
+          "hand": "R"
+        },
+        {
+          "id": "partner",
+          "team": "us",
+          "x": 15,
+          "y": 13.9,
+          "hand": "R"
+        },
+        {
+          "id": "opp1",
+          "team": "them",
+          "x": 5,
+          "y": 30.1,
+          "hand": "R"
+        },
+        {
+          "id": "opp2",
+          "team": "them",
+          "x": 15,
+          "y": 30.1,
+          "hand": "L"
+        }
+      ],
+      "ball": {
+        "from": {
+          "x": 4.7,
+          "y": 28.6,
+          "z_in": 20
+        },
+        "now": {
+          "x": 6.0,
+          "y": 16.6,
+          "z_in": 43
+        },
+        "net_clearance_in": 37,
+        "hitter_id": "opp1",
+        "shot_type": "floater"
+      },
+      "camera": {
+        "eyes_of": "you",
+        "mode": "over_shoulder"
+      },
+      "answer_overlay": {
+        "target": {
+          "x": 10,
+          "y": 30.5,
+          "rx_ft": 2.4,
+          "ry_ft": 1.4
+        },
+        "shot": {
+          "from": "ball",
+          "to": {
+            "x": 10,
+            "y": 30.2,
+            "z_in": 14
+          },
+          "net_clearance_in": 6
+        }
+      },
+      "timeline": {
+        "segments": [
+          {
+            "id": "seg1",
+            "kind": "shot",
+            "hitter_id": "you",
+            "from": {
+              "x": 5.9,
+              "y": 15.3,
+              "z_in": 16
+            },
+            "to": {
+              "x": 4.6,
+              "y": 26.4,
+              "z_in": 0
+            },
+            "net_clearance_in": 3,
+            "duration_ms": 950
+          },
+          {
+            "id": "seg2",
+            "kind": "bounce",
+            "from": {
+              "x": 4.6,
+              "y": 26.4,
+              "z_in": 0
+            },
+            "to": {
+              "x": 4.7,
+              "y": 28.6,
+              "z_in": 20
+            },
+            "apex_in": 22,
+            "duration_ms": 380
+          },
+          {
+            "id": "seg3",
+            "kind": "shot",
+            "hitter_id": "opp1",
+            "from": {
+              "x": 4.7,
+              "y": 28.6,
+              "z_in": 20
+            },
+            "to": {
+              "x": 6.0,
+              "y": 16.6,
+              "z_in": 43
+            },
+            "net_clearance_in": 37,
+            "duration_ms": 1150
+          }
+        ],
+        "movements": [
+          {
+            "player_id": "opp2",
+            "start_ms": 1330,
+            "end_ms": 2200,
+            "to": {
+              "x": 14.2,
+              "y": 30.1
+            }
+          }
+        ],
+        "freeze_at_ms": 2330,
+        "response_window_ms": 3000
+      },
+      "inferred": true,
+      "inferred_fields": [
+        "players",
+        "timeline"
+      ],
+      "notes": "You dink to their righty, who pops it up. Freeze just before it reaches you."
+    }
+  ],
+  "cards": [
+    {
+      "id": "c-backhands-td-1",
+      "schema_version": 1,
+      "sample": true,
+      "principle_id": "p-two-backhands-middle",
+      "type": "scenario_mc",
+      "scene_id": "s-floater-backhands",
+      "preferred_view": "top_down",
+      "prompt": "Their righty pops the ball up to you. Where do you send it?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Low through the middle",
+          "correct": true,
+          "feedback": "Right. Backhand meets backhand there."
+        },
+        {
+          "id": "b",
+          "text": "Down the line past their righty",
+          "correct": false,
+          "feedback": "Small target, and it's his forehand side if he gets there."
+        },
+        {
+          "id": "c",
+          "text": "At the lefty's outside hip",
+          "correct": false,
+          "feedback": "That's the lefty's forehand side."
+        },
+        {
+          "id": "d",
+          "text": "Let it bounce, then reset",
+          "correct": false,
+          "feedback": "A chest-high floater is a ball to finish, not to wait on."
+        }
+      ],
+      "explanation": "Both of their backhands meet in the middle. A low ball through the seam is the higher-percentage attack.",
+      "focus_cue": "Floater with backhands inside? Middle, low.",
+      "tags": [
+        "targets",
+        "handedness"
+      ],
+      "claude_note": null,
+      "mirrorable": false
+    },
+    {
+      "id": "c-floater-fp-1",
+      "schema_version": 1,
+      "sample": true,
+      "principle_id": "p-floater-attack-middle",
+      "type": "scenario_mc",
+      "scene_id": "s-floater-backhands",
+      "preferred_view": "first_person",
+      "prompt": "Their shot is coming to you. How do you play it?",
+      "options": [
+        {
+          "id": "a",
+          "correct": true,
+          "text": "Short backswing, punch it low through the middle",
+          "feedback": "Yes. Take it early and use the big target."
+        },
+        {
+          "id": "b",
+          "correct": false,
+          "text": "Big swing, drive it down the line",
+          "feedback": "The line is a small target, and a big swing costs time and control."
+        },
+        {
+          "id": "c",
+          "correct": false,
+          "text": "Let it bounce so you can take a full swing",
+          "feedback": "Waiting gives them time to recover. A floater is a ball to finish."
+        },
+        {
+          "id": "d",
+          "correct": false,
+          "text": "Dink it back softly",
+          "feedback": "That returns a ball they gifted you."
+        },
+        {
+          "id": "e",
+          "correct": true,
+          "text": "Take it early with a compact swing into the middle",
+          "feedback": "Yes. Take it early and use the big target."
+        },
+        {
+          "id": "f",
+          "correct": false,
+          "text": "Wind up and smash it at their feet",
+          "feedback": "The big windup is the miss the pros warn about. Keep the swing compact."
+        },
+        {
+          "id": "g",
+          "correct": false,
+          "text": "Back off and let your partner take it",
+          "feedback": "It is your ball and it is attackable. Stepping away wastes the chance."
+        },
+        {
+          "id": "h",
+          "correct": false,
+          "text": "Lob it over them",
+          "feedback": "A floater is a chance to finish. A lob hands the point back."
+        }
+      ],
+      "explanation": "Compare the ball to the tick on its stalk: well above net height. Pounce with a short backswing and use the safe middle rather than the line.",
+      "focus_cue": "Short backswing, paddle out front.",
+      "tags": [
+        "floater"
+      ],
+      "claude_note": null,
+      "mirrorable": true
+    },
+    {
+      "id": "c-dink-fp-1",
+      "schema_version": 1,
+      "sample": true,
+      "principle_id": "p-below-net-reset",
+      "type": "scenario_mc",
+      "scene_id": "s-dropping-dink",
+      "preferred_view": "first_person",
+      "prompt": "Their dink is coming to you. What's the play?",
+      "options": [
+        {
+          "id": "a",
+          "correct": true,
+          "text": "Soft reset back into their kitchen",
+          "feedback": "Correct. Stay patient until you get a ball above the net."
+        },
+        {
+          "id": "b",
+          "correct": false,
+          "text": "Speed it up at your opponent's chest",
+          "feedback": "From below the net you're hitting up. That hands them a ball to counter."
+        },
+        {
+          "id": "c",
+          "correct": false,
+          "text": "Drive it hard through the middle",
+          "feedback": "A drive from below the net has to rise, so it arrives attackable."
+        },
+        {
+          "id": "d",
+          "correct": false,
+          "text": "Lob it over them",
+          "feedback": "A lob from here is a low-percentage gamble."
+        },
+        {
+          "id": "e",
+          "correct": true,
+          "text": "Keep it low with a soft dink they can't attack",
+          "feedback": "Correct. Stay patient until you get a ball above the net."
+        },
+        {
+          "id": "f",
+          "correct": false,
+          "text": "Attack it at their feet",
+          "feedback": "Attacking a ball below the net means hitting up. Wait for one you can hit down on."
+        },
+        {
+          "id": "g",
+          "correct": false,
+          "text": "Flick it hard on the rise",
+          "feedback": "From below the net a flick has to rise, so it comes back attackable."
+        }
+      ],
+      "explanation": "The ball sits below the tick on its stalk, so contact would be below net height. Keep it soft and wait for a ball you can attack.",
+      "focus_cue": "Below the tape? Stay soft.",
+      "tags": [
+        "dinking",
+        "net_height"
+      ],
+      "claude_note": null,
+      "mirrorable": true
+    },
+    {
+      "id": "c-floater-why-1",
+      "schema_version": 1,
+      "sample": true,
+      "principle_id": "p-floater-attack-middle",
+      "type": "why",
+      "prompt": "Why aim a floater at the middle instead of the sideline?",
+      "answer": "The middle is the bigger and safer target: the net is lowest there, a slight miss still lands in, and it can make both opponents hesitate. The line needs a perfect shot for little extra gain.",
+      "explanation": "Sample card. Verify the reasoning against the episode transcript before the real deck uses it.",
+      "tags": [
+        "floater",
+        "targets"
+      ],
+      "claude_note": "This reasoning is Claude's gloss on the show notes."
+    },
+    {
+      "id": "c-floater-form-1",
+      "schema_version": 1,
+      "sample": true,
+      "principle_id": "p-floater-attack-middle",
+      "type": "form_cue",
+      "prompt": "Floater finish: what's your body cue?",
+      "answer": "Pounce forward to take it early, keep the backswing short, and keep the paddle out front where you can see it.",
+      "explanation": "A short backswing keeps the finish compact and repeatable.",
+      "focus_cue": "Pounce, short swing.",
+      "tags": [
+        "floater",
+        "form"
+      ],
+      "claude_note": null
+    },
+    {
+      "id": "c-drop-advance-drill-1",
+      "schema_version": 1,
+      "sample": true,
+      "principle_id": "p-drop-and-advance",
+      "type": "drill_recall",
+      "prompt": "Drop-and-advance drill: what's the setup, and when have you passed?",
+      "answer": "Partner feeds from the kitchen while you start at the baseline. Hit a drop, move forward, split-step as they make contact, reset, and repeat until you reach the kitchen. Pass: 7 of 10 reps reach the kitchen without a pop-up.",
+      "explanation": "Moving forward only as fast as your resets stay low is the whole skill.",
+      "focus_cue": "Split-step on their contact.",
+      "tags": [
+        "drill",
+        "transition"
+      ],
+      "claude_note": null
+    },
+    {
+      "id": "c-occlusion-floater-1",
+      "schema_version": 1,
+      "sample": true,
+      "principle_id": "p-floater-attack-middle",
+      "type": "timed_decision",
+      "scene_id": "s-occlusion-floater",
+      "preferred_view": "first_person",
+      "prompt": "Watch the exchange. Pick your play before time runs out.",
+      "options": [
+        {
+          "id": "a",
+          "correct": true,
+          "text": "Short backswing, punch it low through the middle",
+          "feedback": "Yes. Take it early and use the big target."
+        },
+        {
+          "id": "b",
+          "correct": false,
+          "text": "Big swing, drive it down the line",
+          "feedback": "The line is a small target, and a big swing costs time and control."
+        },
+        {
+          "id": "c",
+          "correct": false,
+          "text": "Let it bounce so you can take a full swing",
+          "feedback": "Waiting gives them time to recover. A floater is a ball to finish."
+        },
+        {
+          "id": "d",
+          "correct": false,
+          "text": "Dink it back softly",
+          "feedback": "That returns a ball they gifted you."
+        },
+        {
+          "id": "e",
+          "correct": true,
+          "text": "Pounce early, compact swing, into the middle",
+          "feedback": "Yes. Take it early and use the big target."
+        },
+        {
+          "id": "f",
+          "correct": false,
+          "text": "Wind up and smash it at their feet",
+          "feedback": "The big windup is the miss the pros warn about. Keep the swing compact."
+        },
+        {
+          "id": "h",
+          "correct": false,
+          "text": "Lob it over them",
+          "feedback": "A floater is a chance to finish. A lob hands the point back."
+        }
+      ],
+      "explanation": "They popped your dink up. Read it early: above the net, so pounce and punch through the middle.",
+      "focus_cue": "Read the pop-up early.",
+      "tags": [
+        "floater",
+        "timed"
+      ],
+      "claude_note": null,
+      "mirrorable": true
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+<svg class="piq-svg piq-fp" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 400" role="img" aria-label="Court view from your position"><style>
+.piq-svg{font-family:"Barlow Semi Condensed", "Barlow", system-ui, sans-serif}
+.piq-backdrop{fill:#1E2B38}
+.piq-surround{fill:#3B6D57}
+.piq-surface{fill:#2D5F8E}
+.piq-kitchen{fill:#27527D}
+.piq-line{fill:#EEF3EF;stroke:#EEF3EF;stroke-width:.6}
+.piq-td-line{stroke:#EEF3EF;fill:none}
+.piq-net-mesh{fill:rgba(12, 18, 24, 0.42)}
+.piq-net-tape{fill:#F4F6F4}
+.piq-net-post{stroke:#12171D;stroke-linecap:round}
+.piq-td-net{stroke:#F4F6F4;stroke-linecap:round}
+.piq-player-us{fill:#F3F2EC;stroke:#1B2A3A;stroke-width:.8}
+.piq-player-them{fill:#E8703E;stroke:#5E2410;stroke-width:.8}
+.piq-arm-us{stroke:#F3F2EC;fill:none}
+.piq-arm-them{stroke:#E8703E;fill:none}
+.piq-label-us{fill:#1B2A3A;font-weight:600;font-size:12px}
+.piq-label-them{fill:#3B1405;font-weight:600;font-size:12px}
+.piq-paddle{fill:#12171D}
+.piq-ball{fill:#D9F03E;stroke:#3D4806;stroke-width:.8}
+.piq-ball-shadow{fill:rgba(0, 0, 0, 0.38)}
+.piq-stalk{stroke:rgba(255, 255, 255, 0.8);stroke-width:1.2;stroke-dasharray:3 3;fill:none}
+.piq-tick{stroke:#FFFFFF;stroke-width:2.4;stroke-linecap:round}
+.piq-path{stroke:#F5C443;fill:none;stroke-linecap:round}
+.piq-path-far{stroke-dasharray:5 4}
+.piq-answer{stroke:#5FE3A8;fill:none;stroke-width:3;stroke-linecap:round}
+.piq-answer-zone{fill:rgba(95, 227, 168, 0.3);stroke:#5FE3A8;stroke-width:1.2;stroke-dasharray:4 3}
+.piq-arrowhead{fill:#5FE3A8}
+.piq-fov{fill:rgba(255, 255, 255, 0.2)}
+.piq-cam{fill:#FFFFFF;stroke:#1E2B38;stroke-width:1}
+.piq-annot{fill:#EEF3EF;font-weight:600;font-size:11px}
+.piq-annot-line{stroke:#EEF3EF;fill:none}
+.piq-reveal{opacity:0;transition:opacity .25s ease}
+.is-revealed .piq-reveal,.piq-reveal.is-on{opacity:1}
+@media (prefers-reduced-motion: reduce){.piq-reveal{transition:none}}
+</style><defs><marker id="piq-ah-fpb" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path class="piq-arrowhead" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="piq-backdrop" x="0" y="0" width="520" height="400"/><polygon class="piq-surround" points="16425.7,3011.6 309.4,119.9 76.2,128.5 -7950.1,3011.6"/><polygon class="piq-surface" points="9316,3010.6 295.9,135.1 153,143.3 -840.6,3010.6"/><polygon class="piq-kitchen" points="57.8,418 596.7,230.9 440.7,181.2 122.5,231.3"/><polygon class="piq-kitchen" points="122.5,231.3 440.7,181.2 368.2,158.1 139.8,181.4"/><polygon class="piq-line" points="153,143.2 295.6,135 296.1,135.1 152.9,143.4"/><polygon class="piq-line" points="-883.1,3009.1 152.3,143.4 153.7,143.3 -798.5,3009.1"/><polygon class="piq-line" points="9273.4,3009.1 295.4,135.1 296.4,135 9358.1,3009.1"/><polygon class="piq-line" points="59.6,412.8 593.8,230 599.6,231.8 55.9,423.3"/><polygon class="piq-line" points="139.9,181 367.6,157.9 368.8,158.3 139.7,181.7"/><polygon class="piq-line" points="4195.2,3009.1 435.1,287 438.9,285.7 4279.8,3009.1"/><polygon class="piq-line" points="270.8,168 230.5,138.8 231.7,138.8 272.7,167.8"/><g class="piq-person"><polygon class="piq-player-them" points="307.3,160 320.6,160 319.9,109.6 307.9,109.6"/><circle class="piq-player-them" cx="313.9" cy="101.7" r="4.9"/><line class="piq-arm-them" x1="318.7" y1="113.7" x2="330.4" y2="124" stroke-width="2.3" stroke-linecap="round"/><ellipse class="piq-paddle" cx="330.4" cy="124" rx="3.4" ry="4.5"/><text class="piq-label-them" x="313.9" y="132.9" text-anchor="middle" dominant-baseline="central">L</text></g><g class="piq-person"><polygon class="piq-player-them" points="201.6,170.2 216.9,170.2 216.3,112.1 202.3,112.1"/><circle class="piq-player-them" cx="209.3" cy="102.9" r="5.7"/><line class="piq-arm-them" x1="203.7" y1="116.8" x2="192.1" y2="130.4" stroke-width="2.8" stroke-linecap="round"/><ellipse class="piq-paddle" cx="192.1" cy="130.4" rx="4.2" ry="5.5"/><text class="piq-label-them" x="209.3" y="139.1" text-anchor="middle" dominant-baseline="central">R</text></g><polyline class="piq-path piq-path-far" stroke-width="1.6" points="206.4,154.3 207.2,148.9 208.1,143.6 209.1,138.4 210.1,133.3 211.3,128.3 212.6,123.5 214,118.8 215.5,114.4 217.1,110.1 218.9,106.1"/><polygon class="piq-ball-shadow" points="227.4,193.6 226.9,193.1 225.9,192.8 224.6,192.7 223.2,192.7 221.9,193 220.9,193.4 220.3,194 220.3,194.5 220.9,195 221.9,195.3 223.2,195.4 224.6,195.4 225.9,195.1 226.9,194.6 227.5,194.1"/><line class="piq-stalk" x1="223.9" y1="194" x2="218.9" y2="106.1"/><line class="piq-tick" x1="215.1" y1="147.8" x2="227.4" y2="147.8"/><circle class="piq-ball" cx="218.9" cy="106.1" r="3.3"/><polygon class="piq-net-mesh" points="78.1,169 107.5,166.6 135.1,165.1 161,163.6 185.3,162.2 208.2,160.7 229.8,159.3 250.2,157.8 269.5,156.4 287.9,155 305.3,153.6 321.8,152.2 337.6,150.8 352.7,149.4 367.1,148.1 380.9,146.7 394.1,145.3 406.7,144 418.9,142.6 430.6,141.2 441.8,139.9 452.7,138.5 463,137.7 450.9,178.6 96.2,233.9"/><polygon class="piq-net-tape" points="78.1,169 107.5,166.6 135.1,165.1 161,163.6 185.3,162.2 208.2,160.7 229.8,159.3 250.2,157.8 269.5,156.4 287.9,155 305.3,153.6 321.8,152.2 337.6,150.8 352.7,149.4 367.1,148.1 380.9,146.7 394.1,145.3 406.7,144 418.9,142.6 430.6,141.2 441.8,139.9 452.7,138.5 463,137.7 462.2,140.1 452,141 441.2,142.4 429.9,143.8 418.3,145.2 406.2,146.7 393.5,148.1 380.4,149.5 366.6,150.9 352.3,152.4 337.3,153.8 321.6,155.3 305.1,156.7 287.7,158.2 269.5,159.7 250.3,161.2 230,162.7 208.5,164.2 185.7,165.8 161.6,167.4 135.8,169 108.4,170.6 79.3,173.1"/><line class="piq-net-post" x1="96.6" y1="235.5" x2="77.8" y2="167.8" stroke-width="4.6"/><line class="piq-net-post" x1="450.6" y1="179.7" x2="463.2" y2="136.9" stroke-width="2.8"/></svg>

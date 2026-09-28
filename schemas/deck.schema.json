@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piq.local/schemas/deck.schema.json",
+  "title": "Deck",
+  "description": "Everything the app needs to run sessions. Built by `python pipeline/piq.py build-deck`. The real deck lives in the private data repo; app/data/deck.sample.json is sample content only.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "deck_id",
+    "generated_at",
+    "principles",
+    "scenes",
+    "cards"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "deck_id": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "sample": {
+      "type": "boolean"
+    },
+    "speakers": {
+      "type": "object",
+      "description": "Display info for speaker ids used in sources.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "name",
+          "tier"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "touring_pro",
+              "senior_pro", "provisional_pro",
+              "elite_coach",
+              "advanced_amateur",
+              "host",
+              "unknown"
+            ]
+          },
+          "credential": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "episodes": {
+      "type": "object",
+      "description": "Display info for episode ids used in sources.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "show",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "show": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "published": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "principles": {
+      "type": "array",
+      "items": {
+        "$ref": "principle.schema.json"
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "$ref": "scene.schema.json"
+      }
+    },
+    "cards": {
+      "type": "array",
+      "items": {
+        "$ref": "card.schema.json"
+      }
+    },
+    "shows": {
+      "type": "object",
+      "description": "Display names for show ids used in sources.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

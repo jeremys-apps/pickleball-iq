@@ -1,0 +1,194 @@
+// Review progress for this device, persisted in localStorage.
+//
+// Sync model (see docs/PRD.md, "Sync"): every device owns one file,
+// progress/<device_id>.json, and never writes anyone else's. On sync a device
+// reads all files and merges them into its own state:
+//   logs     union by id (append-only, so nothing is ever lost)
+//   cards    if both sides reviewed a card, rebuild its state by replaying the
+//            merged log; otherwise keep the entry that changed most recently
+//   settings newest updated_at wins
+// Merging is idempotent and order-independent, so repeated syncs converge.
+
+export const STORAGE_KEY = 'piq.progress.v1';
+export const SCHEMA_VERSION = 1;
+
+const nowIso = () => new Date().toISOString();
+
+export function newDeviceId() {
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID().toLowerCase();
+  return 'dev-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+}
+
+export function emptyProgress(deviceId = newDeviceId(), label = '') {
+  return {
+    schema_version: SCHEMA_VERSION,
+    device_id: deviceId,
+    device_label: label,
+    updated_at: nowIso(),
+    cards: {},
+    logs: [],
+    settings: { updated_at: '1970-01-01T00:00:00.000Z' },
+  };
+}
+
+export function loadProgress(storage = globalThis.localStorage) {
+  try {
+    const raw = storage?.getItem(STORAGE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p?.schema_version === SCHEMA_VERSION) return p;
+    }
+  } catch (e) {
+    console.warn('Progress could not be read; starting fresh.', e);
+  }
+  const p = emptyProgress();
+  saveProgress(p, storage);
+  return p;
+}
+
+export function saveProgress(p, storage = globalThis.localStorage) {
+  p.updated_at = nowIso();
+  storage?.setItem(STORAGE_KEY, JSON.stringify(p));
+  return p;
+}
+
+let logCounter = 0;
+export function recordReview(p, cardId, fsrsState, entry = {}) {
+  const reviewedAt = entry.reviewed_at ?? nowIso();
+  p.cards[cardId] = { ...(p.cards[cardId] ?? {}), fsrs: fsrsState, updated_at: reviewedAt };
+  p.logs.push({
+    id: `${p.device_id}-${Date.parse(reviewedAt).toString(36)}-${(logCounter++).toString(36)}`,
+    card_id: cardId,
+    rating: entry.rating,
+    reviewed_at: reviewedAt,
+    correct: entry.correct ?? null,
+    choice: entry.choice ?? null,
+    response_ms: entry.response_ms ?? null,
+    stage: entry.stage ?? 'A',
+    view: entry.view ?? 'first_person',
+    device_id: p.device_id,
+    ...(entry.auto_rated ? { auto_rated: true } : {}),
+    ...(entry.mirrored ? { mirrored: true } : {}),
+    ...(Array.isArray(entry.shown) ? { shown: entry.shown } : {}),
+  });
+  return p;
+}
+
+export function setSuspended(p, cardId, suspended) {
+  const e = p.cards[cardId];
+  if (!e) return p;
+  p.cards[cardId] = { ...e, suspended, updated_at: nowIso() };
+  return p;
+}
+
+const changedAt = (e) => {
+  const a = e?.fsrs?.last_review ?? '';
+  const b = e?.updated_at ?? '';
+  return a > b ? a : b;
+};
+
+// Merge remote into local. local.device_id is kept. replay(logs) -> fsrs state
+// is supplied by the scheduler so this module stays free of FSRS details.
+export function mergeProgress(local, remote, { replay } = {}) {
+  if (!remote || remote.schema_version !== SCHEMA_VERSION) return local;
+  const out = structuredCloneSafe(local);
+
+  const byId = new Map(out.logs.map((l) => [l.id, l]));
+  for (const l of remote.logs ?? []) if (!byId.has(l.id)) byId.set(l.id, l);
+  out.logs = [...byId.values()].sort((a, b) => a.reviewed_at.localeCompare(b.reviewed_at) || a.id.localeCompare(b.id));
+
+  const logsByCard = new Map();
+  for (const l of out.logs) {
+    if (!logsByCard.has(l.card_id)) logsByCard.set(l.card_id, []);
+    logsByCard.get(l.card_id).push(l);
+  }
+
+  const ids = new Set([...Object.keys(local.cards ?? {}), ...Object.keys(remote.cards ?? {})]);
+  for (const id of ids) {
+    const a = local.cards?.[id];
+    const b = remote.cards?.[id];
+    if (!a || !b) {
+      out.cards[id] = structuredCloneSafe(a ?? b);
+      continue;
+    }
+    const newer = changedAt(b) > changedAt(a) ? b : a;
+    const entry = structuredCloneSafe(newer);
+    const logs = logsByCard.get(id) ?? [];
+    const devices = new Set(logs.map((l) => l.device_id));
+    if (replay && devices.size > 1) {
+      const rebuilt = replay(logs);
+      if (rebuilt) entry.fsrs = rebuilt;
+    }
+    out.cards[id] = entry;
+  }
+
+  const ls = local.settings ?? {};
+  const rs = remote.settings ?? {};
+  out.settings = structuredCloneSafe((rs.updated_at ?? '') > (ls.updated_at ?? '') ? rs : ls);
+  out.updated_at = [local.updated_at, remote.updated_at].sort().pop();
+  return out;
+}
+
+export function exportProgress(p) {
+  return JSON.stringify(p, null, 2);
+}
+
+export function importProgress(text) {
+  const p = JSON.parse(text);
+  if (p?.schema_version !== SCHEMA_VERSION || typeof p.cards !== 'object' || !Array.isArray(p.logs)) {
+    throw new Error('This file is not a Court Sense progress export (schema_version 1).');
+  }
+  return p;
+}
+
+// Calendar day in local time (a UTC date would roll over mid-evening in Utah).
+export function localDay(d = new Date()) {
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+
+// Number of cards whose first-ever review happened on the given local day.
+export function newIntroducedOn(p, day = new Date()) {
+  const d = localDay(day);
+  const first = new Map();
+  for (const l of p.logs) if (!first.has(l.card_id)) first.set(l.card_id, localDay(l.reviewed_at));
+  let n = 0;
+  for (const v of first.values()) if (v === d) n++;
+  return n;
+}
+
+function structuredCloneSafe(v) {
+  return v === undefined ? undefined : JSON.parse(JSON.stringify(v));
+}
+
+// An answer given but not yet rated. Saved at answer time so closing the app
+// before rating loses nothing; finalizePending() records it on the next start.
+export const PENDING_KEY = 'piq.pending.v1';
+
+export function savePending(pending, storage = globalThis.localStorage) {
+  try {
+    storage?.setItem(PENDING_KEY, JSON.stringify(pending));
+  } catch {
+    /* storage full or unavailable: the card simply comes back */
+  }
+}
+
+export function clearPending(storage = globalThis.localStorage) {
+  try {
+    storage?.removeItem(PENDING_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function takePending(storage = globalThis.localStorage) {
+  let p = null;
+  try {
+    p = JSON.parse(storage?.getItem(PENDING_KEY) ?? 'null');
+  } catch {
+    p = null;
+  }
+  clearPending(storage);
+  return p;
+}

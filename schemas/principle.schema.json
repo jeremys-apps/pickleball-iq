@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piq.local/schemas/principle.schema.json",
+  "title": "Principle",
+  "description": "A deduplicated teaching point built from one or more raw tips. Cards are generated from principles. Rules: prompts/merge-principles.md.",
+  "type": "object",
+  "required": [
+    "id",
+    "schema_version",
+    "status",
+    "category",
+    "statement",
+    "situation",
+    "action",
+    "sources",
+    "priority"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^p-[a-z0-9-]+$"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "sample": {
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "struck",
+        "draft"
+      ],
+      "description": "struck: refuted by a pro in a later episode; kept for the audit trail and as distractor material."
+    },
+    "struck_reason": {
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "strategy",
+        "form",
+        "drill",
+        "mental",
+        "partner",
+        "rules",
+        "equipment"
+      ]
+    },
+    "topic": {
+      "type": "string"
+    },
+    "statement": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "One-sentence summary in plain words."
+    },
+    "situation": {
+      "type": "string",
+      "maxLength": 400
+    },
+    "cue": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 300
+    },
+    "action": {
+      "type": "string",
+      "maxLength": 400
+    },
+    "why": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      }
+    },
+    "common_mistakes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      }
+    },
+    "levels": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "all",
+          "3.0",
+          "3.5",
+          "4.0",
+          "4.5",
+          "5.0",
+          "pro"
+        ]
+      }
+    },
+    "format": {
+      "enum": [
+        "doubles",
+        "singles",
+        "both"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "raw_tip_id",
+              "episode_id",
+              "speaker_id",
+              "speaker_tier",
+              "endorsement",
+              "timestamp"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "transcript"
+              },
+              "raw_tip_id": {
+                "type": "string"
+              },
+              "episode_id": {
+                "type": "string"
+              },
+              "speaker_id": {
+                "type": "string"
+              },
+              "speaker_tier": {
+                "enum": [
+                  "touring_pro",
+                  "senior_pro",
+                  "provisional_pro",
+                  "elite_coach",
+                  "advanced_amateur",
+                  "host",
+                  "unknown"
+                ]
+              },
+              "endorsement": {
+                "enum": [
+                  "pro_stated",
+                  "endorsed_explicit",
+                  "endorsed_implicit",
+                  "qualified"
+                ]
+              },
+              "endorser_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "pattern": "^[0-9]{2}:[0-5][0-9]:[0-5][0-9]$"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "show_id",
+              "episode_title",
+              "note"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "show_notes"
+              },
+              "show_id": {
+                "type": "string"
+              },
+              "episode_id": {
+                "type": "string"
+              },
+              "episode_title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "note"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "illustrative"
+              },
+              "note": {
+                "type": "string",
+                "description": "Sample content for development only. build-deck drops it unless --include-samples."
+              }
+            }
+          }
+        ]
+      }
+    },
+    "priority": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Higher = introduced earlier. Formula in prompts/merge-principles.md."
+    },
+    "distractor_candidates": {
+      "type": "array",
+      "description": "Plausible wrong answers: refuted claims and named common mistakes. Never shown as advice.",
+      "items": {
+        "type": "object",
+        "required": [
+          "text",
+          "origin"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "origin": {
+            "enum": [
+              "refuted_claim",
+              "named_mistake",
+              "plausible_alternative"
+            ]
+          },
+          "raw_tip_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tension_with": {
+      "type": "array",
+      "description": "Principles where pros disagree or the right answer depends on conditions.",
+      "items": {
+        "type": "string",
+        "pattern": "^p-[a-z0-9-]+$"
+      }
+    },
+    "claude_note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    },
+    "trains": {
+      "type": "array",
+      "description": "For drill principles: ids of the principles this drill practices. The app suggests the drill when you miss one of them.",
+      "items": {
+        "type": "string",
+        "pattern": "^p-[a-z0-9-]+$"
+      },
+      "uniqueItems": true
+    }
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.part
+.DS_Store
+# Real decks never live in this repo (see CLAUDE.md)
+app/data/deck.json
