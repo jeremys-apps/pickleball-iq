@@ -581,11 +581,25 @@ pushed. Record the card mix that `build-deck` prints; it tells Track D2 which
 topics exist.
 
 Progress 2026-09-28: feeds resolved (70 episodes of 4.0 to Pro, 51 of Cheat
-Code, five of those with publisher transcripts). Of the first five Cheat Code
-episodes, "Start Here" and "Behind the Mic" look like introductions; the swap
-proposed to Jeremy is "Dink Like a Pro" and "Control the Kitchen (NVZ)". The
-three instructional ones ("Mastering the Midcourt", "3rd Shot Drops & Drives",
-"Serving & Returning") are downloaded and transcribing on the GPU.
+Code, five of those with publisher transcripts). Jeremy kept all five episodes,
+introductions included, to learn what they hold: the two trailers transcribed,
+mapped and prepared with no tips in them. The three instructional episodes
+took about 25 minutes each on the GPU; speaker maps came back at high
+confidence for both hosts, flagged only for crosstalk merges; extraction gave
+131 tips (91 pro-stated, 30 endorsed, 8 qualified, 2 refuted; strategy 68, form
+37, mental 10, drill 7, partner 6, equipment 3) with 31 flagged. Jeremy walked
+the queue in six batches: 18 approved, 11 rejected, 1 edited, 1 deferred.
+
+Finding: the flags blamed on "ad-break gaps" were not ads. Jeremy listened and
+the speech was there; WhisperX had replaced whole 15 to 30 second chunks with a
+sign-off line, about 7 percent of each episode. A controlled re-run of one gap
+showed the vocabulary prompt (P-3) as the cause: without it the chunk
+transcribes fully; hotwords fail the same way; the other voice detector and
+int8 are worse; batch size makes no difference. The prompt is now off by
+default with a test, the three instructional episodes are being re-transcribed
+without it, and the plan for the recovered speech is: re-map speakers,
+re-prepare, then extract tips only from the recovered passages and append them
+as new flagged tips, so the 30 decisions already made stay valid.
 
 ### Track C: real devices and real sync (PRD Phases 2 and 3 remainders; one or two sessions)
 

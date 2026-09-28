@@ -161,7 +161,7 @@ docs/                this PRD and supporting notes
 |---|---|---|
 | P-1 | Resolve feeds from the iTunes lookup or a pinned RSS URL; write episode manifests with stable ids `{show}-{YYYYMMDD}-{sha1(guid)[:6]}`. | Built |
 | P-2 | Download audio politely (pause between files, resumable `.part` files), never into git. | Built |
-| P-3 | Transcribe with WhisperX large-v3, diarization, and a vocabulary prompt for pickleball terms and names. Dry-run mode masks the Hugging Face token. | Built, untested against real audio |
+| P-3 | Transcribe with WhisperX large-v3 and diarization. Dry-run mode masks the Hugging Face token, and a failed run reports its command with the token masked. The vocabulary prompt for pickleball terms and names is off by default: in the pilot it made Whisper replace whole 15 to 30 second chunks with a sign-off line, about 7 percent of each episode, and the same audio transcribes fully without it. | Built; pilot-tested on five episodes |
 | P-4 | Map diarization labels to registry ids with cited evidence; unknown speakers stay unknown; new people are proposed, not added. | Prompt and skill written |
 | P-5 | Prepare a condensed transcript: speaker turns with a timestamp at least every 45 seconds, a speaker legend marking who counts as a pro, and show notes. | Built |
 | P-6 | Extract raw tips per the rules in section 4, one JSONL file per episode, validated with cross-checks (endorser must be a pro, id prefixes, known speakers). | Prompt, skill and validator written |
