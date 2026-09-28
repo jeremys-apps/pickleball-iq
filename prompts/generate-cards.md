@@ -86,7 +86,7 @@ Use these unless the principle says otherwise. Players stand about a foot behind
 | Partner pulled wide | (5, 13.9) | (19, 13.5) | both at the kitchen |
 | Opponents stacked to put backhands in the middle | | | righty on your left (5, 30.1), lefty on your right (15, 30.1) |
 
-Every player needs `hand` (R or L). The renderer works out paddle sides and backhand labels.
+Every player needs `hand` (R or L). Use R for everyone unless the principle names a left-hander: most players are right-handed, a righty-lefty pairing is a lesson in itself, and mirrored reviews already show the left-handed version of every scene. The renderer works out paddle sides and backhand labels.
 
 ### Heights and clearances
 

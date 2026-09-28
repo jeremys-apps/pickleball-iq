@@ -267,7 +267,7 @@
           "team": "them",
           "x": 15,
           "y": 30.1,
-          "hand": "L"
+          "hand": "R"
         }
       ],
       "ball": {
@@ -345,7 +345,7 @@
           "team": "them",
           "x": 15,
           "y": 30.1,
-          "hand": "L"
+          "hand": "R"
         }
       ],
       "ball": {
@@ -510,7 +510,7 @@
       "sample": true,
       "principle_id": "p-floater-attack-middle",
       "type": "scenario_mc",
-      "scene_id": "s-floater-backhands",
+      "scene_id": "s-occlusion-floater",
       "preferred_view": "first_person",
       "prompt": "Their shot is coming to you. How do you play it?",
       "options": [
