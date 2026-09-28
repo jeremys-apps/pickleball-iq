@@ -211,7 +211,7 @@ in batches, and each batch ends with a summary and a Keep going button.
 | A-5 | Missed cards come back in the same batch (at most twice), and in the next batch when they fall due. | Built |
 | A-6 | Save progress after every rating. An answer given but not rated (the app closed first) is recorded with its suggested rating at the next start. | Built |
 | A-7 | Suggest a rating from correctness and response time; the user can override it. Each rating button shows the resulting interval. | Built |
-| A-8 | Batch size, the optional new-card limit, the longest review gap (default 365 days), camera mode and how much help mature cards keep are settings. | Built |
+| A-8 | Batch size, the optional new-card limit, the longest review gap (default 365 days), camera mode, how much help mature cards keep, and how much time to choose on timed cards (a multiplier on the clock only) are settings. | Built |
 | A-9 | Court cards marked mirrorable alternate between the authored picture and its mirror image (positions flipped left to right, handedness swapped) on successive reviews, starting as authored. The reveal says when a card was mirrored, and the review log records it. | Built |
 | A-10 | Choice cards draw from an option pool: each showing displays one phrasing of the correct play and up to three wrong answers. The correct choice takes every position once in each run of showings, correct phrasings take turns, and wrong answers rotate so consecutive showings share exactly one. The log records what was on screen. | Built |
 
@@ -260,11 +260,19 @@ play makes the read depend on it, so mature cards pose the question the way the
 court does. After every answer, at every stage, all the aids return to show what
 happened (`STAGES` in `app/src/srs/scheduler.js`):
 
-| Stage | When | While deciding | Clock on timed cards | Playback speed |
-|---|---|---|---|---|
-| A | New, learning or relearning | Your view plus a top-down map; path, shadow, stalk | None | 0.6x |
-| B | In review, under 21 days | Your view plus the mini-map; all aids | Window x 1.33 | 0.85x |
-| C | Mature (21 days or more) | Your view with the ball's shadow | Window x 0.85 | 1x |
+| Stage | When | While deciding | Clock on timed cards | Playback speed | Freeze |
+|---|---|---|---|---|---|
+| A | New, learning or relearning | Your view plus a top-down map; path, shadow, stalk | None | 0.6x | As authored |
+| B | In review, under 21 days | Your view plus the mini-map; all aids | Window x 1.33 | 0.85x | 120 ms earlier |
+| C | Mature (21 days or more) | Your view with the ball's shadow | Window x 0.85 | 1x | 250 ms earlier |
+
+The earlier freeze (T-2) shows less of the last shot's flight, never less than
+150 ms of it, so the read has to come from earlier information. It never moves
+the clock: the question and the choices are read before Play with no limit, the
+choices keep their positions, and the clock starts at the freeze (Q5). The
+"Time to choose" setting stretches that clock for a slower search among the
+choices; the suggested rating keeps the card's own window, so the stretch never
+inflates ratings.
 
 The shadow stays because a flat screen lacks the depth cues two eyes give on
 court. The "On mature cards" setting can keep the mini-map or every aid instead;
@@ -387,7 +395,7 @@ ramping from 0.6x to real speed. Still to build:
 | Id | Requirement |
 |---|---|
 | T-1 | "Read the shot" cards that ask what the opponent is about to hit or where the ball will land, separate from "choose your response" cards. |
-| T-2 | Earlier freeze points as a card matures (less ball flight shown means harder reading). |
+| T-2 | Earlier freeze points as a card matures (less ball flight shown means harder reading). Built: stages B and C freeze 120 and 250 ms earlier than authored (section 8.4, D21). |
 | T-3 | A drag model for ball flight (pickleballs slow sharply), behind the existing arc interface. |
 | T-4 | Opponent cues (paddle face, backswing size, body position) only where a pro names them as tells. |
 | T-5 | Response-time trends per topic, to show whether reads are getting faster. |

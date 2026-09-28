@@ -90,3 +90,12 @@ correct phrasing and up to three wrong answers. Wrong answers rotate with one
 carried over between consecutive showings, because if every wrong answer changed
 while the correct one stayed, familiarity alone would point to it. Placement is
 balanced, not purely random: every position once per run, so there are no streaks.
+
+**D21. Timed cards freeze earlier as they mature.** Stage B freezes 120 ms and
+stage C 250 ms before the authored freeze, never less than 150 ms into the last
+shot (T-2). Less flight shown means the read has to come from earlier
+information, which is the point of occlusion training. The clock is untouched:
+it starts at the freeze, after the question and the choices were read with no
+limit (D16). A "Time to choose" setting stretches only that clock, for a slower
+search among the choices, and the suggested rating keeps the card's own window
+so the stretch never inflates ratings.

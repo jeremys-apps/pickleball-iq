@@ -8,7 +8,7 @@ import { renderFirstPerson } from '../app/src/court/first-person.js';
 import { renderTopDown, renderSideView } from '../app/src/court/top-down.js';
 import { makeArc } from '../app/src/court/trajectory.js';
 import { netHeightFt, paddleSideX } from '../app/src/court/geometry.js';
-import { compileTimeline, frameAt } from '../app/src/court/playback.js';
+import { compileTimeline, frameAt, createPlayer, MIN_FLIGHT_MS } from '../app/src/court/playback.js';
 
 const deck = JSON.parse(readFileSync(new URL('../app/data/deck.sample.json', import.meta.url)));
 const scene = (id) => deck.scenes.find((s) => s.id === id);
@@ -101,4 +101,30 @@ test('timeline freezes before the ball arrives and moves players', () => {
   const opp2 = frozen.players.find((p) => p.id === 'opp2');
   assert.ok(Math.abs(opp2.x - 14.2) < 0.01);
   assert.equal(frozen.reveal, null, 'no answer overlay during playback');
+});
+
+test('an earlier freeze as the card matures, clamped so the last shot stays visible', () => {
+  const s = scene('s-occlusion-floater');
+  assert.equal(compileTimeline(s).authoredFreezeAt, 2330);
+  assert.equal(compileTimeline(s, { freezeLeadMs: 120 }).freezeAt, 2210);
+  assert.equal(compileTimeline(s, { freezeLeadMs: 250 }).freezeAt, 2080);
+  assert.equal(compileTimeline(s, { freezeLeadMs: 250 }).authoredFreezeAt, 2330, 'the authored freeze is reported unchanged');
+  // A short last shot: the freeze never lands before MIN_FLIGHT_MS into it, and never later than authored.
+  const seg1 = s.timeline.segments[0];
+  const seg3 = s.timeline.segments[2];
+  const short = { ...s, timeline: { segments: [seg1, { ...seg3, from: seg1.to, duration_ms: 300 }], movements: [], freeze_at_ms: 1150 } };
+  assert.equal(MIN_FLIGHT_MS, 150);
+  assert.equal(compileTimeline(short).freezeAt, 1150);
+  assert.equal(compileTimeline(short, { freezeLeadMs: 250 }).freezeAt, 1100, 'clamped to MIN_FLIGHT_MS into the last shot');
+  assert.equal(compileTimeline(short, { freezeLeadMs: -50 }).freezeAt, 1150, 'never later than authored');
+});
+
+test('the player honors the freeze lead and can run to the end for the reveal', () => {
+  const s = scene('s-occlusion-floater');
+  const stops = [];
+  const p = createPlayer(s, { freezeLeadMs: 250, reducedMotion: true, onFreeze: (f, ms) => stops.push(ms) });
+  p.play(0);
+  p.play(0, { toEnd: true });
+  assert.deepEqual(stops, [2080, 2480]);
+  assert.equal(p.compiled.freezeAt, 2080);
 });

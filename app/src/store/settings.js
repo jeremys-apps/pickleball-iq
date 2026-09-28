@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   maxIntervalDays: 365,   // longest gap between reviews of a card
   cameraMode: 'over_shoulder',
   matureAids: 'fade',     // on mature cards: 'fade' the aids, keep the 'map', or keep 'all'
+  chooseTimeScale: 1,     // stretches only the clock on timed cards (1, 1.25, 1.5 or 2); rating suggestions keep the design window
   requestRetention: 0.9,
   autoSync: true,
   deviceLabel: '',

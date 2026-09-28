@@ -14,7 +14,15 @@ import { clamp, lerp } from './geometry.js';
 
 const smoothstep = (p) => p * p * (3 - 2 * p);
 
-export function compileTimeline(scene) {
+// The freeze can be pulled earlier than authored as a card matures (T-2), but
+// never before the last shot has been visible for this long.
+export const MIN_FLIGHT_MS = 150;
+
+// freezeLeadMs: how much earlier than the authored freeze_at_ms to freeze.
+// freezeAt is clamped between the last segment's start plus MIN_FLIGHT_MS and
+// the authored freeze, so an earlier freeze never hides the whole last shot
+// and never lands later than the author intended.
+export function compileTimeline(scene, { freezeLeadMs = 0 } = {}) {
   const tl = scene.timeline;
   if (!tl?.segments?.length) return null;
   let t = 0;
@@ -25,10 +33,15 @@ export function compileTimeline(scene) {
     return seg;
   });
   const movements = [...(tl.movements ?? [])].sort((a, b) => a.start_ms - b.start_ms);
+  const authoredFreezeAt = Math.min(tl.freeze_at_ms ?? t, t);
+  const last = segs[segs.length - 1];
+  const earliest = Math.min(authoredFreezeAt, last.start + MIN_FLIGHT_MS);
+  const freezeAt = clamp(authoredFreezeAt - Math.max(0, freezeLeadMs), earliest, authoredFreezeAt);
   return {
     segs,
     total: t,
-    freezeAt: tl.freeze_at_ms ?? t,
+    freezeAt,
+    authoredFreezeAt,
     responseWindowMs: tl.response_window_ms ?? 3000,
     movements,
     lookAt: lookAtFor(scene),
@@ -66,10 +79,14 @@ export function frameAt(scene, compiled, ms, { reveal = false } = {}) {
 }
 
 // Drives playback. speed < 1 is slow motion (used for new cards).
+// opts.freezeLeadMs freezes earlier than authored (see compileTimeline).
+// play(fromMs, { toEnd: true }) ignores the freeze and runs to the end of the
+// timeline, for the reveal after an answer; onFreeze then fires at the end.
 // Callbacks: onFrame(frame, ms), onFreeze(frame, ms).
 export function createPlayer(scene, opts = {}) {
-  const compiled = compileTimeline(scene);
+  const compiled = compileTimeline(scene, { freezeLeadMs: opts.freezeLeadMs ?? 0 });
   if (!compiled) throw new Error('createPlayer: scene has no timeline');
+  let stopAt = compiled.freezeAt;
   const raf = opts.raf ?? ((cb) => requestAnimationFrame(cb));
   const caf = opts.caf ?? ((id) => cancelAnimationFrame(id));
   const now = opts.now ?? (() => performance.now());
@@ -88,22 +105,23 @@ export function createPlayer(scene, opts = {}) {
 
   const freeze = () => {
     stop();
-    const f = frameAt(scene, compiled, compiled.freezeAt);
-    opts.onFrame?.(f, compiled.freezeAt);
-    opts.onFreeze?.(f, compiled.freezeAt);
+    const f = frameAt(scene, compiled, stopAt);
+    opts.onFrame?.(f, stopAt);
+    opts.onFreeze?.(f, stopAt);
   };
 
   const tick = () => {
     const ms = startScene + (now() - startReal) * speed;
-    if (ms >= compiled.freezeAt) return freeze();
+    if (ms >= stopAt) return freeze();
     opts.onFrame?.(frameAt(scene, compiled, ms), ms);
     handle = raf(tick);
   };
 
   return {
     compiled,
-    play(fromMs = 0) {
+    play(fromMs = 0, { toEnd = false } = {}) {
       stop();
+      stopAt = toEnd ? compiled.total : compiled.freezeAt;
       if (reducedMotion) return freeze();
       startReal = now();
       startScene = fromMs;

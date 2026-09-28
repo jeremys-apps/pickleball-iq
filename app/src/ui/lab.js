@@ -24,6 +24,7 @@ const S = {
   mirror: false,
   pos: 1000,
   speed: 1,
+  freezeLeadMs: 0,
 };
 let player = null;
 let raf = null;
@@ -77,6 +78,7 @@ function play() {
   if (sc.timeline) {
     const p = createPlayer(sc, {
       speed: S.speed,
+      freezeLeadMs: S.freezeLeadMs,
       reducedMotion: false,
       onFrame: (f, ms) => {
         S.pos = Math.round((ms / p.compiled.total) * 1000);
@@ -87,7 +89,7 @@ function play() {
         S.pos = Math.round((ms / p.compiled.total) * 1000);
         out.slider.value = S.pos;
         draw(f);
-        out.note.textContent = `Frozen at ${ms} ms of ${p.compiled.total}. The response clock (${p.compiled.responseWindowMs} ms) would start now.`;
+        out.note.textContent = `Frozen at ${ms} ms of ${p.compiled.total} (authored freeze ${p.compiled.authoredFreezeAt} ms). The response clock (${p.compiled.responseWindowMs} ms) would start now.`;
       },
     });
     player = p;
@@ -178,6 +180,8 @@ function build() {
       h('label', {}, 'Time ', out.slider),
       h('label', {}, 'Speed ', h('select', { onchange: (e) => { S.speed = Number(e.target.value); } },
         h('option', { value: 0.6 }, '0.6x (new cards)'), h('option', { value: 0.85 }, '0.85x'), h('option', { value: 1, selected: true }, 'Real speed'))),
+      h('label', {}, 'Freeze ', h('select', { onchange: (e) => { S.freezeLeadMs = Number(e.target.value); } },
+        h('option', { value: 0, selected: true }, 'As authored (stage A)'), h('option', { value: 120 }, '120 ms earlier (stage B)'), h('option', { value: 250 }, '250 ms earlier (stage C)'))),
       h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: play }, 'Play'), h('button', { class: 'btn', type: 'button', onclick: downloadSvg }, 'Download SVG'))),
     h('fieldset', {}, h('legend', {}, 'Scene checks'), out.issues),
     h('fieldset', {}, h('legend', {}, 'Paste a scene'), out.paste, h('button', { class: 'btn', type: 'button', onclick: loadPasted }, 'Load scene'), out.pasteMsg),

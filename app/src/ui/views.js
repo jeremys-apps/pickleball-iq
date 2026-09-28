@@ -20,6 +20,14 @@ const TYPE_LABEL = {
   drill_recall: 'Drill',
 };
 
+// "Time to choose on timed cards": multiplies only the clock after the freeze.
+export const CHOOSE_TIME_CHOICES = Object.freeze([
+  [1, 'As designed'],
+  [1.25, '1.25 times'],
+  [1.5, '1.5 times'],
+  [2, 'Twice as long'],
+]);
+
 export function renderHome(root, app) {
   const plan = planBatch(app.index, app.progress, app.settings);
   const parts = [
@@ -159,6 +167,17 @@ export function renderSettings(root, app) {
         ),
         h('small', {}, 'The court picture always stays. After you answer, every aid comes back to show what happened.'),
       ),
+      h(
+        'label',
+        {},
+        'Time to choose on timed cards',
+        h(
+          'select',
+          { name: 'chooseTimeScale' },
+          ...CHOOSE_TIME_CHOICES.map(([value, label]) => h('option', { value, selected: (s.chooseTimeScale ?? 1) === value }, label)),
+        ),
+        h('small', {}, 'Stretches only the clock that starts at the freeze. The suggested rating still uses the card\'s own window, so a longer clock never inflates ratings.'),
+      ),
     ),
     h(
       'fieldset',
@@ -205,6 +224,7 @@ export function renderSettings(root, app) {
       maxIntervalDays: clampInt(fd.get('maxIntervalDays'), 30, 3650, 365),
       cameraMode: fd.get('cameraMode') === 'first_person' ? 'first_person' : 'over_shoulder',
       matureAids: MATURE_AID_CHOICES.includes(fd.get('matureAids')) ? fd.get('matureAids') : 'fade',
+      chooseTimeScale: CHOOSE_TIME_CHOICES.some(([v]) => v === Number(fd.get('chooseTimeScale'))) ? Number(fd.get('chooseTimeScale')) : 1,
       autoSync: fd.get('autoSync') === 'on',
       deviceLabel: str(fd.get('deviceLabel')),
     };

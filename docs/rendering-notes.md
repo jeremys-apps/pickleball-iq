@@ -102,7 +102,10 @@ fits a phone screen. `renderSideView` shows heights against the net for the lab.
 pure function from time to frame (ball position, trail, player positions), which
 keeps animation testable. `createPlayer` drives it with `requestAnimationFrame`,
 applies the stage speed, stops at `freeze_at_ms`, and honors reduced motion by
-freezing immediately.
+freezing immediately. The stage's `freezeLeadMs` pulls that stop earlier than
+`freeze_at_ms`, clamped so at least `MIN_FLIGHT_MS` of the last shot is shown
+and never later than authored; `play(0, { toEnd: true })` runs through to the
+end of the timeline for the reveal after an answer.
 
 ## Performance
 

@@ -40,8 +40,13 @@ export function mountCard(root, ctx) {
   const shown = mc ? pickOptions(card, ctx.showing ?? state?.reps ?? 0) : [];
   const cameraMode = settings.cameraMode ?? 'over_shoulder';
   const panelKind = stage.panel; // callers apply the mature-card preference
-  const windowMs =
+  // designWindowMs is the card's window at this stage and drives the rating
+  // suggestion. windowMs is what the clock and the timeout use: the same,
+  // stretched by the "Time to choose" setting, so a slower search for the
+  // choice never costs a read that was made in time (N-5).
+  const designWindowMs =
     timed && stage.windowScale ? Math.round((scene.timeline.response_window_ms ?? 3000) * stage.windowScale) : null;
+  const windowMs = designWindowMs == null ? null : Math.round(designWindowMs * (settings.chooseTimeScale ?? 1));
 
   let hero = !isWide() && card.preferred_view === 'top_down' && stage.id === 'A' ? 'top_down' : 'first_person';
   let frame = scene ? frameFromScene(scene) : null;
@@ -131,6 +136,7 @@ export function mountCard(root, ctx) {
   if (timed) {
     player = createPlayer(scene, {
       speed: stage.speed,
+      freezeLeadMs: stage.freezeLeadMs ?? 0,
       onFrame: (f) => {
         frame = f;
         draw();
@@ -214,7 +220,7 @@ export function mountCard(root, ctx) {
     }
     view.classList.add('is-revealed');
     draw();
-    suggested = suggestRating({ correct, responseMs, windowMs });
+    suggested = suggestRating({ correct, responseMs, windowMs: designWindowMs });
     showAfter({ correct, timedOut: choiceId == null, choice: choiceId ?? null, responseMs, shown: shown.map((o) => o.id) });
   }
 
@@ -246,7 +252,7 @@ export function mountCard(root, ctx) {
     if (note) parts.push(h('p', { class: 'claude-note' }, h('b', {}, "Claude's note: "), note));
     if (scene) {
       parts.push(
-        h('div', { class: 'row' }, h('button', { class: 'btn', type: 'button', onclick: () => (timed ? player.play(0) : replayStatic()) }, timed ? 'Watch again' : 'Replay the shot')),
+        h('div', { class: 'row' }, h('button', { class: 'btn', type: 'button', onclick: () => (timed ? player.play(0, { toEnd: true }) : replayStatic()) }, timed ? 'Watch again' : 'Replay the shot')),
       );
     }
     if (mirrored) parts.push(h('p', { class: 'note mirrored-note' }, "Mirrored this time: the court is flipped left to right and everyone's handedness is swapped, so it is the same situation seen from the other side."));
@@ -304,7 +310,7 @@ export function mountCard(root, ctx) {
       else if (!mc && !answered) showAnswer();
       else if (answered) rate(suggested);
     } else if ((e.key === 'r' || e.key === 'R') && scene && (answered || !timed)) {
-      timed ? player.play(0) : replayStatic();
+      timed ? player.play(0, { toEnd: true }) : replayStatic(); // timed replays only happen after the answer
     }
   }
 
@@ -327,5 +333,6 @@ export function mountCard(root, ctx) {
   root.replaceChildren(view);
   draw();
 
-  return { destroy, answer, start, showAnswer, rate };
+  // freezeAt and clock are exposed for tests and the lab; nothing else reads them.
+  return { destroy, answer, start, showAnswer, rate, freezeAt: player?.compiled.freezeAt ?? null, clock: { windowMs, designWindowMs } };
 }

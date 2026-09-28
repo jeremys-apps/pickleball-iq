@@ -66,4 +66,6 @@ test('mature-card aid preference changes only mature cards, and never speed or c
   assert.equal(all.panel, 'mini');
   assert.equal(all.speed, S.C.speed);
   assert.equal(all.windowScale, S.C.windowScale);
+  assert.equal(all.freezeLeadMs, S.C.freezeLeadMs, 'the earlier freeze is match-like and stays');
+  assert.deepEqual([S.A.freezeLeadMs, S.B.freezeLeadMs, S.C.freezeLeadMs], [0, 120, 250]);
 });

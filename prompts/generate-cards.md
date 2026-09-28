@@ -131,7 +131,7 @@ One or two lead-in shots ending at the decision point, then a freeze.
 | Floater or pop-up | 1000 to 1400 |
 
 - Segments chain: each `from` equals the previous `to`. A bounce is a segment ending at `z_in: 0`, followed by a `kind: "bounce"` segment up to the contact point with an `apex_in`.
-- `freeze_at_ms`: 100 to 200 ms before the last segment ends. The static `ball.now` should equal the last segment's `to`.
+- `freeze_at_ms`: 100 to 200 ms before the last segment ends. The static `ball.now` should equal the last segment's `to`. As a card matures the app freezes up to 250 ms earlier than this, so the last segment should last at least 400 ms.
 - `response_window_ms`: 3000 by default. The app scales it by card maturity.
 - Add `movements` for players who would move (shifting toward the middle, split-stepping forward).
 

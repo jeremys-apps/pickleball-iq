@@ -169,6 +169,27 @@ test('timed card: play, freeze unlocks options, time running out counts as a mis
   assert.equal(result.rating, 1);
 });
 
+test('timed cards freeze earlier as they mature, and the time-to-choose setting stretches only the clock', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const host = document.getElementById('app');
+  const card = app.index.cards.get('c-occlusion-floater-1');
+  const mount = (stage, settings = app.settings) => m.mountCard(host, { card, index: app.index, stage, settings, scheduler: app.scheduler, onDone: () => {} });
+  const a = mount(m.sched.STAGES.A);
+  assert.equal(a.freezeAt, 2330, 'stage A freezes as authored');
+  assert.deepEqual(a.clock, { windowMs: null, designWindowMs: null }, 'no clock on new cards');
+  a.destroy();
+  const c = mount(m.sched.STAGES.C);
+  assert.equal(c.freezeAt, 2080, 'stage C freezes 250 ms earlier');
+  assert.deepEqual(c.clock, { windowMs: 2550, designWindowMs: 2550 });
+  c.destroy();
+  const stretched = mount(m.sched.STAGES.B, { ...app.settings, chooseTimeScale: 2 });
+  assert.deepEqual(stretched.clock, { windowMs: 8000, designWindowMs: 4000 }, 'the clock doubles, the rating window does not');
+  assert.match(host.querySelector('.timed-hint').textContent, /8\.0 seconds/);
+  stretched.destroy();
+});
+
 function answerUntilSummary(root, app, max = 60) {
   for (let guard = 0; guard < max && !root.querySelector('.summary'); guard++) {
     root.querySelector('.play:not([hidden])')?.click(); // timed card: reduced motion freezes at once
@@ -240,10 +261,12 @@ test('home, cards, preview and settings render; settings save', { skip }, async 
   assert.equal(root.querySelector('input[name="newPerDay"]').value, '', 'no limit by default');
   root.querySelector('input[name="newPerDay"]').value = '8';
   root.querySelector('input[name="batchSize"]').value = '15';
+  root.querySelector('select[name="chooseTimeScale"]').value = '1.5';
   root.querySelector('input[name="owner"]').value = 'jeremy';
   root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
   assert.equal(app.settings.newPerDay, 8);
   assert.equal(app.settings.batchSize, 15);
+  assert.equal(app.settings.chooseTimeScale, 1.5);
   root.querySelector('input[name="newPerDay"]').value = '';
   root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
   assert.equal(app.settings.newPerDay, null, 'blank means no limit');

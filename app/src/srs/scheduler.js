@@ -67,14 +67,20 @@ export function suggestRating({ correct, guessed = false, responseMs = null, win
 // Aid fading. Support is generous while a card is new and is withdrawn as it
 // matures, so recognition stops depending on crutches the court won't give you.
 //   A  new or relearning: first person + labeled top-down, all aids, untimed,
-//      slow-motion playback
-//   B  in review: first person + mini-map, all aids, clock at 1.33x the scene window
+//      slow-motion playback, freeze as authored
+//   B  in review: first person + mini-map, all aids, clock at 1.33x the scene window,
+//      freeze 120 ms earlier than authored
 //   C  mature (interval of 21 days or more): first person only, shadow only,
-//      real speed, clock at 0.85x the scene window
+//      real speed, clock at 0.85x the scene window, freeze 250 ms earlier
+// freezeLeadMs pulls the freeze of a timed card earlier than its authored
+// freeze_at_ms (T-2): less of the ball's flight is shown, so the read has to
+// come from earlier information. It changes what is visible, not the clock,
+// which only starts at the freeze. Like speed and the clock it is match-like,
+// so applyAidPreference leaves it alone.
 export const STAGES = Object.freeze({
-  A: Object.freeze({ id: 'A', panel: 'top_down', aids: { path: true, shadow: true, stalk: true }, windowScale: null, speed: 0.6 }),
-  B: Object.freeze({ id: 'B', panel: 'mini', aids: { path: true, shadow: true, stalk: true }, windowScale: 4 / 3, speed: 0.85 }),
-  C: Object.freeze({ id: 'C', panel: null, aids: { path: false, shadow: true, stalk: false }, windowScale: 0.85, speed: 1 }),
+  A: Object.freeze({ id: 'A', panel: 'top_down', aids: { path: true, shadow: true, stalk: true }, windowScale: null, speed: 0.6, freezeLeadMs: 0 }),
+  B: Object.freeze({ id: 'B', panel: 'mini', aids: { path: true, shadow: true, stalk: true }, windowScale: 4 / 3, speed: 0.85, freezeLeadMs: 120 }),
+  C: Object.freeze({ id: 'C', panel: null, aids: { path: false, shadow: true, stalk: false }, windowScale: 0.85, speed: 1, freezeLeadMs: 250 }),
 });
 
 export const MATURE_DAYS = 21;
