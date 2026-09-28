@@ -371,7 +371,8 @@ def cmd_prepare(ctx: Ctx, args):
             print(f"{ep['id']}: no transcript yet")
             continue
         sp_f = ctx.work / "speakers" / f"{ep['id']}.json"
-        smap = json.loads(sp_f.read_text(encoding="utf-8"))["map"] if sp_f.exists() else {}
+        spdata = json.loads(sp_f.read_text(encoding="utf-8")) if sp_f.exists() else {}
+        smap = spdata.get("map", {})
         if not smap:
             print(f"{ep['id']}: warning, no speaker map yet; lines keep diarization labels")
         show = ctx.shows.get(ep["show_id"], {})
@@ -386,6 +387,12 @@ def cmd_prepare(ctx: Ctx, args):
             else:
                 pro = ""
             legend.append(f"- {m.get('speaker_id', label)}: {reg.get('name', 'unidentified')}, {tier}{pro}. Diarization label {label}, mapping confidence {m.get('confidence', '?')}.")
+        # The map's notes travel with the transcript: they name the moments where
+        # diarization put a line under the wrong voice, which the extractor must know.
+        for note in spdata.get("notes") or []:
+            legend.append(f"- Note from the speaker map: {note}")
+        if spdata.get("needs_review"):
+            legend.append("- The speaker map is flagged for review. Where a note above says a line sits under the wrong label, attribute it as the note says and set needs_review on any tip from that moment.")
         body = [
             f"# Episode {ep['id']}",
             f"Show: {show.get('name', ep['show_id'])}",

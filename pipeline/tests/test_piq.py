@@ -115,6 +115,25 @@ class ListTests(TempData):
         self.assertFalse(piq.speaker_map_flagged(self.ctx, "cheatcode-20250115-cccccc"), "no map at all is not flagged")
 
 
+class PrepareTests(TempData):
+    def test_prepared_transcript_carries_the_speaker_map_notes_and_flag(self):
+        eid = "cheatcode-20250101-abcdef"
+        manifest = {"show_id": "cheatcode", "episodes": [{"id": eid, "show_id": "cheatcode", "title": "Test", "published": "2025-01-01T00:00:00+00:00", "show_notes": "Notes."}]}
+        self.ctx.out("work", "episodes", "cheatcode.json").write_text(json.dumps(manifest), encoding="utf-8")
+        self.ctx.out("work", "transcripts", f"{eid}.json").write_text(json.dumps({"segments": [{"start": 1.0, "end": 3.0, "text": "Hello there.", "speaker": "SPEAKER_00"}]}), encoding="utf-8")
+        smap = {"episode_id": eid, "map": {"SPEAKER_00": {"speaker_id": "tanner-tomassi", "confidence": "high", "evidence": "[00:00:01] intro"}},
+                "proposed_registry_additions": [], "notes": ["[00:22:35] one SPEAKER_01 segment holds both voices"], "needs_review": True}
+        self.ctx.out("work", "speakers", f"{eid}.json").write_text(json.dumps(smap), encoding="utf-8")
+        args = argparse.Namespace(show=None, episodes=eid, match=None, limit=None, oldest_first=False)
+        with contextlib.redirect_stdout(io.StringIO()):
+            piq.cmd_prepare(self.ctx, args)
+        text = (self.ctx.work / "prepared" / f"{eid}.md").read_text(encoding="utf-8")
+        self.assertIn("- tanner-tomassi: Tanner Tomassi, touring_pro (counts as a pro). Diarization label SPEAKER_00, mapping confidence high.", text)
+        self.assertIn("- Note from the speaker map: [00:22:35] one SPEAKER_01 segment holds both voices", text)
+        self.assertIn("flagged for review", text)
+        self.assertIn("[00:00:01] tanner-tomassi: Hello there.", text)
+
+
 class TranscriptTests(unittest.TestCase):
     def test_condense_merges_turns_and_restamps_long_ones(self):
         tr = json.loads((FIX / "whisperx.json").read_text())
