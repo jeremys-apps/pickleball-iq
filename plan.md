@@ -89,8 +89,8 @@ Not read anywhere: `tags`, `levels`, `format`, `topic`. Track D2 starts reading
 | `node_modules`, `.venv` | Were absent; created today for the test runs (both are gitignored) |
 | ffmpeg | 8.0 on PATH |
 | GPU | NVIDIA GeForce GTX 1660 Ti, 6 GB; `nvidia-smi` on PATH |
-| WhisperX | Not installed |
-| `HF_TOKEN` | Not set |
+| WhisperX | Installed 2026-09-28 in `.venv-whisperx` (gitignored): WhisperX 3.8.6, PyTorch 2.8.0 with CUDA 12.8, pyannote-audio 4.0.7; CUDA sees the GTX 1660 Ti; every flag `piq.py` passes exists |
+| `HF_TOKEN` | Set as a Windows user environment variable on 2026-09-28. Sessions started earlier do not see it; the pipeline reads it from the user registry at run time |
 | `gh` CLI | Not installed |
 | `claude` CLI | Installed (headless loops possible) |
 | `ANTHROPIC_API_KEY` | Unset, which keeps Claude Code on the subscription (A15) |
@@ -553,7 +553,7 @@ the requirement id in the message.
 | A1 | Done by Jeremy: initialized, one commit ("Initial commit", 112 files, this plan included), pushed. `node_modules`, `.venv`, `app/data/deck.json` are ignored | Verified: clean working tree, ignores in force |
 | A2 | Done 2026-09-28: organization `jeremys-apps` created, repository transferred and made public, Pages source set to GitHub Actions, workflow run by hand and succeeded (the push-triggered run before that setting had failed, as expected). This clone's remote repointed | Verified through the API and by fetching the site: https://jeremys-apps.github.io/pickleball-iq/ serves the sample deck, `lab.html` opens, the deployed manifest matches this clone; Jeremy sees it on the laptop and the phone |
 | A3 | Done 2026-09-28: `ViciousJ/pickleball-iq-data` created private on GitHub by Jeremy; initialized locally at `../pickleball-iq-data` with the ignore rules (audio, spot-check clips, partial downloads, the cron lock) and `origin` attached; first push by Jeremy, since the permission system declines pushes from this session. The fine-grained token waits until the pilot deck exists (Track C) | `python pipeline/piq.py status` reports no manifests yet rather than a missing directory |
-| A4 | First land the config overlay from section 4.9 (`load_config`, `piq.local.example.yaml`, gitignore, test). Then the WhisperX environment: separate venv on Python 3.12, CUDA build of PyTorch matching the driver, `pip install whisperx`, `whisperx --help`. Jeremy: Hugging Face read token; accept the terms on `pyannote/speaker-diarization-community-1` (the model the current WhisperX README names; the older `pyannote/speaker-diarization-3.1` and `pyannote/segmentation-3.0` pages are worth accepting too, in case an installed release still uses them); `HF_TOKEN` as a Windows user environment variable. The laptop's `piq.local.yaml`: `batch_size: 4` for the 6 GB card, `float16` with `int8` as the fallback, the venv's `whisperx` path. Time box: if CUDA on Windows is not working after one session, switch to Track H2 rather than keep digging | `python pipeline/piq.py transcribe --episodes <id> --dry-run` prints the command with the token masked; the pipeline tests cover the overlay |
+| A4 | Done 2026-09-28. Config overlay landed with tests. WhisperX environment in `.venv-whisperx` on Python 3.13 (within WhisperX 3.8's range, so no second Python): PyTorch 2.8.0 with CUDA 12.8 from the PyTorch index, then `pip install whisperx`; CUDA sees the card; all twelve flags verified against `whisperx --help`. Jeremy: read token, terms accepted on `pyannote/speaker-diarization-community-1`, `HF_TOKEN` as a user environment variable. Laptop overlay: `batch_size: 4`, `float16`, the venv's `whisperx` path. A failed run now reports the command with the token masked (was: raw CalledProcessError) | Dry run prints the command with the token masked; the first real episode runs on the GPU with about 5.1 of 6 GB in use, so `float16` with batch size 4 fits |
 | A5 | Optional: `gh` CLI (repository creation and transfer from the terminal). No `yt-dlp` while Track F is on hold | `gh auth status` |
 | A6 | Docs: README step 0 (`git init`), pipeline README GPU-memory paragraph and the Windows cuDNN note, PRD section 3 machine facts and test date | Read-through |
 
@@ -580,6 +580,13 @@ Exit (PRD Phase 1): spot-check passed, every pilot scene passes
 pushed. Record the card mix that `build-deck` prints; it tells Track D2 which
 topics exist.
 
+Progress 2026-09-28: feeds resolved (70 episodes of 4.0 to Pro, 51 of Cheat
+Code, five of those with publisher transcripts). Of the first five Cheat Code
+episodes, "Start Here" and "Behind the Mic" look like introductions; the swap
+proposed to Jeremy is "Dink Like a Pro" and "Control the Kitchen (NVZ)". The
+three instructional ones ("Mastering the Midcourt", "3rd Shot Drops & Drives",
+"Serving & Returning") are downloaded and transcribing on the GPU.
+
 ### Track C: real devices and real sync (PRD Phases 2 and 3 remainders; one or two sessions)
 
 | Step | Work | Criterion |
@@ -597,7 +604,7 @@ Exit: AC-2 to AC-5 marked passing on devices in the PRD. Daily use begins here.
 
 | Step | Work | Tests |
 |---|---|---|
-| D1 (T-2, N-5) | `freezeLeadMs` on the stages, clamped early freeze in `compileTimeline`, `play(0, { toEnd: true })` for the post-answer replay, lab control, prompt sentence about minimum last-segment length; `chooseTimeScale` in Settings applied to the clock only; PRD 8.4 gains a Freeze column and A-8 the new setting, T-2 marked built, decision D21 | `compileTimeline(occlusionScene, { freezeLeadMs: 250 }).freezeAt === 2080`; the clamp on a scene with a short last segment; `applyAidPreference` keeps the lead; a card-view test that stage C freezes earlier than stage A and that the replay reaches the end; a card-view test that a 2x multiplier doubles the timeout and leaves the suggested rating unchanged |
+| D1 (T-2, N-5) | Done 2026-09-28, 55 tests passing. `freezeLeadMs` on the stages, clamped early freeze in `compileTimeline`, `play(0, { toEnd: true })` for the post-answer replay, lab control, prompt sentence about minimum last-segment length; `chooseTimeScale` in Settings applied to the clock only; PRD 8.4 gains a Freeze column and A-8 the new setting, T-2 marked built, decision D21 | `compileTimeline(occlusionScene, { freezeLeadMs: 250 }).freezeAt === 2080`; the clamp on a scene with a short last segment; `applyAidPreference` keeps the lead; a card-view test that stage C freezes earlier than stage A and that the replay reaches the end; a card-view test that a 2x multiplier doubles the timeout and leaves the suggested rating unchanged |
 | D2 (T-5) | `app/src/stats.js` with `timedTrend` and `topicStats`; Progress view and route; nav rules; PRD section 8.11 (N-4 Progress view) and T-5 marked built | Median and window arithmetic on synthetic logs; stage A logs excluded; unknown cards ignored; topic fallback to category; ordering; a jsdom render with the sample deck after a batch |
 | D3 (N-2) | `drillPlan`; the Drills section inside the Progress view; `trains` added to the sample drill principle; PRD Phase 6 item moved to built | Ranking with two drills where one trains a lapsed principle; drills without seen targets sort last; render smoke test |
 | D4 (N-3) | `focusCue` returns the card; `endBatch` stores `last_cue`; Home shows it; schema documents it | After a batch, `progress.settings.last_cue.text` equals the summary cue; Home renders it; merge keeps the newer cue |
