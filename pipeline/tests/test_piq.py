@@ -77,6 +77,24 @@ class FeedTests(unittest.TestCase):
 
 
 class TranscribeTests(TempData):
+    def _episode_with_audio(self, eid="cheatcode-20250101-abcdef", audio_text="import sys; sys.exit(3)\n"):
+        manifest = {"show_id": "cheatcode", "episodes": [{"id": eid, "show_id": "cheatcode", "title": "Test", "published": "2025-01-01T00:00:00+00:00", "audio_url": "x"}]}
+        self.ctx.out("work", "episodes", "cheatcode.json").write_text(json.dumps(manifest), encoding="utf-8")
+        self.ctx.out("work", "audio", f"{eid}.mp3").write_text(audio_text, encoding="utf-8")
+        return eid
+
+    def test_the_vocabulary_prompt_is_off_unless_asked_for(self):
+        eid = self._episode_with_audio()
+        args = argparse.Namespace(show=None, episodes=eid, match=None, limit=None, oldest_first=False, force=False, dry_run=True)
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            piq.cmd_transcribe(self.ctx, args)
+        self.assertNotIn("--initial_prompt", out.getvalue(), "off by default: the prompt made Whisper drop chunks")
+        self.ctx.cfg["transcribe"]["initial_prompt"] = True
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            piq.cmd_transcribe(self.ctx, args)
+        self.assertIn("--initial_prompt", out.getvalue())
+        self.assertIn("dink", out.getvalue(), "the prompt text comes from vocab.txt")
+
     def test_a_failed_run_reports_the_command_with_the_token_masked(self):
         eid = "cheatcode-20250101-abcdef"
         manifest = {"show_id": "cheatcode", "episodes": [{"id": eid, "show_id": "cheatcode", "title": "Test", "published": "2025-01-01T00:00:00+00:00", "audio_url": "x"}]}

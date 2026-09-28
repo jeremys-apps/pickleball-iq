@@ -304,7 +304,13 @@ def cmd_download(ctx: Ctx, args):
 
 def cmd_transcribe(ctx: Ctx, args):
     t = ctx.cfg.get("transcribe", {})
-    prompt = ctx.vocab_path.read_text(encoding="utf-8").strip() if ctx.vocab_path.exists() else ""
+    # The vocabulary prompt is off by default: in the pilot it made Whisper drop whole
+    # 15 to 30 second chunks and write a sign-off ("Thank you for watching") in their
+    # place, about 7 percent of each episode. Without it the same audio transcribes
+    # fully; the speaker map copes with misspelled names. Set transcribe.initial_prompt
+    # to true only after checking a known passage with and without it.
+    use_prompt = bool(t.get("initial_prompt", False))
+    prompt = ctx.vocab_path.read_text(encoding="utf-8").strip() if use_prompt and ctx.vocab_path.exists() else ""
     token = os.environ.get(t.get("hf_token_env", "HF_TOKEN"), "")
     out_dir = ctx.out("work", "transcripts", "_").parent
     for ep in select(ctx, args):

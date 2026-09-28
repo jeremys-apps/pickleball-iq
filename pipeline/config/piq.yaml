@@ -20,6 +20,11 @@ transcribe:
   min_speakers: 2
   max_speakers: 4
   hf_token_env: HF_TOKEN  # Hugging Face token for the pyannote diarization models
+  # Pass config/vocab.txt as Whisper's initial prompt. Off: in the pilot the prompt made
+  # Whisper drop whole 15 to 30 second chunks and write "Thank you for watching" in
+  # their place (about 7 percent of each episode); hotwords did the same. Names come
+  # out slightly misspelled without it, which the speaker map handles.
+  initial_prompt: false
 
 extract:
   # Only used by `piq.py extract-api`. The default path is the /extract-episode skill.
