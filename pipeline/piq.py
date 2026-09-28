@@ -436,8 +436,17 @@ def cmd_list(ctx: Ctx, args):
     decisions = review_decisions(ctx)
     for ep in select(ctx, args):
         st = stage_state(ctx, ep, decisions)
-        if all(st[k] for k in prereqs) and (not st[need] or not args.pending):
-            print(ep["id"])
+        if not (all(st[k] for k in prereqs) and (not st[need] or not args.pending)):
+            continue
+        if getattr(args, "skip_flagged", False) and speaker_map_flagged(ctx, ep["id"]):
+            continue
+        print(ep["id"])
+
+
+def speaker_map_flagged(ctx: Ctx, eid: str) -> bool:
+    """True when the episode's speaker map asks for human review. Unattended runs skip those."""
+    f = ctx.work / "speakers" / f"{eid}.json"
+    return f.exists() and bool(json.loads(f.read_text(encoding="utf-8")).get("needs_review"))
 
 
 def cmd_review_list(ctx: Ctx, args):
@@ -887,6 +896,7 @@ def main(argv=None):
     p = sel(sub.add_parser("list", help="episode ids ready for a stage (for loops)"))
     p.add_argument("--stage", required=True, choices=["download", "transcribe", "speakers", "prepare", "extract", "review"])
     p.add_argument("--pending", action="store_true", help="only those not done yet")
+    p.add_argument("--skip-flagged", action="store_true", help="leave out episodes whose speaker map asks for review (unattended runs)")
     p.set_defaults(fn=cmd_list)
     sub.add_parser("review-list", help="print tips that need review (JSONL)").set_defaults(fn=cmd_review_list)
     p = sub.add_parser("review-decide", help="record a review decision")

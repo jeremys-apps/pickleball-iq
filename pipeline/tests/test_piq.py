@@ -94,6 +94,27 @@ class TranscribeTests(TempData):
         self.assertNotIn("hf_secret_token", message)
 
 
+class ListTests(TempData):
+    def test_skip_flagged_leaves_out_speaker_maps_that_need_review(self):
+        ids = ["cheatcode-20250101-aaaaaa", "cheatcode-20250108-bbbbbb"]
+        manifest = {"show_id": "cheatcode", "episodes": [{"id": i, "show_id": "cheatcode", "title": i, "published": f"2025-01-0{n + 1}T00:00:00+00:00"} for n, i in enumerate(ids)]}
+        self.ctx.out("work", "episodes", "cheatcode.json").write_text(json.dumps(manifest), encoding="utf-8")
+        for i, flagged in zip(ids, (True, False)):
+            self.ctx.out("work", "transcripts", f"{i}.json").write_text("{}", encoding="utf-8")
+            self.ctx.out("work", "speakers", f"{i}.json").write_text(json.dumps({"map": {}, "needs_review": flagged}), encoding="utf-8")
+            self.ctx.out("work", "prepared", f"{i}.md").write_text("# x", encoding="utf-8")
+
+        def listed(skip):
+            args = argparse.Namespace(stage="extract", pending=True, skip_flagged=skip, show=None, episodes=None, match=None, limit=None, oldest_first=True)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                piq.cmd_list(self.ctx, args)
+            return out.getvalue().split()
+
+        self.assertEqual(listed(False), ids)
+        self.assertEqual(listed(True), [ids[1]])
+        self.assertFalse(piq.speaker_map_flagged(self.ctx, "cheatcode-20250115-cccccc"), "no map at all is not flagged")
+
+
 class TranscriptTests(unittest.TestCase):
     def test_condense_merges_turns_and_restamps_long_ones(self):
         tr = json.loads((FIX / "whisperx.json").read_text())

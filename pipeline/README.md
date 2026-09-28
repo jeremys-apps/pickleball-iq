@@ -64,24 +64,34 @@ pip install -r pipeline/requirements.txt
 python -m unittest discover -s pipeline/tests
 ```
 
-WhisperX pins its own PyTorch build, so give it a separate environment:
+WhisperX pins its own PyTorch build, so give it a separate environment. As of
+WhisperX 3.8 it accepts Python 3.10 to 3.13 and pins PyTorch 2.8; on an NVIDIA
+GPU install the CUDA build first, so pip does not pull the CPU build from PyPI:
 
 ```bash
-python -m venv ~/.venvs/whisperx && source ~/.venvs/whisperx/bin/activate   # Scripts/activate on Windows
-# On Windows with an NVIDIA GPU, install the CUDA build of PyTorch first (pytorch.org lists the command)
-pip install whisperx            # needs ffmpeg on PATH; CUDA for GPU speed
-whisperx --help                 # confirm the flags piq.py uses still exist
+python -m venv .venv-whisperx                      # gitignored, inside the repo
+source .venv-whisperx/Scripts/activate             # Windows (Git Bash); bin/activate on Linux
+pip install torch==2.8.0 torchaudio==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu128
+pip install whisperx                               # needs ffmpeg on PATH
+python -c "import torch; print(torch.cuda.is_available())"
+whisperx --help                                    # confirm the flags piq.py uses still exist
 ```
+
+On a CPU-only machine skip the CUDA line and set `device: cpu`,
+`compute_type: int8` in the overlay. A 6 GB GTX 1660 Ti runs `large-v3` in
+`float16` with `batch_size: 4`, using about 5 GB of GPU memory.
 
 Diarization uses pyannote models from Hugging Face. Create a read token, accept
-the terms on the model pages the WhisperX README lists, and export it:
+the terms on the `pyannote/speaker-diarization-community-1` page (the model the
+current WhisperX README names), and make the token available as `HF_TOKEN`: on
+Windows a user environment variable (`setx HF_TOKEN hf_...` in a terminal you
+then close), on Linux an `export` in the environment file the job sources.
+Shells and Claude Code sessions started before the variable was set do not see
+it. A failed transcription reports its command with the token masked.
 
-```bash
-export HF_TOKEN=hf_...
-```
-
-Set `transcribe.command` in `config/piq.yaml` to the full path of that
-environment's `whisperx` if it is not on your PATH.
+Machine settings go in `config/piq.local.yaml`, gitignored and merged over
+`piq.yaml`; copy `piq.local.example.yaml` and set `transcribe.command` to the
+full path of that environment's `whisperx`.
 
 **Time.** The two shows total roughly 120 episodes, about 70 hours of audio.
 On a recent NVIDIA GPU with `large-v3` that is an afternoon to an overnight run.
@@ -121,6 +131,31 @@ and writes a local page with an audio player and three yes-or-no questions per
 tip: right speaker, right label, faithful paraphrase. It tallies as you go and
 produces a results block to paste back into Claude Code. The pilot passes when
 at least nine of ten tips are fully right. Clips stay out of git.
+
+## Always-on worker (a Linux VM)
+
+An idle Linux machine can carry the mechanical stages and keep up with new
+episodes (plan.md Track H). Everything it makes is committed to the data repo,
+so the machine is disposable. Setup, once:
+
+1. A user for the job, `git`, `ffmpeg`, Python 3.10 to 3.13; clone this repo and
+   the private data repo side by side, the latter with a deploy key that can push.
+2. The pipeline venv (`pipeline/requirements.txt`) and the WhisperX environment
+   above without the CUDA line; `config/piq.local.yaml` with `device: cpu`,
+   `compute_type: int8`, `batch_size: 4` and the `whisperx` path.
+3. `~/.config/piq/env` (mode 600) exporting `PIQ_CODE_DIR`, `PIQ_DATA_DIR`,
+   `HF_TOKEN`, and optionally `PIQ_MAX_EPISODES` (default 2) and
+   `PIQ_RUN_CLAUDE` (default 0). Add `.cron.lock` to the data repo's `.gitignore`.
+4. The crontab line from the top of `pipeline/cron/new-episodes.sh`.
+
+Each run pulls the data repo, refreshes the feeds, downloads and transcribes at
+most `PIQ_MAX_EPISODES` new episodes, and commits the results; logs go to
+`~/piq-logs/`. With `PIQ_RUN_CLAUDE=1` and Claude Code installed and signed in
+with the subscription (never an API key; the script refuses one), it also maps
+speakers, prepares and extracts; episodes whose speaker map asks for review are
+left for the laptop (`piq.py list --skip-flagged`). Run the script by hand with
+a large `PIQ_MAX_EPISODES` to work through a backlog. Expect CPU transcription
+at around real time or slower.
 
 ## Bulk extraction
 
