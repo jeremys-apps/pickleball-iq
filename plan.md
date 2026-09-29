@@ -590,6 +590,20 @@ confidence for both hosts, flagged only for crosstalk merges; extraction gave
 37, mental 10, drill 7, partner 6, equipment 3) with 31 flagged. Jeremy walked
 the queue in six batches: 18 approved, 11 rejected, 1 edited, 1 deferred.
 
+Later on 2026-09-28: after the re-transcription, 8 recovered-passage tips were
+added and 88 existing tips re-checked (no status drops; one upgrade by Jeremy;
+housekeeping edits), the queue emptied at 44 decisions, and the merge produced
+92 principles (strategy 49, form 25, drill 8, mental 5, partner 4, equipment 1;
+27 condition-dependent tensions; every drill linked). Card generation ran as
+four subagents by category: 178 cards (why 74, text_mc 41, scenario_mc 27,
+form_cue 14, timed_decision 13, drill_recall 9) and 40 scenes (39 mirrorable),
+scene checker clean, validator clean, `build-deck` wrote a 454 KB deck with
+the mix strategy 50 percent, form 31, drill 9, mental 4, partner 4, equipment
+1. The spot-check page with ten clips is cut. Remaining for Phase 1: Jeremy's
+listening spot-check, the deck pushed, the token in the app, and a look at a
+few court cards in the app's card browser. Usage limits cut subagents off
+twice; both times the work resumed after the reset with nothing lost.
+
 Finding: the flags blamed on "ad-break gaps" were not ads. Jeremy listened and
 the speech was there; WhisperX had replaced whole 15 to 30 second chunks with a
 sign-off line, about 7 percent of each episode. A controlled re-run of one gap
