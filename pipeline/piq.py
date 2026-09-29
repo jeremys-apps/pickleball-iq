@@ -807,12 +807,18 @@ def write_spotcheck(ctx: Ctx, picked: list[dict], eps: dict, out_dir: Path, ffmp
         q = lambda key, text: (f"<span>{text} <label><input type='radio' name='{esc(t['id'])}-{key}' value='yes'> yes</label> "
                                f"<label><input type='radio' name='{esc(t['id'])}-{key}' value='no'> no</label></span>")
         why = f" <b>Why:</b> {esc(t['why'])}" if t.get("why") else ""
+        # Every field that carries a condition is shown: a tip that reads as universal
+        # here when the speaker made it conditional would be judged unfaithful for the
+        # page's sake, not the tip's.
+        cue = f" <b>Cue:</b> {esc(t['cue'])}" if t.get("cue") else ""
+        conditions = f"<p><b>Conditions:</b> {esc('; '.join(t['conditions']))}</p>" if t.get("conditions") else ""
         parts += [
             f"<section class='tip' data-id='{esc(t['id'])}'>",
             f"<h2>{n}. {esc(t['action'])}</h2>",
             f"<p class='meta'>{esc(ep.get('title', t['episode_id']))}, at {esc(t['timestamp_start'])}. Tip {esc(t['id'])}.</p>",
             f"<p><b>Speaker:</b> {esc(sp.get('name', t['speaker_id']))} ({esc(sp.get('tier', t.get('speaker_tier', 'unknown')))}). <b>Label:</b> {esc(label)}.</p>",
-            f"<p><b>Situation:</b> {esc(t['situation'])}{why}</p>",
+            f"<p><b>Situation:</b> {esc(t['situation'])}{cue}{why}</p>",
+            conditions,
             player,
             "<fieldset>" + q("speaker", "Right speaker?") + q("label", "Right label?") + q("faithful", "Faithful?") + "</fieldset>",
             "<textarea placeholder='Notes (optional)'></textarea></section>",

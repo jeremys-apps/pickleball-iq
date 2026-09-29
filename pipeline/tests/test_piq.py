@@ -279,7 +279,8 @@ class MixAndSpotcheckTests(TempData):
 
     def spot_tip(self, eid):
         return {"id": f"{eid}-t001", "episode_id": eid, "timestamp_start": "00:00:30", "speaker_id": "tanner-tomassi",
-                "endorsement": {"status": "pro_stated"}, "situation": "A ball floats up", "action": "Punch it through the middle"}
+                "endorsement": {"status": "pro_stated"}, "situation": "A ball floats up", "action": "Punch it through the middle",
+                "cue": "The ball is above the tape", "conditions": ["Only when the opponents are both at the kitchen"]}
 
     def test_page_without_clips(self):
         eid = "cheatcode-20250101-abcdef"
@@ -288,6 +289,8 @@ class MixAndSpotcheckTests(TempData):
         text = page.read_text()
         self.assertIn("Listen at 00:00:30", text)
         self.assertIn("Tanner Tomassi", text)
+        self.assertIn("<b>Cue:</b> The ball is above the tape", text, "conditions travel with the tip, or the page misjudges faithfulness")
+        self.assertIn("<b>Conditions:</b> Only when the opponents are both at the kitchen", text)
         self.assertTrue((out / "sample.json").exists())
 
     @unittest.skipUnless(shutil.which("ffmpeg"), "ffmpeg not installed")
