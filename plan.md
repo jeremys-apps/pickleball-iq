@@ -604,6 +604,18 @@ listening spot-check, the deck pushed, the token in the app, and a look at a
 few court cards in the app's card browser. Usage limits cut subagents off
 twice; both times the work resumed after the reset with nothing lost.
 
+First spot-check, 2026-09-28 evening: 7 of 10 fully right, below the gate.
+Attribution was right on all ten and the endorsement label on nine; every
+miss was a dropped condition. Two of the three were the spot-check page's
+fault: the tips carried the condition in `cue` or `conditions`, which the page
+did not show. One was real: Brodie's open-stance serve merged as universal
+advice instead of "if you serve from an open stance". Fixes: the page shows
+cue and conditions; the extraction, merge and card prompts now say that a
+condition which selects the advice goes into the situation and statement, and
+that a personal method is advice only for players who use it; the open-stance
+principle reframed; a bounded audit of all 92 principle statements for the
+same defect; then a second spot-check on a fresh sample.
+
 Finding: the flags blamed on "ad-break gaps" were not ads. Jeremy listened and
 the speech was there; WhisperX had replaced whole 15 to 30 second chunks with a
 sign-off line, about 7 percent of each episode. A controlled re-run of one gap
