@@ -132,6 +132,10 @@ tip: right speaker, right label, faithful paraphrase. It tallies as you go and
 produces a results block to paste back into Claude Code. The pilot passes when
 at least nine of ten tips are fully right. Clips stay out of git.
 
+Tips with an `edit` decision are shown as edited. When a label's evidence lies
+outside a tip's clip, the page cuts a second clip there. After fixes, sample
+again with `--fresh` to leave out every tip shown in an earlier spot-check.
+
 ## Always-on worker (a Linux VM)
 
 An idle Linux machine can carry the mechanical stages and keep up with new

@@ -83,7 +83,9 @@ python pipeline/piq.py spotcheck --episodes <ids> --n 10
 Give Jeremy the page it prints. He listens to ten short clips, answers three
 questions per clip, and pastes the results back to you. Nine of ten fully right
 passes. If it fails, find the cause (transcription, speaker map, or extraction
-rules), fix it, re-run the affected steps, and spot-check again.
+rules), fix it, re-run the affected steps, and spot-check again with `--fresh`,
+which keeps the tips he has already heard out of the new sample. Record his
+pasted results as `results.json` next to that sample's `index.html`.
 
 ## 7. Publish to the data repo
 

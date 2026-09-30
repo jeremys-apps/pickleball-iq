@@ -64,6 +64,7 @@ about court cards with no decision.
 - `explanation`: tie the answer to the principle and to what is visible ("The ball sits below the tick on its stalk, so contact would be below net height.").
 - `focus_cue`: up to 80 characters, pointed at the ball, target or paddle rather than body parts where possible ("Paddle out front, punch through the middle"). External focus cues tend to transfer better than internal ones; see docs/learning-design.md.
 - Never add advice the principle does not contain. If something seems missing, say so in `claude_note`.
+- Use the principle's plain wording. A speaker's private term (a "disconnected" paddle) appears only next to its explanation; standard vocabulary (Ernie, shake and bake) is fine.
 - Ids: `c-<principle slug>-<n>`, `s-<principle slug>-<n>`.
 
 ## Scenes

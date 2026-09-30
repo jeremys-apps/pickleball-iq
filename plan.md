@@ -616,6 +616,25 @@ that a personal method is advice only for players who use it; the open-stance
 principle reframed; a bounded audit of all 92 principle statements for the
 same defect; then a second spot-check on a fresh sample.
 
+Second spot-check, 2026-09-29: 8 of 10 fully right, still below the gate.
+Attribution right on all ten, two labels wrong, and two of the eight carried
+substantive notes. Four causes, one tip each: Brodie restating Tanner's
+just-stated serve tip became a separate tip with a weaker label; Tanner's
+end-of-episode "you hit everything on the head" was counted as explicit
+endorsement of one point from Brodie's opening; a refuted claim was worded as
+advice plus a reason, so it read as half right; and Brodie's private term
+"disconnected" reached a card unexplained. Fixes: five decisions recorded (one
+rejection folded into Tanner's tip as a condition, four edits), four
+principles and six cards rewritten, and four prompt rules added (a non-pro
+restating a pro's point is folded into the pro's tip; blanket agreement with
+a summary is implicit; a refuted claim is worded as the rejected claim; a
+speaker's private term is explained in plain words, in all three prompts).
+The spot-check page now shows edited tips as the merge reads them, cuts a
+second clip when the label's evidence lies outside the first, names refuted
+claims as such, and `--fresh` keeps tips Jeremy has already heard out of the
+sample. A scan of all 139 tips found no second instance of any of the four
+defects. Third spot-check cut from unheard tips.
+
 Finding: the flags blamed on "ad-break gaps" were not ads. Jeremy listened and
 the speech was there; WhisperX had replaced whole 15 to 30 second chunks with a
 sign-off line, about 7 percent of each episode. A controlled re-run of one gap

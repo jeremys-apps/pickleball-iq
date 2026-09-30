@@ -239,6 +239,31 @@ def review_decisions(ctx: Ctx) -> dict[str, dict]:
     return {d["tip_id"]: d for d in load_jsonl(f)} if f.exists() else {}
 
 
+def apply_edits(tip: dict, edits: dict | None) -> dict:
+    """A copy of the tip with review edits applied. Keys may be dotted paths (endorsement.status)."""
+    out = json.loads(json.dumps(tip))
+    for key, value in (edits or {}).items():
+        target = out
+        parts = key.split(".")
+        for part in parts[:-1]:
+            if not isinstance(target.get(part), dict):
+                target[part] = {}
+            target = target[part]
+        target[parts[-1]] = value
+    return out
+
+
+def parse_set_value(raw: str):
+    """--set values are text, except JSON lists and objects and the literals true, false and null."""
+    s = raw.strip()
+    if s in ("true", "false", "null") or s[:1] in ("[", "{"):
+        try:
+            return json.loads(s)
+        except json.JSONDecodeError:
+            sys.exit(f"--set value looks like JSON but does not parse: {raw}")
+    return raw
+
+
 def stage_state(ctx: Ctx, ep: dict, decisions: dict | None = None) -> dict:
     eid = ep["id"]
     tips_f = ctx.work / "tips" / f"{eid}.jsonl"
@@ -476,7 +501,12 @@ def cmd_review_list(ctx: Ctx, args):
 def cmd_review_decide(ctx: Ctx, args):
     if args.decision == "edit" and not args.set:
         sys.exit("edit needs at least one --set field=value")
-    edits = dict(s.split("=", 1) for s in (args.set or []))
+    edits = {}
+    for item in args.set or []:
+        if "=" not in item:
+            sys.exit(f"--set needs field=value, got {item!r}")
+        key, _, value = item.partition("=")
+        edits[key] = parse_set_value(value)
     rec = {"tip_id": args.tip_id, "decision": args.decision, "edits": edits, "note": args.note or "", "at": dt.datetime.now(dt.timezone.utc).isoformat()}
     with open(ctx.out("work", "review", "decisions.jsonl"), "a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
@@ -744,6 +774,14 @@ def sample_spotcheck(tips: list[dict], n: int = 10, seed: int = 1) -> list[dict]
     return picked
 
 
+def previously_sampled(ctx: Ctx) -> set[str]:
+    """Tip ids shown in earlier spot-checks, so a fresh sample never asks for the same clip twice."""
+    ids: set[str] = set()
+    for f in sorted((ctx.work / "spotcheck").glob("*/sample.json")):
+        ids.update(t["id"] for t in json.loads(f.read_text(encoding="utf-8")))
+    return ids
+
+
 SPOTCHECK_CSS = """
 body { font: 16px/1.5 system-ui, sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; color: #16212B; }
 .tip { border: 1px solid #C9D3CE; border-radius: 10px; padding: 12px 16px; margin: 16px 0; }
@@ -784,6 +822,7 @@ def write_spotcheck(ctx: Ctx, picked: list[dict], eps: dict, out_dir: Path, ffmp
         f"<title>Spot-check, {len(picked)} tips</title><style>{SPOTCHECK_CSS}</style></head><body>",
         "<h1>Spot-check</h1>",
         "<p>Listen to each clip and answer three questions: did the right person say it, is the endorsement label right, and does the tip say what they meant? When you are done, copy the results at the bottom into Claude Code.</p>",
+        "<p>A refuted claim is shown as the claim the pro rejected, so it is faithful when it says what the non-pro claimed. When the label's evidence lies outside a clip, a second clip covers it.</p>",
     ]
     for n, t in enumerate(picked, 1):
         ep = eps.get(t["episode_id"], {})
@@ -804,6 +843,18 @@ def write_spotcheck(ctx: Ctx, picked: list[dict], eps: dict, out_dir: Path, ffmp
             subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.2f}", "-i", str(audio),
                             "-t", f"{dur:.2f}", "-vn", "-ac", "1", "-b:a", "64k", str(clip)], check=True)
             player = f"<audio controls preload='none' src='clips/{esc(clip.name)}'></audio><p class='meta'>The clip starts {int(before)} seconds before {esc(t['timestamp_start'])}.</p>"
+        # A label can only be judged from the passage that carries its evidence. When that
+        # lies outside the clip, cut a second clip there instead of asking for a verdict
+        # from memory of the whole episode.
+        ev_ts = en.get("evidence_timestamp")
+        if ev_ts and not (start <= ts_seconds(ev_ts) <= start + dur):
+            player += f"<p class='meta'>The label's evidence is at {esc(ev_ts)}, outside this clip. Listen there too.</p>"
+            if ffmpeg and audio:
+                ev_start = max(0.0, ts_seconds(ev_ts) - before)
+                ev_clip = clips / f"{t['id']}-evidence.mp3"
+                subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{ev_start:.2f}", "-i", str(audio),
+                                "-t", f"{before + 12:.2f}", "-vn", "-ac", "1", "-b:a", "64k", str(ev_clip)], check=True)
+                player += f"<audio controls preload='none' src='clips/{esc(ev_clip.name)}'></audio>"
         q = lambda key, text: (f"<span>{text} <label><input type='radio' name='{esc(t['id'])}-{key}' value='yes'> yes</label> "
                                f"<label><input type='radio' name='{esc(t['id'])}-{key}' value='no'> no</label></span>")
         why = f" <b>Why:</b> {esc(t['why'])}" if t.get("why") else ""
@@ -814,8 +865,8 @@ def write_spotcheck(ctx: Ctx, picked: list[dict], eps: dict, out_dir: Path, ffmp
         conditions = f"<p><b>Conditions:</b> {esc('; '.join(t['conditions']))}</p>" if t.get("conditions") else ""
         parts += [
             f"<section class='tip' data-id='{esc(t['id'])}'>",
-            f"<h2>{n}. {esc(t['action'])}</h2>",
-            f"<p class='meta'>{esc(ep.get('title', t['episode_id']))}, at {esc(t['timestamp_start'])}. Tip {esc(t['id'])}.</p>",
+            f"<h2>{n}. {'Refuted claim: ' if en['status'] == 'refuted' else ''}{esc(t['action'])}</h2>",
+            f"<p class='meta'>{esc(ep.get('title', t['episode_id']))}, at {esc(t['timestamp_start'])}. Tip {esc(t['id'])}.{' Shown as edited in review.' if t.get('review_edited') else ''}</p>",
             f"<p><b>Speaker:</b> {esc(sp.get('name', t['speaker_id']))} ({esc(sp.get('tier', t.get('speaker_tier', 'unknown')))}). <b>Label:</b> {esc(label)}.</p>",
             f"<p><b>Situation:</b> {esc(t['situation'])}{cue}{why}</p>",
             conditions,
@@ -833,6 +884,7 @@ def write_spotcheck(ctx: Ctx, picked: list[dict], eps: dict, out_dir: Path, ffmp
 def cmd_spotcheck(ctx: Ctx, args):
     decisions = review_decisions(ctx)
     wanted = set(args.episodes.split(",")) if args.episodes else None
+    seen = previously_sampled(ctx) if args.fresh else set()
     pool = []
     for f in sorted((ctx.work / "tips").glob("*.jsonl")):
         for t in load_jsonl(f):
@@ -841,6 +893,11 @@ def cmd_spotcheck(ctx: Ctx, args):
             d = decisions.get(t["id"])
             if (d and d["decision"] == "reject") or (t.get("needs_review") and not d):
                 continue  # rejected, or still waiting in the review queue
+            if t["id"] in seen:
+                continue  # already listened to in an earlier spot-check
+            if d and d["decision"] == "edit":
+                t = apply_edits(t, d.get("edits"))
+                t["review_edited"] = True  # the page shows the tip as the merge reads it
             pool.append(t)
     if not pool:
         sys.exit("No reviewed tips to sample yet.")
@@ -921,7 +978,7 @@ def main(argv=None):
     p = sub.add_parser("review-decide", help="record a review decision")
     p.add_argument("tip_id")
     p.add_argument("decision", choices=["approve", "reject", "edit"])
-    p.add_argument("--set", action="append", help="field=value for edit (repeatable)")
+    p.add_argument("--set", action="append", help="field=value for edit (repeatable); dotted keys such as endorsement.status; JSON for lists")
     p.add_argument("--note")
     p.set_defaults(fn=cmd_review_decide)
     p = sub.add_parser("validate", help="check files against the schemas")
@@ -939,6 +996,7 @@ def main(argv=None):
     p.add_argument("--before", type=float, default=8.0, help="seconds of lead-in before each tip")
     p.add_argument("--after", type=float, default=20.0, help="seconds after the tip's end")
     p.add_argument("--no-clips", action="store_true", help="skip ffmpeg; list timestamps only")
+    p.add_argument("--fresh", action="store_true", help="leave out tips shown in earlier spot-checks")
     p.set_defaults(fn=cmd_spotcheck)
     p = sel(sub.add_parser("extract-api", help="optional: extract tips through the Anthropic API"))
     p.add_argument("--model")

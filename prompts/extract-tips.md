@@ -29,6 +29,7 @@ listener questions themselves (the answer to a question can be a tip).
 - One idea per tip. Split compound advice ("short backswing and aim middle") when the parts could be right or wrong independently.
 - Conditional advice stays conditional. When the speaker ties the advice to a condition ("if the drop looks like it will bounce in the kitchen", "at the 5.0 level", "if you serve from an open stance"), the condition goes into `situation` so the tip reads correctly on its own; `cue` and `conditions` repeat it, they do not replace it. A tip that reads as advice for everyone when the speaker gave it for one case is unfaithful, even if every word came from the speaker.
 - A speaker's personal method is advice only for players who use that method. "I serve open-stance with both feet flat" is a tip whose situation is "serving from an open stance", not a recommendation to serve open-stance, unless the speaker recommends the method itself.
+- Explain a speaker's private term in plain words the first time it appears, using the speaker's own explanation when they gave one: Brodie's "disconnected paddle" becomes "reaching out wide for the ball with the arm alone, which Brodie calls a disconnected paddle". A tip must make sense to a player who has not heard the episode. Standard pickleball vocabulary (Ernie, shake and bake, stacking) needs no gloss.
 - If the same speaker repeats a point, extract it once at the clearest timestamp. If a second pro independently states it, that is a separate tip (repetition across pros raises priority later).
 
 ## Attribution
@@ -67,6 +68,27 @@ three minutes before or after the statement and the topic had not changed.
 that", "not necessarily", "that's more of a 3.5 thing", "I'd rather..." all
 count. When a pro disagrees with only part of a claim, split the claim: the part
 the pro accepted gets its endorsement, the part the pro rejected is `refuted`.
+
+**A non-pro restating a pro's point** in the same discussion is not a new tip.
+Extract the point once, as the pro's `pro_stated` tip at the pro's timestamp.
+If the restatement adds a trigger or condition the pro did not address, put it
+in the pro's tip's `conditions`, naming who added it ("Brodie also uses it
+against a heavy chop return; Tanner did not address that"), and say so in
+`claude_note`. Only a genuinely different action or situation gets its own tip.
+
+**Blanket agreement.** "I agree with everything you said" right after a turn
+endorses the points in that turn explicitly. But a pro's agreement with a
+wrap-up or summary of an earlier discussion ("you hit everything on the head"
+at the end of the episode) endorses each summarized point only implicitly:
+label those `endorsed_implicit`, with the evidence at the pro's nearest turn in
+the original discussion, unless the pro names the point there. The evidence for
+a label comes from the discussion in which the statement was made.
+
+**Write a refuted claim as the claim the pro rejected**, not as advice. When
+the pro rejected only the reason ("crosscourt resets create offense"), the
+tip's `action` is that reason ("Expect the crosscourt reset to create offense
+because it goes to an opponent's inside foot"), and the action the pro accepts
+lives in the pro's own tip.
 
 **When unsure, choose the more conservative status** (implicit rather than
 explicit, qualified rather than implicit when there is any hedge) and set

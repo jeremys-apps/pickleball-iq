@@ -282,6 +282,35 @@ class MixAndSpotcheckTests(TempData):
                 "endorsement": {"status": "pro_stated"}, "situation": "A ball floats up", "action": "Punch it through the middle",
                 "cue": "The ball is above the tape", "conditions": ["Only when the opponents are both at the kitchen"]}
 
+    def test_apply_edits_and_set_values(self):
+        tip = {"id": "x", "endorsement": {"status": "endorsed_explicit", "evidence": "old"}, "conditions": []}
+        out = piq.apply_edits(tip, {"endorsement.status": "endorsed_implicit", "conditions": ["only outdoors"], "claude_note": "n"})
+        self.assertEqual(out["endorsement"], {"status": "endorsed_implicit", "evidence": "old"})
+        self.assertEqual(out["conditions"], ["only outdoors"])
+        self.assertEqual(out["claude_note"], "n")
+        self.assertEqual(tip["endorsement"]["status"], "endorsed_explicit", "the raw tip is untouched")
+        self.assertEqual(piq.parse_set_value('["a", "b"]'), ["a", "b"])
+        self.assertIs(piq.parse_set_value("false"), False)
+        self.assertEqual(piq.parse_set_value("00:02:23"), "00:02:23")
+
+    def test_page_points_at_evidence_outside_the_clip_and_names_refuted_claims(self):
+        eid = "cheatcode-20250101-abcdef"
+        far = dict(self.spot_tip(eid), id=f"{eid}-t002", speaker_id="brodie-smith",
+                   endorsement={"status": "endorsed_explicit", "endorser_id": "tanner-tomassi", "evidence_timestamp": "00:20:00", "evidence": "agreed later"})
+        refuted = dict(self.spot_tip(eid), id=f"{eid}-t003", speaker_id="brodie-smith", action="Crush every floater", review_edited=True,
+                       endorsement={"status": "refuted", "endorser_id": "tanner-tomassi", "evidence_timestamp": "00:00:40", "evidence": "pushed back"})
+        out = self.ctx.out("work", "spotcheck", "t3", "index.html").parent
+        text = piq.write_spotcheck(self.ctx, [far, refuted], {eid: {"title": "Test episode"}}, out, None).read_text()
+        self.assertIn("evidence is at 00:20:00, outside this clip", text)
+        self.assertNotIn("evidence is at 00:00:40", text, "evidence inside the clip needs no pointer")
+        self.assertIn("Refuted claim: Crush every floater", text)
+        self.assertIn("Shown as edited in review.", text)
+
+    def test_fresh_sample_skips_earlier_spotchecks(self):
+        eid = "cheatcode-20250101-abcdef"
+        self.ctx.out("work", "spotcheck", "old", "sample.json").write_text(json.dumps([{"id": f"{eid}-t001"}]), encoding="utf-8")
+        self.assertEqual(piq.previously_sampled(self.ctx), {f"{eid}-t001"})
+
     def test_page_without_clips(self):
         eid = "cheatcode-20250101-abcdef"
         out = self.ctx.out("work", "spotcheck", "t1", "index.html").parent
@@ -299,9 +328,12 @@ class MixAndSpotcheckTests(TempData):
         audio = self.ctx.out("work", "audio", f"{eid}.mp3")
         subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=60", "-ac", "1", str(audio)], check=True)
         out = self.ctx.out("work", "spotcheck", "t2", "index.html").parent
-        page = piq.write_spotcheck(self.ctx, [self.spot_tip(eid)], {eid: {"title": "Test episode"}}, out, shutil.which("ffmpeg"))
+        far = dict(self.spot_tip(eid), id=f"{eid}-t002", speaker_id="brodie-smith",
+                   endorsement={"status": "endorsed_explicit", "endorser_id": "tanner-tomassi", "evidence_timestamp": "00:00:55", "evidence": "agreed later"})
+        page = piq.write_spotcheck(self.ctx, [self.spot_tip(eid), far], {eid: {"title": "Test episode"}}, out, shutil.which("ffmpeg"))
         self.assertIn("<audio", page.read_text())
         self.assertGreater((out / "clips" / f"{eid}-t001.mp3").stat().st_size, 1000)
+        self.assertGreater((out / "clips" / f"{eid}-t002-evidence.mp3").stat().st_size, 1000, "a second clip covers evidence outside the first")
 
 
 if __name__ == "__main__":
