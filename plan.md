@@ -572,7 +572,7 @@ written. Environment-specific points:
 | B3 | Per episode, fresh context: `/map-speakers`, `prepare`, `/extract-episode`. Subagent per episode | Stop for Jeremy if a speaker map needs review |
 | B4 | `/review-queue`: Jeremy decides, or accepts recommendations batch by batch | Recommendations stay conservative |
 | B5 | `/merge-principles`, `/generate-cards`, `validate`, `build-deck`, `check-scenes`; open the lab and check two or three new scenes from both cameras at both sizes | Fix scene errors before the deck |
-| B6 | `spotcheck --episodes <ids> --n 10`; Jeremy listens and pastes the results | Pass at 9 of 10 (P-12 pilot criterion). On failure, find the cause (transcription, speaker map, extraction), fix, rerun the affected steps |
+| B6 | Done 2026-09-30 after three samples (7, 8, then 9 of 10 fully right); each miss became an extraction rule and a fix, and `--fresh` kept the samples disjoint | Pass at 9 of 10 (P-12 pilot criterion). On failure, find the cause (transcription, speaker map, extraction), fix, rerun the affected steps |
 | B7 | Jeremy confirms; commit and push the data repo (audio and clips stay ignored) | `git status` in the data repo shows no audio |
 
 Exit (PRD Phase 1): spot-check passed, every pilot scene passes
@@ -634,6 +634,15 @@ second clip when the label's evidence lies outside the first, names refuted
 claims as such, and `--fresh` keeps tips Jeremy has already heard out of the
 sample. A scan of all 139 tips found no second instance of any of the four
 defects. Third spot-check cut from unheard tips.
+
+Third spot-check, 2026-09-30: 9 of 10 fully right, passed. Speaker and label
+right on all ten. The miss: Brodie's drop-heavy third-shot mix, framed as
+advice for everyone against top-level players when Jeremy heard personal
+preference on both sides and a shared message, go with your strength. The
+principle now says that, with Brodie's and Tanner's mixes as its two examples
+and Tanner's weapon-drive rule linked. One wording note applied: the crash
+split step states its timing without "not at your partner's contact". AC-6
+passed; Phase 1 now waits only on the lab look at the pilot scenes (AC-7).
 
 Finding: the flags blamed on "ad-break gaps" were not ads. Jeremy listened and
 the speech was there; WhisperX had replaced whole 15 to 30 second chunks with a

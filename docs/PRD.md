@@ -380,12 +380,13 @@ site has a custom domain, its project sites are served under that domain too.
 **Phase 0, renderer harness: done.** Deterministic scene renderer with both
 cameras, aids, top-down and mini-map views, reference renders and tests.
 
-**Phase 1, pilot pipeline: next.** The first five episodes of Pickleball Cheat
-Code, end to end, run by Claude Code with the `/run-pilot` skill. Jeremy's part is
-one-time setup (a Hugging Face token and model terms, the private data repo),
-decisions on flagged tips (or accepting Claude's recommendations), and a
-listening spot-check of ten short clips prepared by `piq.py spotcheck`. Exit when
-the spot-check passes (9 of 10) and the cards look right in the lab.
+**Phase 1, pilot pipeline: spot-check passed 2026-09-30.** The first five
+episodes of Pickleball Cheat Code (two of them trailers with no tips) ran end to
+end with the `/run-pilot` skill: 139 tips, 92 principles, 178 cards, 40 scenes.
+Jeremy's part was one-time setup, decisions on flagged tips, and listening
+spot-checks of ten clips each: 7, then 8, then 9 of 10 fully right, with every
+miss traced to an extraction rule that now exists. Remaining exit item: the
+cards look right in the lab from both cameras (AC-7).
 
 **Phase 2, app MVP: built.** Remaining: use it daily on an iPhone (Safari and
 installed) and in laptop Chrome, and fix whatever real use reveals.
@@ -429,8 +430,8 @@ practice mode, and possibly sharing a deck with a partner.
 | AC-3 | Timed cards lock choices until the freeze, show the clock, and record a timeout as a miss with a suggested Again. | Passing in jsdom; confirm on devices |
 | AC-4 | The app loads and runs a session with the network off after one online visit. | To verify on devices |
 | AC-5 | With a real private repo, reviews made on the phone appear on the laptop after sync and vice versa, including one card reviewed on both. | To verify |
-| AC-6 | The pilot deck's cards show correct provenance, and no card cites a speaker without an allowed endorsement. | After Phase 1 |
-| AC-7 | Every pilot scene passes `tools/check-scenes.mjs` with no errors and looks right in the lab from both cameras. | After Phase 1 |
+| AC-6 | The pilot deck's cards show correct provenance, and no card cites a speaker without an allowed endorsement. | Passed 2026-09-30: third listening sample right on speaker 10 of 10, label 10 of 10, faithfulness 9 of 10; `build-deck` filters nothing because every source carries an allowed endorsement |
+| AC-7 | Every pilot scene passes `tools/check-scenes.mjs` with no errors and looks right in the lab from both cameras. | Checker clean on all 40 scenes; the lab look is pending |
 | AC-8 | Closing the app after answering but before rating records the answer at the next start. | Passing in tests |
 | AC-9 | Batches continue with no cap; practice ahead appears once everything has been seen. | Passing in tests |
 | AC-10 | A mirrored scene renders as the exact mirror image of the original and passes the same scene checks. | Passing in tests |
