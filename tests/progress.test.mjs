@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyProgress, recordReview, mergeProgress, loadProgress, saveProgress, importProgress, exportProgress, newIntroducedOn, STORAGE_KEY } from '../app/src/store/progress.js';
+import { emptyProgress, recordReview, mergeProgress, loadProgress, saveProgress, importProgress, exportProgress, newIntroducedOn, progressSizeBytes, formatBytes, STORAGE_KEY } from '../app/src/store/progress.js';
 import { makeScheduler, Rating } from '../app/src/srs/scheduler.js';
 
 const s = makeScheduler({ enableFuzz: false });
@@ -73,4 +73,16 @@ test('counts cards introduced today in local time', () => {
   review(p, 'c-1', Rating.Good, now.toISOString());
   review(p, 'c-1', Rating.Good, new Date(now.getTime() + 60000).toISOString());
   assert.equal(newIntroducedOn(p, now), 1);
+});
+
+test('stored size grows with the log and formats in KB or MB', () => {
+  const p = emptyProgress('size-device');
+  const empty = progressSizeBytes(p);
+  assert.ok(empty > 100 && empty < 1000, `an empty store is a few hundred bytes, got ${empty}`);
+  for (let i = 0; i < 100; i++) review(p, `c-${i % 7}`, Rating.Good, new Date(Date.UTC(2026, 8, 1, i)).toISOString());
+  const perEntry = (progressSizeBytes(p) - empty) / 100;
+  assert.ok(perEntry > 150 && perEntry < 500, `about 330 bytes per review (plan A5), got ${perEntry.toFixed(0)}`);
+  assert.equal(formatBytes(0), '1 KB');
+  assert.equal(formatBytes(41_900), '42 KB');
+  assert.equal(formatBytes(2_450_000), '2.5 MB');
 });

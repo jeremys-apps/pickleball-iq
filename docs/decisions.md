@@ -106,3 +106,16 @@ at render time, and ranks drills by the retention of what they train. Nothing is
 precomputed or stored; the only addition to progress is the last court cue,
 kept in the synced settings so Home can show it. Timed-read trends use stage B
 and C reviews only, because stage A has no clock and runs in slow motion.
+
+**D23. The deck copy lives in Cache Storage; review logs are never compacted.**
+localStorage is capped near 5 MB on iOS Safari and shared by everything on the
+origin, and a full-corpus deck alone runs to several MB (about 3 KB a card). The
+offline copy of the deck goes into the Cache Storage API under its own cache
+name, `piq-data-v1`, outside the `court-sense-` caches the service worker
+deletes on activate, with a one-time move of any copy an earlier version left in
+localStorage. localStorage stays the fallback only where the Cache API is
+missing. Progress stays in localStorage for now, with its size shown in Settings
+as the early warning; it moves to IndexedDB when it nears 2 MB (plan Track E3).
+Compacting the review log to save room was considered and rejected: sync merges
+by replaying the full history, so compaction would need a per-card base state
+agreed across devices, and the log is the source of the Progress views (D22).

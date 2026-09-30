@@ -130,6 +130,17 @@ export function mergeProgress(local, remote, { replay } = {}) {
   return out;
 }
 
+// Size of the stored copy in bytes, for the Settings readout. localStorage is
+// capped near 5 MB on iOS Safari and shared by everything on the origin; when
+// this passes about 2 MB, progress moves to IndexedDB (plan Track E3).
+export function progressSizeBytes(p) {
+  return new TextEncoder().encode(JSON.stringify(p)).length;
+}
+
+export function formatBytes(n) {
+  return n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`;
+}
+
 export function exportProgress(p) {
   return JSON.stringify(p, null, 2);
 }

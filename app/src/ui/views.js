@@ -7,7 +7,7 @@ import { mountCard } from './card-view.js';
 import { stageFor, STAGES, makeScheduler, applyAidPreference, MATURE_AID_CHOICES } from '../srs/scheduler.js';
 import { saveSettings } from '../store/settings.js';
 import { loadSyncConfig, saveSyncConfig } from '../store/github-sync.js';
-import { exportProgress, importProgress, mergeProgress, saveProgress, emptyProgress } from '../store/progress.js';
+import { exportProgress, importProgress, mergeProgress, saveProgress, emptyProgress, progressSizeBytes, formatBytes } from '../store/progress.js';
 import { syncNow } from '../sync.js';
 import { canMirror } from '../court/mirror.js';
 import { timedTrend, topicStats, drillPlan } from '../stats.js';
@@ -281,7 +281,7 @@ export function renderSettings(root, app) {
       'fieldset',
       {},
       h('legend', {}, 'Progress on this device'),
-      h('p', { class: 'note' }, `${app.progress.logs.length} reviews recorded. Device id ${app.progress.device_id}.`),
+      h('p', { class: 'note' }, `${app.progress.logs.length.toLocaleString()} reviews recorded, ${formatBytes(progressSizeBytes(app.progress))} on this device. Device id ${app.progress.device_id}.`),
       h(
         'div',
         { class: 'row' },

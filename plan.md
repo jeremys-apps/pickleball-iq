@@ -692,10 +692,19 @@ the last cue), PRD status rows.
 
 | Step | Work | Trigger and tests |
 |---|---|---|
-| E1 | Deck cache in Cache Storage with localStorage migration; Settings size readout; PRD 8.7 updated; decision D23 (deck cache off localStorage; logs never compacted, A7) | Before the first deck over 1 MB. Tests with an in-memory `caches` stub: write, read, migrate, fallback without `caches` |
+| E1 | Done 2026-09-30. Deck cache in Cache Storage with localStorage migration; Settings size readout; PRD 8.7 updated; decision D23 (deck cache off localStorage; logs never compacted, A7) | Before the first deck over 1 MB. Tests with an in-memory `caches` stub: write, read, migrate, fallback without `caches` |
 | E2 (optional) | `getTextIfChanged`, `pullDeck` with etag, the etag key; sync skips re-indexing when unchanged | Only if deck pulls feel slow on the phone after E1; a few MB per sync on Wi-Fi is acceptable. After C5 decides ETag or sha. Fake-API test returns 304 on a matching `If-None-Match` |
 | E3 | `kv.js` with the three stores; `loadProgress` async with migration; write-behind `saveProgress`; `syncNow` awaits the queue | When Settings shows progress above 2 MB, or before the second year of use, whichever first. Existing progress, session and UI tests switch to `memoryStore` |
 | E4 | Phase 4: `feeds` for both shows, `download` in batches, `transcribe` overnight on the GPU (or on the VM, H2), the headless `claude -p` loop per episode on the laptop or on the VM with `pipeline/cron/new-episodes.sh` (H3; subscription only, Q10), review in batches, merge, cards, deck | Same exit criteria as the pilot per batch of episodes; `build-deck` warnings clean; lab checks on a sample of new scenes |
+
+Progress 2026-09-30: E1 done ahead of its trigger (the pilot deck is 0.46 MB).
+`cacheDeck` and `readCachedDeck` in `app/src/deck.js` use Cache Storage
+(`piq-data-v1`), move a copy left in localStorage on first read, and fall back
+to localStorage where the Cache API is missing; `syncNow` awaits the write.
+Settings shows the progress size next to the review count. PRD 8.7 and the risk
+table carry the storage numbers; D23 recorded. Seven deck tests run against an
+in-memory `caches` stub. Still to see on a real device: the first sync on the
+phone after this change moves the old copy and frees localStorage.
 
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in

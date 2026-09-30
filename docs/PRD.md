@@ -305,6 +305,18 @@ offline, and progress is saved locally after every card. Safari may clear storag
 for sites that are not installed and not visited for a while, so install the app
 and keep sync on.
 
+Storage on the device (D23). The deck copy lives in the Cache Storage API, in
+its own cache (`piq-data-v1`) beside the service worker's, because a
+full-corpus deck runs to several MB while localStorage is capped near 5 MB on
+iOS Safari and shared by everything on the origin. A copy an earlier version
+kept in localStorage is moved over on first read; localStorage remains the
+fallback only where the Cache API is missing. Progress stays in localStorage: a
+review log entry is about 330 bytes, so 20 to 40 reviews a day add 2.4 to 4.8
+MB a year. Settings shows the size of this device's progress next to its review
+count; when it passes about 2 MB, progress moves to IndexedDB (plan Track E3).
+Review logs are never compacted, because sync merges by replaying the full
+history.
+
 ### 8.8 Accessibility
 
 Color is never the only signal (the correct choice is also marked, verdicts are
@@ -462,6 +474,7 @@ Decided by Jeremy in September 2026.
 | Aids become a crutch. | Stage fading down to no path and no map at maturity. |
 | Token exposure. | Single-repo fine-grained token with expiry, no third-party scripts, CSP, shared-origin warning. |
 | Browser storage cleared on iOS. | Install to the home screen, sync after each session, export as a manual backup. |
+| Browser storage fills up: a full-corpus deck of several MB, progress growing 2 to 5 MB a year. | Deck copy in Cache Storage, off the 5 MB localStorage (D23); progress size shown in Settings; progress moves to IndexedDB when it nears 2 MB (plan E3). |
 | Copyright. | Private data repo, paraphrase only, no audio or transcripts published. |
 | The app teaches outdated or level-inappropriate advice. | Level and condition fields, pro repetition in priority, Jeremy's review. |
 

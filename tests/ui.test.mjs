@@ -281,6 +281,7 @@ test('home, cards, preview and settings render; settings save', { skip }, async 
   assert.ok(root.querySelector('.stage-C'));
   p.destroy();
   m.views.renderSettings(root, app);
+  assert.match(root.textContent, /0 reviews recorded, [0-9]+ KB on this device/, 'progress size readout');
   assert.equal(root.querySelector('input[name="newPerDay"]').value, '', 'no limit by default');
   root.querySelector('input[name="newPerDay"]').value = '8';
   root.querySelector('input[name="batchSize"]').value = '15';

@@ -17,7 +17,7 @@ export async function syncNow(app) {
   });
   saveProgress(app.progress);
   const deck = await pullDeck(client, cfg.deckPath || 'deck/deck.json');
-  cacheDeck(deck);
+  await cacheDeck(deck);
   app.index = indexDeck(deck);
   app.deckSource = 'github';
   app.deckError = null;
