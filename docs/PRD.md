@@ -103,7 +103,7 @@ To tighten the deck to spoken agreement only, remove `endorsed_implicit` from
 
 Tips are paraphrased, never long quotes. A reason (`why`) appears only if a
 speaker gave one. Claude's own observations live in a separate `claude_note`
-field that the app labels "Claude's note", so they are never mistaken for a
+field that the app shows in its own box as an "Additional note", so they are never mistaken for a
 pro's words. Scene coordinates are nearly always estimated and are flagged as
 inferred.
 
@@ -233,9 +233,11 @@ at the five-month mark).
 | `form_cue` | Recall the cue for a stroke or movement, then self-rate. |
 | `drill_recall` | Recall a drill's setup and goal, then self-rate. |
 
-After every answer the card shows the explanation, the focus cue, the sources in
-plain words ("Mircea Morariu (senior pro). 4.0 to Pro, "…", at 00:14:32."), any
-Claude's note, a replay button, and the rating buttons.
+After every answer the card shows the explanation, the focus cue, a closed
+Source info fold with the sources in plain words ("Mircea Morariu (senior pro).
+4.0 to Pro, "…", at 00:14:32.") and any additional note from Claude, a replay
+button under the picture, and the rating buttons. Play and the replay share that
+spot under the picture, so nothing is drawn over the court (D24).
 
 ### 8.3 Court rendering
 
@@ -285,7 +287,7 @@ real speed and the shorter window apply either way.
 |---|---|---|
 | Court view | Full width, 360 x 380 viewBox | Left column (three fifths), 800 x 500 viewBox, sticky while scrolling |
 | Top-down | Inset mini-map in the corner; full top-down (cropped to the action) below the court after answering; a toggle swaps the main view in stage A and after answering | Side panel above the question |
-| Choices and ratings | Large touch targets; ratings stick to the bottom of the screen | Right column |
+| Choices and ratings | Large touch targets; the text under the question 1 pt larger than on a laptop; ratings stick to the bottom of the screen | Right column |
 
 ### 8.6 Keyboard (laptop)
 

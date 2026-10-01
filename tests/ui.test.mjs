@@ -89,7 +89,11 @@ test('multiple-choice card: answer, reveal, rate', { skip }, async () => {
   assert.ok(host.querySelector('.card-view').classList.contains('is-revealed'));
   assert.equal(host.querySelector('.verdict').textContent, 'Not quite');
   assert.ok(host.querySelector('.option.is-correct'), 'correct option highlighted');
-  assert.match(host.querySelector('.source').textContent, /Sample content/);
+  const fold = host.querySelector('details.source-info');
+  assert.equal(fold.querySelector('summary').textContent, 'Source info');
+  assert.equal(fold.open, false, 'sources are folded away until asked for');
+  assert.match(fold.querySelector('.source').textContent, /Sample content/);
+  assert.equal(host.querySelector('.court .motion .replay').textContent, 'Replay the shot', 'the replay sits under the picture');
   assert.equal(host.querySelector('.rating.suggested b').textContent, 'Again');
   host.querySelector('.rating.suggested').click();
   assert.equal(result.rating, 1);
@@ -145,7 +149,7 @@ test('self-graded card: show answer with the keyboard, rate with a number key', 
   });
   document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter' }));
   assert.ok(!host.querySelector('.after').hidden);
-  assert.match(host.querySelector('.claude-note').textContent, /Claude's note/);
+  assert.match(host.querySelector('.source-info .claude-note').textContent, /^Additional note: /);
   document.dispatchEvent(new window.KeyboardEvent('keydown', { key: '3' }));
   assert.equal(result.rating, 3);
 });
@@ -160,10 +164,15 @@ test('timed card: play, freeze unlocks options, time running out counts as a mis
   let result = null;
   m.mountCard(host, { card, index: app.index, stage: fastClock, settings: app.settings, scheduler: app.scheduler, onDone: (r) => (result = r) });
   assert.ok([...host.querySelectorAll('.option')].every((b) => b.disabled), 'options locked before play');
-  host.querySelector('.play').click(); // reduced motion in this test: freezes immediately
+  assert.equal(host.querySelector('.stage .play'), null, 'Play is not drawn over the court');
+  const play = host.querySelector('.court .motion .play');
+  play.click(); // reduced motion in this test: freezes immediately
+  assert.ok(play.hidden && host.querySelector('.motion').hidden, 'Play goes away once pressed');
   assert.ok([...host.querySelectorAll('.option')].every((b) => !b.disabled), 'options unlocked at the freeze');
   await new Promise((r) => setTimeout(r, 80));
   assert.equal(host.querySelector('.verdict').textContent, 'Time ran out');
+  assert.ok(!host.querySelector('.motion').hidden);
+  assert.equal(host.querySelector('.motion').textContent, 'Watch again', 'Watch again takes the place of Play');
   host.querySelector('.rating.suggested').click();
   assert.equal(result.timedOut, true);
   assert.equal(result.rating, 1);
@@ -179,6 +188,7 @@ test('timed cards freeze earlier as they mature, and the time-to-choose setting 
   const a = mount(m.sched.STAGES.A);
   assert.equal(a.freezeAt, 2330, 'stage A freezes as authored');
   assert.deepEqual(a.clock, { windowMs: null, designWindowMs: null }, 'no clock on new cards');
+  assert.equal(host.querySelector('.timed-hint').textContent, 'Read the question and the choices, then press Play.');
   a.destroy();
   const c = mount(m.sched.STAGES.C);
   assert.equal(c.freezeAt, 2080, 'stage C freezes 250 ms earlier');
@@ -186,7 +196,7 @@ test('timed cards freeze earlier as they mature, and the time-to-choose setting 
   c.destroy();
   const stretched = mount(m.sched.STAGES.B, { ...app.settings, chooseTimeScale: 2 });
   assert.deepEqual(stretched.clock, { windowMs: 8000, designWindowMs: 4000 }, 'the clock doubles, the rating window does not');
-  assert.match(host.querySelector('.timed-hint').textContent, /8\.0 seconds/);
+  assert.equal(host.querySelector('.timed-hint strong').textContent, '8.0 seconds', 'the time to choose stands out');
   stretched.destroy();
 });
 

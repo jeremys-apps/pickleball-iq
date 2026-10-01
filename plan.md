@@ -675,6 +675,23 @@ settings on top and collapsible, a motion bar with Play directly above the
 picture, and on laptops the picture capped by the window height with the panels
 beside it. Lab-only change, with the lab's first jsdom smoke test.
 
+Progress 2026-09-30: Jeremy's first notes from the phone on the pilot deck.
+Play stayed on the picture through the animation because `.btn`'s
+`display: inline-flex` beat the `hidden` attribute, so buttons and the session
+bar never hid when the code hid them (Play, Show answer, the Top-down toggle in
+stages B and C, the session bar at the summary); one global `[hidden]` rule
+fixes all of them. Play and the replay now share one spot under the picture, so
+the replay starts with the court in view. The timed hint drops the no-clock
+sentence and shows the time to choose in bold; on phones the text under the
+question is 1 pt larger; the sources and Claude's note fold under Source info,
+with the note relabeled "Additional note" (D24). Checked in Chrome at 390 px and
+at laptop width. Content fixes in the data repo: "net tick" became "the top of
+the net" in five explanations; the stay-down card asks for Tanner's fix, so its
+wrong answers are wrong, and "rising up" replaces his "popping up" across the
+principle; the split-step cards say the drop crosses the net to the opponent's
+side. An audit of all 81 choice cards found no other wrong answer that restates
+the correct one. Each defect became a prompt rule.
+
 ### Track D: features the goal implies (two or three sessions; runs alongside B and C)
 
 | Step | Work | Tests |
@@ -742,7 +759,7 @@ spot-check bar as the pilot.
 | H1 | Setup on the VM, once: a `piq` user, `git`, `ffmpeg`, a Python 3.12 venv with `pipeline/requirements.txt` and `whisperx` (CPU wheels), a deploy key with write access to the private data repo and a plain clone of the public code repo, `~/.config/piq/env` with `HF_TOKEN` and the paths, `piq.local.yaml` with `device: cpu` and `compute_type: int8`, `.cron.lock` in the data repo's `.gitignore`, unattended security updates. Nothing else lives on the VM | `python pipeline/piq.py transcribe --dry-run` prints a CPU command; a test commit from the VM reaches the data repo |
 | H2 | Transcription fallback for Track B or E4: run `feeds`, `download`, `transcribe` on the VM for the chosen episodes, commit, push; continue on the laptop after `git pull` | Transcripts appear in the data repo; `piq.py status` on the laptop shows them |
 | H3 | Loop host for E4: Claude Code installed on the VM and logged in with the subscription; `pipeline/cron/new-episodes.sh` run by hand in `tmux` with `PIQ_MAX_EPISODES=200 PIQ_RUN_CLAUDE=1`; review, merge and cards stay on the laptop | `ANTHROPIC_API_KEY` unset on the VM (A15); tips files land in the data repo and pass `validate` |
-| H4 | Keeping up (N-6): `pipeline/cron/new-episodes.sh` in the VM's crontab, daily at 03:00, `PIQ_MAX_EPISODES=2`, mechanical stages only until the pilot and E4 have shown headless extraction to be trustworthy, then `PIQ_RUN_CLAUDE=1`. `--skip-flagged` keeps doubtful speaker maps for Jeremy. PRD section 10 gets a steady-state paragraph; decision D24 | A new episode is transcribed within a day of release without anyone touching the laptop; `~/piq-logs/` shows the run; `git log` in the data repo shows the cron commit |
+| H4 | Keeping up (N-6): `pipeline/cron/new-episodes.sh` in the VM's crontab, daily at 03:00, `PIQ_MAX_EPISODES=2`, mechanical stages only until the pilot and E4 have shown headless extraction to be trustworthy, then `PIQ_RUN_CLAUDE=1`. `--skip-flagged` keeps doubtful speaker maps for Jeremy. PRD section 10 gets a steady-state paragraph; decision D25 | A new episode is transcribed within a day of release without anyone touching the laptop; `~/piq-logs/` shows the run; `git log` in the data repo shows the cron commit |
 
 Worth it? H1 is about an hour once and serves all three uses; the code changes
 are small (a config overlay, one flag, one script, tests). The VM's value is
@@ -858,7 +875,7 @@ own commit with the reason).
 | `pipeline/cron/new-episodes.sh` (new) | The job described in section 4.9 |
 | `pipeline/tests/test_piq.py` | `--skip-flagged` test with a flagged and an unflagged speaker map |
 | `pipeline/README.md` | "VM worker" section: setup checklist, env file, crontab line, what the VM owns and what it never touches |
-| `docs/PRD.md`, `docs/decisions.md` | Section 5 layout (`pipeline/cron/`), section 10 steady state after Phase 4 (N-6), D24 (the VM runs mechanical stages; everything it makes is in git, so it is disposable) |
+| `docs/PRD.md`, `docs/decisions.md` | Section 5 layout (`pipeline/cron/`), section 10 steady state after Phase 4 (N-6), D25 (the VM runs mechanical stages; everything it makes is in git, so it is disposable) |
 
 ### Track F (on hold, Q9)
 

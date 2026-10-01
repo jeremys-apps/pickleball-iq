@@ -48,6 +48,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* The hidden attribute beats any display rule; without this, .btn's inline-flex kept Play on the picture. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   background: var(--bg);
@@ -141,13 +144,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   overflow: hidden;
 }
 .stage .inset:empty { display: none; }
-.stage .play {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: max-content;
-  height: max-content;
-}
+.motion { display: flex; justify-content: center; padding-top: 8px; }
 .stage .clock { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255, 255, 255, 0.15); }
 .stage .clock i { display: block; height: 100%; width: 100%; background: #F5C443; transform-origin: left center; }
 .stage .toggle-view { position: absolute; right: 8px; top: 8px; min-height: 36px; padding: 4px 10px; font-size: var(--step--1); }
@@ -194,8 +191,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .answer { font-size: var(--step-1); }
 .after { display: grid; gap: 10px; }
-.after[hidden] { display: none; }
 
+.source-info summary { padding: 8px 0; color: var(--muted); font-family: var(--font-head); font-weight: 600; cursor: pointer; }
+.source-info > :not(summary) { margin-top: 8px; }
 .source { color: var(--muted); font-size: var(--step--1); margin: 0; }
 .claude-note { font-size: var(--step--1); color: var(--muted); border: 1px dashed var(--rule); border-radius: var(--radius); padding: 8px 10px; margin: 0; }
 .claude-note b { color: var(--ink); font-weight: 600; }
@@ -229,7 +227,8 @@ legend { font-family: var(--font-head); font-weight: 600; padding: 0 6px; }
 @media (min-width: 900px) {
   .page { padding: 8px 24px 40px; }
   .card-view.has-stage { grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr); align-items: start; gap: 24px; }
-  .stage { margin: 0; border-radius: 12px; position: sticky; top: 12px; }
+  .court { position: sticky; top: 12px; }
+  .stage { margin: 0; border-radius: 12px; }
   .stage .inset { display: none; }
   .stage .toggle-view { display: none; }
   .side .panel svg { max-width: 300px; }
@@ -261,6 +260,18 @@ table.stats { border-collapse: collapse; width: 100%; max-width: 72ch; font-vari
 /* Timed cards: on phones, cap the court's height so the frozen picture and the
    choices fit on one screen (viewBox 360 x 380). */
 .timed-hint { margin: 0; }
+.timed-hint strong { color: var(--ink); font-weight: 600; white-space: nowrap; }
 @media (max-width: 899px) {
   .card-view.is-timed_decision .hero svg { width: min(100%, calc(50vh * 360 / 380)); margin: 0 auto; }
+}
+
+/* Phones: the text under the question, and the hint above it, read 1 pt larger.
+   The question keeps its size (--step-2). */
+@media (max-width: 899px) {
+  .card-view .side {
+    --step--1: calc(0.8125rem + 1pt);
+    --step-0: calc(1rem + 1pt);
+    --step-1: calc(1.1875rem + 1pt);
+    font-size: var(--step-0);
+  }
 }

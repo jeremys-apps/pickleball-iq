@@ -197,7 +197,7 @@ function build() {
       h('fieldset', {}, h('legend', {}, 'Aids'),
         check('Ball path', true, (e) => { S.aids.path = e.target.checked; draw(); }),
         check('Shadow', true, (e) => { S.aids.shadow = e.target.checked; draw(); }),
-        check('Height stalk and net tick', true, (e) => { S.aids.stalk = e.target.checked; draw(); })),
+        check('Height stalk and net-height mark', true, (e) => { S.aids.stalk = e.target.checked; draw(); })),
       h('fieldset', {}, h('legend', {}, 'Panels'),
         check('Top-down', true, (e) => { S.show.topdown = e.target.checked; draw(); }),
         check('Mini-map', true, (e) => { S.show.mini = e.target.checked; draw(); }),

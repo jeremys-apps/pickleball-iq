@@ -81,13 +81,17 @@ export function mountCard(root, ctx) {
     },
     'Top-down',
   );
+  // Play and, after the answer, the replay share one spot under the picture, so
+  // neither covers the court and the replay starts with the picture in view.
   const playBtn = timed ? h('button', { class: 'btn primary play', type: 'button', onclick: () => start() }, 'Play') : null;
+  const replayBtn = scene ? h('button', { class: 'btn replay', type: 'button', onclick: () => replay() }, timed ? 'Watch again' : 'Replay the shot') : null;
+  const motionEl = h('div', { class: 'motion', hidden: !timed }, playBtn);
   const showBtn = mc ? null : h('button', { class: 'btn primary', type: 'button', onclick: () => showAnswer() }, 'Show answer');
   // Reading happens before Play; the clock covers only the choice after the freeze.
   const hint = timed
     ? h('p', { class: 'note timed-hint' }, windowMs
-        ? `Read the question and the choices first. When the picture freezes you have ${(windowMs / 1000).toFixed(1)} seconds to choose.`
-        : 'Read the question and the choices, then press Play. New cards have no clock: choose when the picture freezes.')
+        ? ['Read the question and the choices first. When the picture freezes you have ', h('strong', {}, `${(windowMs / 1000).toFixed(1)} seconds`), ' to choose.']
+        : 'Read the question and the choices, then press Play.')
     : null;
 
   function draw() {
@@ -117,6 +121,11 @@ export function mountCard(root, ctx) {
     panelEl.innerHTML = panel;
     toggle.hidden = wide || !(stage.id === 'A' || answered);
     toggle.textContent = hero === 'first_person' ? 'Top-down' : 'Your view';
+  }
+
+  function replay() {
+    courtEl.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    timed ? player.play(0, { toEnd: true }) : replayStatic();
   }
 
   function replayStatic() {
@@ -159,6 +168,7 @@ export function mountCard(root, ctx) {
     if (started) return;
     started = true;
     playBtn.hidden = true;
+    motionEl.hidden = true;
     if (hint) hint.hidden = true;
     view.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
     player.play(0);
@@ -245,15 +255,18 @@ export function mountCard(root, ctx) {
     }
     parts.push(h('p', {}, card.explanation));
     if (card.focus_cue) parts.push(h('p', { class: 'focus-cue' }, `On court: ${card.focus_cue}`));
-    for (const s of sourceLines(principle, index)) {
-      parts.push(h('p', { class: 'source' }, s.text, s.url ? [' ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, 'Episode')] : null));
-    }
+    // Who said it and Claude's own note, folded away under the lesson. The note
+    // keeps its own box so it is never read as a pro's words.
+    const sources = sourceLines(principle, index).map((s) =>
+      h('p', { class: 'source' }, s.text, s.url ? [' ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, 'Episode')] : null),
+    );
     const note = card.claude_note ?? principle?.claude_note;
-    if (note) parts.push(h('p', { class: 'claude-note' }, h('b', {}, "Claude's note: "), note));
+    if (sources.length || note) {
+      parts.push(h('details', { class: 'source-info' }, h('summary', {}, 'Source info'), sources, note ? h('p', { class: 'claude-note' }, h('b', {}, 'Additional note: '), note) : null));
+    }
     if (scene) {
-      parts.push(
-        h('div', { class: 'row' }, h('button', { class: 'btn', type: 'button', onclick: () => (timed ? player.play(0, { toEnd: true }) : replayStatic()) }, timed ? 'Watch again' : 'Replay the shot')),
-      );
+      motionEl.replaceChildren(replayBtn);
+      motionEl.hidden = false;
     }
     if (mirrored) parts.push(h('p', { class: 'note mirrored-note' }, "Mirrored this time: the court is flipped left to right and everyone's handedness is swapped, so it is the same situation seen from the other side."));
     parts.push(ratingRow());
@@ -310,7 +323,7 @@ export function mountCard(root, ctx) {
       else if (!mc && !answered) showAnswer();
       else if (answered) rate(suggested);
     } else if ((e.key === 'r' || e.key === 'R') && scene && (answered || !timed)) {
-      timed ? player.play(0, { toEnd: true }) : replayStatic(); // timed replays only happen after the answer
+      replay(); // timed replays only happen after the answer
     }
   }
 
@@ -328,7 +341,8 @@ export function mountCard(root, ctx) {
   }
 
   const side = h('div', { class: 'side' }, panelEl, hint, h('p', { class: 'prompt' }, card.prompt), mc ? optionsEl : showBtn, afterEl);
-  if (scene) view.append(h('div', { class: 'stage' }, heroEl, insetEl, clockEl, toggle, playBtn));
+  const courtEl = h('div', { class: 'court' }, h('div', { class: 'stage' }, heroEl, insetEl, clockEl, toggle), motionEl);
+  if (scene) view.append(courtEl);
   view.append(side);
   root.replaceChildren(view);
   draw();

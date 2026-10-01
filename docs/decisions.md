@@ -119,3 +119,12 @@ as the early warning; it moves to IndexedDB when it nears 2 MB (plan Track E3).
 Compacting the review log to save room was considered and rejected: sync merges
 by replaying the full history, so compaction would need a per-card base state
 agreed across devices, and the log is the source of the Progress views (D22).
+
+**D24. Sources fold under Source info; Claude's note becomes an "Additional note".**
+On a phone the source lines and the note, in small print under the lesson,
+crowded the reveal. They now sit in a closed Source info fold after the
+explanation and the court cue, one tap away on every card. Claude's observations
+keep their own dashed box inside the fold, apart from the source lines, so they
+are still never read as a pro's words; Jeremy chose the label "Additional note"
+(2026-09-30). In the same change Play and the replay moved under the picture,
+because a button drawn on the court hides part of the read.
