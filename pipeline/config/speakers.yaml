@@ -65,3 +65,10 @@ speakers:
       Jeremy's decision (September 2026): Kevin's own advice counts, but any pro's
       advice or endorsement that contradicts him wins, and his tip is struck. He
       cannot endorse other speakers' statements.
+
+  - id: allyce-jones
+    name: Allyce Jones
+    aliases: [Allyce, Alyce, Alice, Allie]
+    tier: touring_pro
+    credential: "PPA Tour pro since 2022 (doubles and mixed), CRBN pro team. Former Utah Valley University volleyball libero and high-school volleyball coach. Verified 2026-10-03 against the PPA Tour athlete page and the CRBN pro team page."
+    shows: [cheatcode]

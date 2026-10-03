@@ -29,7 +29,7 @@ Produced by CRBN.
 
 - **Tanner Tomassi**, touring pro, APP men's doubles gold according to CRBN. Counts as a pro.
 - **Brodie Smith**, co-host, described as a high-level coach and aspiring pro. Non-pro tier.
-- Guests include CRBN pros **Andrei Daescu** and **Danni-Elle Townsend** (pros).
+- Guests include CRBN pros **Andrei Daescu**, **Danni-Elle Townsend** and **Allyce Jones** (pros). Allyce Jones is a PPA Tour pro since 2022 on the CRBN pro team, verified 2026-10-03 against the PPA Tour athlete page and the CRBN pro team page; Jeremy approved the touring_pro tier the same day.
 - **Kevin Tsati** appears on singles episodes; level unverified. Treated as a provisional pro (PRD Q2): his own advice counts unless a pro contradicts it, and he cannot endorse others.
 
 ## Other candidates, not in the pipeline yet
