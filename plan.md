@@ -56,7 +56,7 @@ only if the Windows WhisperX install fails); H4 after E4.
 |---|---|---|
 | Court renderer | `app/src/court/` (geometry, camera, trajectory, scene, first-person, top-down, playback, mirror, theme) | Built; 14 render and 5 mirror tests |
 | Scheduler | `app/src/srs/scheduler.js` over vendored ts-fsrs 5.4.2 | Built; stages A/B/C, rating suggestion, replay |
-| Sessions and cards | `app/src/ui/session.js`, `card-view.js`, `views.js`, `chrome.js`, `provenance.js`, `dom.js` | Built; batches, requeues, pending answers, summary with cue and drill |
+| Sessions and cards | `app/src/ui/session.js`, `card-view.js`, `views.js`, `chrome.js`, `provenance.js`, `dom.js` | Built; fixed-size batches, pending answers, summary with cue and drill |
 | Choice pools | `app/src/choices.js` | Built; balanced placement, rotating wrong answers |
 | Storage and sync | `app/src/store/progress.js`, `settings.js`, `github-sync.js`, `deck.js`, `sync.js` | Built; per-device files, log union, replay merge; tested only against a fake API |
 | Offline and install | `app/sw.js`, `sw-manifest.js`, `manifest.webmanifest`, icons | Built; manifest is current (regenerated and compared today) |
@@ -709,6 +709,17 @@ the reach question says you have time to get to the ball; and the three
 arc-the-reset cards explain "cupping upward" in plain words, with Claude's
 reading of the mechanics in their notes. A request to write pros' full names in
 card text was withdrawn before it was applied.
+
+Progress 2026-10-03: Jeremy's third round of phone notes. A batch set to five
+cards grew to six and seven ("Card 5 of 6", then "Card 6 of 7"), and a card rated
+with a 10-minute wait came back as card 6 two minutes later. A card rated with a
+wait under twenty minutes went back into the same batch, and when no such wait
+was over the next pick took one anyway; planning also counted learning cards due
+within twenty minutes as due. Now a batch keeps the cards planned for it, each
+shown once, and a card returns in the first batch planned after its wait is over
+(D26, A-1, A-5). A choice sometimes looked selected when a card opened: on the
+phone, the tap that started the batch left the hover style on whatever choice
+appeared under the finger. Hover styles now apply only where a pointer can hover.
 
 ### Track D: features the goal implies (two or three sessions; runs alongside B and C)
 

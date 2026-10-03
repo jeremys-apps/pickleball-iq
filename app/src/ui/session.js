@@ -1,6 +1,8 @@
 // Sessions are open-ended. Cards come in batches (due reviews first, new cards
 // mixed in), each batch ends with a summary, and "Keep going" starts another.
 // Nothing caps the day unless a new-card limit is set in Settings.
+// A batch shows each of its cards once and never grows. A card rated with a wait
+// of minutes comes back in the first batch planned after the wait is over.
 
 import { h } from './dom.js';
 import { topbar, count } from './chrome.js';
@@ -9,14 +11,12 @@ import { shouldMirror } from '../court/mirror.js';
 import { stageFor, applyAidPreference, Rating, State } from '../srs/scheduler.js';
 import { recordReview, saveProgress, newIntroducedOn, localDay, savePending, clearPending, takePending } from '../store/progress.js';
 
-// Learning cards due within this window count as due, so a missed card comes
-// back in the next batch instead of waiting for tomorrow.
-export const LEARN_AHEAD_MS = 20 * 60000;
-const MAX_REQUEUES = 2;
 const REST_MS = 30 * 60000;
 
 // Plan one batch.
-// Order: due reviews (most overdue first) with a new card after every three.
+// Order: due cards (most overdue first) with a new card after every three. A
+// card is due only once its wait is over, learning steps included, so the time
+// on the rating button holds.
 // New cards: principles not yet seen today first, one variant per principle
 // before second variants, then priority. Adjacent siblings are split up.
 // When nothing is due and every card has been seen: practice ahead, soonest due first.
@@ -34,8 +34,7 @@ export function planBatch(index, progress, settings, { now = new Date(), session
       continue;
     }
     const at = new Date(e.fsrs.due).getTime();
-    const learning = e.fsrs.state === State.Learning || e.fsrs.state === State.Relearning;
-    if (at <= t || (learning && at - t <= LEARN_AHEAD_MS)) due.push({ card, at });
+    if (at <= t) due.push({ card, at });
     else ahead.push({ card, at, last: e.fsrs.last_review ? new Date(e.fsrs.last_review).getTime() : 0 });
   }
   due.sort((a, b) => a.at - b.at);
@@ -153,17 +152,10 @@ export function runSession(root, app, { onBatchEnd } = {}) {
   const host = h('main', { class: 'page' });
   root.replaceChildren(topbar(), bar, host);
 
-  const pickNext = () => {
-    const now = Date.now();
-    let i = queue.findIndex((q) => !q.notBefore || q.notBefore.getTime() <= now);
-    if (i < 0) i = 0;
-    return queue.splice(i, 1)[0];
-  };
-
   function startBatch() {
     const plan = planBatch(app.index, app.progress, app.settings, { sessionPrinciples });
     if (!plan.items.length) return showEmpty();
-    queue = plan.items.map((q) => ({ ...q }));
+    queue = [...plan.items];
     results = [];
     batchStart = Date.now();
     totals.batches += 1;
@@ -177,7 +169,7 @@ export function runSession(root, app, { onBatchEnd } = {}) {
     current = null;
     if (closed) return;
     if (!queue.length) return endBatch();
-    const item = pickNext();
+    const item = queue.shift();
     const entry = app.progress.cards[item.card.id];
     const stage = applyAidPreference(stageFor(entry?.fsrs), app.settings.matureAids);
     const total = results.length + queue.length + 1;
@@ -233,10 +225,6 @@ export function runSession(root, app, { onBatchEnd } = {}) {
     sessionPrinciples.add(item.card.principle_id);
     totals.cards += 1;
     results.push({ card: item.card, rating: res.rating, correct: res.correct ?? null, kind: item.kind });
-    const soon = new Date(state.due).getTime() - now.getTime() < LEARN_AHEAD_MS;
-    if (soon && (item.requeues ?? 0) < MAX_REQUEUES) {
-      queue.push({ card: item.card, kind: 'again', notBefore: new Date(state.due), requeues: (item.requeues ?? 0) + 1 });
-    }
   }
 
   const takeaway = (label, text) => h('div', { class: 'takeaway' }, h('p', { class: 'note' }, label), h('p', { class: 'focus-cue' }, text));

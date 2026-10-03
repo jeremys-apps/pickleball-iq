@@ -50,15 +50,18 @@ test('batches respect the batch size, and later batches continue with what is le
   assert.equal(second.items.filter((x) => first.items.some((y) => y.card.id === x.card.id)).length, 0, 'no repeats of graduated cards');
 });
 
-test('overdue reviews and learning cards due within minutes come first', () => {
+test('overdue reviews come first, and a learning card waits until its step is over', () => {
   const p = emptyProgress('d');
   review(p, 'c-dink-fp-1', Rating.Good, new Date(NOW.getTime() - 10 * 86400e3));
   review(p, 'c-dink-fp-1', Rating.Good, new Date(NOW.getTime() - 10 * 86400e3 + 10 * 60000)); // due about 8 days ago
-  review(p, 'c-backhands-td-1', Rating.Good, minutes(-5)); // learning, due in 5 minutes
+  review(p, 'c-backhands-td-1', Rating.Good, minutes(-5)); // learning: the button said 10 min, so due in 5
   const plan = planBatch(index, p, DEFAULT_SETTINGS, { now: NOW });
-  assert.equal(plan.dueCount, 2);
-  assert.deepEqual(plan.items.slice(0, 2).map((x) => x.kind), ['review', 'review']);
+  assert.equal(plan.dueCount, 1);
   assert.equal(plan.items[0].card.id, 'c-dink-fp-1', 'most overdue first');
+  assert.ok(!plan.items.some((x) => x.card.id === 'c-backhands-td-1'), 'not before its 10 minutes are up');
+  const later = planBatch(index, p, DEFAULT_SETTINGS, { now: minutes(6) });
+  assert.equal(later.dueCount, 2);
+  assert.deepEqual(later.items.slice(0, 2).map((x) => [x.card.id, x.kind]), [['c-dink-fp-1', 'review'], ['c-backhands-td-1', 'review']]);
 });
 
 test('practice ahead once nothing is due and every card has been seen', () => {

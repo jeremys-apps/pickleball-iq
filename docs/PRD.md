@@ -205,11 +205,11 @@ in batches, and each batch ends with a summary and a Keep going button.
 
 | Id | Requirement | Status |
 |---|---|---|
-| A-1 | Plan each batch: overdue reviews first (most overdue first), learning cards that fall due within twenty minutes, and a new card after every three reviews. | Built |
+| A-1 | Plan each batch: due cards first, most overdue first, and a new card after every three of them. A card is due only once its wait is over, learning steps of a few minutes included. | Built |
 | A-2 | Order new cards so principles not yet seen today come first, one variant of every principle comes before any second variant, then by priority. Two cards of one principle are never adjacent when it can be avoided. | Built |
 | A-3 | No daily limit on new cards and no session length by default. An optional new-card limit in Settings is the release valve if reviews pile up; due reviews always come first. | Built |
 | A-4 | End each batch (default ten cards, adjustable) with a summary: cards, court reads right, minutes, one focus cue for the court, a drill to try when a missed principle has one, and Keep going. Once nothing is due and every card has been seen, Keep going offers practice ahead: the cards due soonest, recorded as reviews. | Built |
-| A-5 | Missed cards come back in the same batch (at most twice), and in the next batch when they fall due. | Built |
+| A-5 | A batch holds the number of cards set in Settings (fewer when fewer are ready) and shows each one once: it never grows and never repeats a card. A missed card comes back in the first batch planned after its wait is over, so the time on the rating button holds (D26). | Built |
 | A-6 | Save progress after every rating. An answer given but not rated (the app closed first) is recorded with its suggested rating at the next start. | Built |
 | A-7 | Suggest a rating from correctness and response time; the user can override it. Each rating button shows the resulting interval. | Built |
 | A-8 | Batch size, the optional new-card limit, the longest review gap (default 365 days), camera mode, how much help mature cards keep, and how much time to choose on timed cards (a multiplier on the clock only) are settings. | Built |
@@ -296,7 +296,8 @@ real speed and the shorter window apply either way.
 Body text, the choices and everything smaller, is 1 pt larger than the type
 scale on every screen; on a phone the text under the question gains one point
 more. The topbar marks the tab you are on in bold with an underline; Court Sense
-is the Home tab.
+is the Home tab. Hover highlights apply only where a pointer can hover, so on a
+phone a tap never leaves a choice looking selected.
 
 ### 8.6 Keyboard (laptop)
 

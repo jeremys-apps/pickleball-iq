@@ -142,3 +142,19 @@ round the mirrored-card note under the reveal was dropped (the flipped court is
 just another look at the situation; the log still records it), the topbar marks
 the tab you are on with Court Sense as the Home tab, and the two body text sizes
 grew a point on every screen.
+
+**D26. A batch keeps its size, and the wait on the rating button holds.** On the
+phone a batch set to five cards grew to six and seven, and a card rated with a
+10-minute wait came back two minutes later as card 6, sometimes again as card 7
+(Jeremy's notes, 2026-10-03). A card rated with a wait under twenty minutes went
+back into the same batch, at most twice, as A-5 first said; when none of those
+waits was over, the next pick took one anyway; and batch planning counted
+learning cards due within twenty minutes as due, a learn-ahead window borrowed
+from Anki, so Keep going could also bring a card back early. Now a batch is the
+cards planned for it, each shown once, and a card counts as due only when its
+wait is over. A miss comes back in the first batch planned after that, which
+after a five-card batch is usually the next one. The cost: a miss is not
+re-tested inside its own batch, and a miss on the last card may wait one batch
+longer. Practice ahead, offered only when nothing is due and every card has been
+seen, still brings cards back early, as its label says, and prefers cards
+reviewed at least 30 minutes before.

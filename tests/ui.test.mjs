@@ -251,15 +251,50 @@ test('a batch runs to its summary, records progress, and offers to keep going', 
   m.runSession(root, app, {});
   answerUntilSummary(root, app);
   assert.ok(root.querySelector('.summary'), 'summary shown');
-  assert.ok(app.progress.logs.length >= deck.cards.length);
+  assert.equal(app.progress.logs.length, deck.cards.length, 'each card once');
   assert.match(root.querySelector('.takeaway .focus-cue').textContent, /\S/);
-  assert.ok(JSON.parse(localStorage.getItem(m.store.STORAGE_KEY)).logs.length >= deck.cards.length, 'progress persisted');
-  assert.ok(app.progress.logs.some((l) => l.mirrored), 'mirrorable cards come back mirrored on their second showing');
-  assert.ok(app.progress.logs.some((l) => !l.mirrored), 'and as authored the first time');
+  assert.equal(JSON.parse(localStorage.getItem(m.store.STORAGE_KEY)).logs.length, deck.cards.length, 'progress persisted');
+  assert.ok(app.progress.logs.every((l) => !l.mirrored), 'as authored the first time');
   const keep = root.querySelector('.summary button.btn.primary');
   assert.match(keep.textContent, /Keep going|Practice ahead/);
+  for (const e of Object.values(app.progress.cards)) e.fsrs.due = new Date(Date.now() - 1000).toISOString(); // their waits are over
   keep.click();
   assert.ok(root.querySelector('.card-view'), 'another batch started');
+  answerUntilSummary(root, app);
+  assert.equal(app.progress.logs.length, 2 * deck.cards.length);
+  assert.ok(app.progress.logs.some((l) => l.mirrored), 'mirrorable cards come back mirrored on their second showing');
+});
+
+test('a batch keeps its size and shows each card once, even when every card is missed', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  app.settings.batchSize = 5;
+  const root = document.getElementById('app');
+  m.runSession(root, app, {});
+  const counters = [];
+  const seen = [];
+  for (let guard = 0; guard < 20 && !root.querySelector('.summary'); guard++) {
+    counters.push(root.querySelector('.session-bar .status').textContent);
+    root.querySelector('.play:not([hidden])')?.click();
+    const prompt = root.querySelector('.prompt').textContent;
+    const card = [...app.index.cards.values()].find((c) => c.prompt === prompt);
+    seen.push(card.id);
+    const wrong = [...root.querySelectorAll('.option')].find((b) => !card.options.find((o) => o.id === b.dataset.id).correct);
+    if (wrong) wrong.click();
+    else root.querySelector('.side .btn.primary').click(); // Show answer
+    const again = root.querySelector('.rating');
+    assert.match(again.textContent, /^Again1 min$/);
+    again.click();
+  }
+  assert.deepEqual(counters, ['Card 1 of 5', 'Card 2 of 5', 'Card 3 of 5', 'Card 4 of 5', 'Card 5 of 5'], 'the count never grows');
+  assert.equal(new Set(seen).size, 5, 'no card comes back inside its own batch');
+  assert.ok(root.querySelector('.summary'));
+  const now = Date.now();
+  const next = m.planBatch(app.index, app.progress, app.settings, { now: new Date(now) });
+  assert.ok(next.items.every((x) => !seen.includes(x.card.id)), 'a miss waits out its minute before the next batch takes it');
+  const later = m.planBatch(app.index, app.progress, app.settings, { now: new Date(now + 2 * 60000) });
+  assert.equal(later.dueCount, 5, 'then every miss is due');
 });
 
 test('the Progress view lists topics weakest first with drills, and Home shows the last court cue', { skip }, async () => {
