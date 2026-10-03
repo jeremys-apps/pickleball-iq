@@ -57,11 +57,14 @@ html, body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 var(--step-0)/1.45 var(--font-body);
+  font: 400 1rem/1.45 var(--font-body);
   -webkit-text-size-adjust: 100%;
 }
 
+/* The body carries the extra point; the root stays at 1rem so the rem sizes of
+   the type scale (question, headings, buttons) do not grow with the body text. */
 body {
+  font-size: var(--step-0);
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
@@ -260,7 +263,13 @@ table.stats { border-collapse: collapse; width: 100%; max-width: 72ch; font-vari
 .progress .drill { display: grid; gap: 6px; max-width: 72ch; margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--raised); }
 .progress .drill p, .progress .drill ul { margin: 0; }
 .progress .drill ul { padding-left: 1.2em; }
-@media (max-width: 899px) { .topbar .lab-link { display: none; } }
+@media (max-width: 899px) {
+  .topbar .lab-link { display: none; }
+  /* Four tabs in 390 px: tighter buttons, and no tab wraps onto two lines. */
+  .topbar a { white-space: nowrap; }
+  .topbar .btn.quiet { padding: 10px 8px; }
+  .topbar nav { gap: 2px; }
+}
 
 /* Timed cards: on phones, cap the court's height so the frozen picture and the
    choices fit on one screen (viewBox 360 x 380). */
