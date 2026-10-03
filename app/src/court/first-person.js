@@ -232,15 +232,22 @@ function revealMarkup(cam, frame, uid) {
     s += poly(cam, ring, 'piq-answer-zone');
   }
   if (r.shot?.to) {
+    // The shot starts where you meet the ball (frame.contact), not at the ball
+    // in this frame, which may be mid-flight during a replay. shot_t (0 to 1)
+    // is how much of it has flown; the arrowhead rides at the tip.
+    const c = frame.contact;
     const from =
       r.shot.from && r.shot.from !== 'ball'
         ? r.shot.from
-        : frame.ball
-          ? { x: frame.ball.pos[0], y: frame.ball.pos[1], z_in: frame.ball.pos[2] * 12 }
-          : null;
-    if (from) {
+        : c
+          ? { x: c[0], y: c[1], z_in: c[2] * 12 }
+          : frame.ball
+            ? { x: frame.ball.pos[0], y: frame.ball.pos[1], z_in: frame.ball.pos[2] * 12 }
+            : null;
+    const t1 = r.shot_t ?? 1;
+    if (from && t1 > 0) {
       const arc = makeArc(from, r.shot.to, r.shot);
-      for (const run of polylineRuns(cam, sampleArc(arc, 0, 1, 28))) {
+      for (const run of polylineRuns(cam, sampleArc(arc, 0, t1, Math.max(2, Math.round(28 * t1))))) {
         s += `<polyline class="piq-answer" points="${ptsAttr(run)}" marker-end="url(#piq-ah-${uid})"/>`;
       }
     }
@@ -300,8 +307,17 @@ export function renderFirstPerson(frame, opts = {}) {
   }
 
   const debug = { eye, lookAt: frame.lookAt, camera: cam };
+  // Finished shots (their ball, while your answer flies in a replay) stay as trails.
+  if (aids.path) {
+    for (const tr of frame.trails ?? []) {
+      const t = trailMarkup(cam, tr.arc, tr.t0 ?? 0, tr.t1 ?? 1, beyond);
+      if (t.far) far.push({ d: t.farDepth, markup: t.far });
+      if (t.near) nearList.push({ d: t.nearDepth, markup: t.near });
+    }
+  }
   if (frame.ball) {
-    const trail = aids.path
+    // The answer ball's path is the green reveal path, not an orange trail.
+    const trail = aids.path && !frame.ball.answer
       ? trailMarkup(cam, frame.ball.arc, frame.ball.t0 ?? 0, frame.ball.t1 ?? 1, beyond)
       : { far: '', near: '', farPts: [], nearPts: [] };
     debug.trail = { far: trail.farPts, near: trail.nearPts };

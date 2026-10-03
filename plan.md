@@ -692,6 +692,24 @@ principle; the split-step cards say the drop crosses the net to the opponent's
 side. An audit of all 81 choice cards found no other wrong answer that restates
 the correct one. Each defect became a prompt rule.
 
+Progress 2026-10-02: Jeremy's second round of phone notes. The static card's
+replay button said Replay although nothing had played, and during the replay the
+answer arrow rode along on the moving ball, because the renderers anchored it at
+the ball's position in the frame. Now every frame carries the contact point, the
+arrow starts there, and Watch the play runs in two halves: their shot arrives
+with the overlay hidden, then the answer shot flies from contact to its target
+with its path growing behind the ball (D25); Watch again on timed cards does the
+same at the end. The mirrored-card note under the reveal is gone, the topbar
+marks the tab you are on (Court Sense is the Home tab, and was bold on every
+page before), the two body text sizes grew a point on every screen, and the
+Source info fold says when a note is inside. Content fixes in the data repo: the
+arc-the-reset scene lands the reset toward the middle between the opponents, as
+Tanner's crosscourt rule says, instead of at the feet of the player in front;
+the reach question says you have time to get to the ball; and the three
+arc-the-reset cards explain "cupping upward" in plain words, with Claude's
+reading of the mechanics in their notes. A request to write pros' full names in
+card text was withdrawn before it was applied.
+
 ### Track D: features the goal implies (two or three sessions; runs alongside B and C)
 
 | Step | Work | Tests |

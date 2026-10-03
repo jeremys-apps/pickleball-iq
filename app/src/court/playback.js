@@ -69,9 +69,11 @@ export function frameAt(scene, compiled, ms, { reveal = false } = {}) {
   const m = clamp(ms, 0, compiled.total);
   const seg = compiled.segs.find((s) => m >= s.start && m <= s.end) ?? compiled.segs[compiled.segs.length - 1];
   const lt = seg.end > seg.start ? (m - seg.start) / (seg.end - seg.start) : 1;
+  const last = compiled.segs[compiled.segs.length - 1];
   return {
     players: playerPositions(scene, compiled, m),
     ball: { pos: seg.arc.at(lt), arc: seg.arc, t0: 0, t1: lt, hitterId: seg.hitter_id ?? null, segmentId: seg.id },
+    contact: last.arc.p1, // the decision point, where the answer shot starts
     eyesOf: compiled.eyesOf,
     lookAt: compiled.lookAt,
     reveal: reveal ? (scene.answer_overlay ?? null) : null,

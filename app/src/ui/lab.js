@@ -2,7 +2,7 @@
 // Paste scene JSON from the card generator to verify Claude's coordinates visually.
 
 import { installRendererStyles } from '../court/theme.js';
-import { frameFromScene, checkScene } from '../court/scene.js';
+import { frameFromScene, checkScene, answerFrame, answerArc } from '../court/scene.js';
 import { renderFirstPerson } from '../court/first-person.js';
 import { renderTopDown, renderSideView } from '../court/top-down.js';
 import { compileTimeline, frameAt, createPlayer } from '../court/playback.js';
@@ -97,17 +97,37 @@ function play() {
     player = p;
     p.play(0);
   } else {
+    // As in the app: their shot arrives with the answer hidden, then, with
+    // "Show the answer" on, the answer shot flies.
     const t0 = performance.now();
     const dur = 900 / S.speed;
     const step = () => {
       const t = Math.min(1, (performance.now() - t0) / dur);
       S.pos = Math.round(t * 1000);
       out.slider.value = S.pos;
-      draw();
-      if (t < 1) raf = requestAnimationFrame(step);
+      if (t < 1) {
+        draw(frameFromScene(sc, t, { reveal: false }));
+        raf = requestAnimationFrame(step);
+      } else if (S.reveal) flyAnswer(sc);
+      else draw();
     };
     raf = requestAnimationFrame(step);
   }
+}
+
+// The answer half of a replay: the target appears at contact, then the ball
+// flies the answer shot with its path growing behind it (card-view.js does the same).
+function flyAnswer(sc) {
+  const base = frameFromScene(sc);
+  if (!answerArc(sc)) return draw(answerFrame(sc, base, 1));
+  const t0 = performance.now() + 150 / S.speed;
+  const dur = 1000 / S.speed;
+  const step = () => {
+    const k = Math.min(1, Math.max(0, (performance.now() - t0) / dur));
+    draw(answerFrame(sc, base, k));
+    if (k < 1) raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
 }
 
 function loadPasted() {

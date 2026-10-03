@@ -32,6 +32,7 @@ function trackRuns(arc, t0, t1, X, Y) {
 function contentYs(frame, camera, includeReveal) {
   const ys = frame.players.map((p) => p.y);
   if (frame.ball?.arc) for (const p of sampleArc(frame.ball.arc, frame.ball.t0 ?? 0, frame.ball.t1 ?? 1, 8)) ys.push(p[1]);
+  for (const tr of frame.trails ?? []) for (const p of sampleArc(tr.arc, tr.t0 ?? 0, tr.t1 ?? 1, 8)) ys.push(p[1]);
   if (camera) ys.push(camera.eye[1]);
   const r = includeReveal ? frame.reveal : null;
   if (r?.target) ys.push(r.target.y + (r.target.ry_ft ?? 1.2), r.target.y - (r.target.ry_ft ?? 1.2));
@@ -87,8 +88,11 @@ export function renderTopDown(frame, opts = {}) {
     out.push(`<polygon class="piq-fov" points="${f1(X(e[0]))},${f1(Y(e[1]))} ${f1(X(a[0]))},${f1(Y(a[1]))} ${f1(X(b[0]))},${f1(Y(b[1]))}"/>`);
   }
 
-  if (frame.ball?.arc) {
-    for (const run of trackRuns(frame.ball.arc, frame.ball.t0 ?? 0, frame.ball.t1 ?? 1, X, Y)) {
+  // Finished shots stay as trails; the answer ball's path is the green reveal line.
+  const tracks = [...(frame.trails ?? [])];
+  if (frame.ball?.arc && !frame.ball.answer) tracks.push({ arc: frame.ball.arc, t0: frame.ball.t0 ?? 0, t1: frame.ball.t1 ?? 1 });
+  for (const tr of tracks) {
+    for (const run of trackRuns(tr.arc, tr.t0 ?? 0, tr.t1 ?? 1, X, Y)) {
       out.push(
         `<polyline class="piq-path${run.far ? ' piq-path-far' : ''}" stroke-width="${run.far ? (mini ? 1 : 1.6) : mini ? 1.5 : 2.6}" points="${run.points}"/>`,
       );
@@ -134,9 +138,14 @@ export function renderTopDown(frame, opts = {}) {
       g += `<ellipse class="piq-answer-zone" cx="${f1(X(r.target.x))}" cy="${f1(Y(r.target.y))}" rx="${f1((r.target.rx_ft ?? 2) * s)}" ry="${f1((r.target.ry_ft ?? 1.2) * s)}"/>`;
     }
     if (r.shot?.to) {
-      const from = r.shot.from && r.shot.from !== 'ball' ? r.shot.from : frame.ball ? { x: frame.ball.pos[0], y: frame.ball.pos[1] } : null;
-      if (from) {
-        g += `<line class="piq-answer" x1="${f1(X(from.x))}" y1="${f1(Y(from.y))}" x2="${f1(X(r.shot.to.x))}" y2="${f1(Y(r.shot.to.y))}" stroke-width="${mini ? 1.5 : 2.5}" marker-end="url(#piq-ah-${uid})"/>`;
+      // From the contact point, not the ball in this frame (see first-person.js).
+      const c = frame.contact;
+      const from = r.shot.from && r.shot.from !== 'ball' ? r.shot.from : c ? { x: c[0], y: c[1] } : frame.ball ? { x: frame.ball.pos[0], y: frame.ball.pos[1] } : null;
+      const t1 = r.shot_t ?? 1;
+      if (from && t1 > 0) {
+        // The ground track is straight, so a partly flown shot ends part way along it.
+        const to = { x: from.x + (r.shot.to.x - from.x) * t1, y: from.y + (r.shot.to.y - from.y) * t1 };
+        g += `<line class="piq-answer" x1="${f1(X(from.x))}" y1="${f1(Y(from.y))}" x2="${f1(X(to.x))}" y2="${f1(Y(to.y))}" stroke-width="${mini ? 1.5 : 2.5}" marker-end="url(#piq-ah-${uid})"/>`;
       }
     }
     for (const mv of r.moves ?? []) {

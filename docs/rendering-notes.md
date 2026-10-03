@@ -107,6 +107,19 @@ freezing immediately. The stage's `freezeLeadMs` pulls that stop earlier than
 and never later than authored; `play(0, { toEnd: true })` runs through to the
 end of the timeline for the reveal after an answer.
 
+## Replays
+
+A frame may carry three more things. `contact` is the point where you meet the
+ball (`ball.now`, or the end of a timeline); the answer shot is drawn from there
+whatever the ball in the frame is doing, so its arrow never rides on a moving
+ball. `trails` are finished shots drawn as paths without a ball. `reveal.shot_t`
+is how much of the answer shot has flown (1 when absent). `scene.js` builds the
+frames for the answer half of a replay with `answerFrame(scene, base, k)`: their
+shot becomes a trail, the ball flies the answer arc from `contact` to `shot.to`,
+and the green path grows with it. The card view runs their shot first with the
+overlay hidden (`frameFromScene(scene, t, { reveal: false })`), holds a beat at
+contact, then flies the answer.
+
 ## Performance
 
 Each animation frame rebuilds the SVG through `innerHTML`. With these scene sizes

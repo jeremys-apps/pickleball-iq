@@ -93,7 +93,16 @@ test('multiple-choice card: answer, reveal, rate', { skip }, async () => {
   assert.equal(fold.querySelector('summary').textContent, 'Source info');
   assert.equal(fold.open, false, 'sources are folded away until asked for');
   assert.match(fold.querySelector('.source').textContent, /Sample content/);
-  assert.equal(host.querySelector('.court .motion .replay').textContent, 'Replay the shot', 'the replay sits under the picture');
+  assert.equal(host.querySelector('.court .motion .replay').textContent, 'Watch the play', 'the replay sits under the picture');
+  // Reduced motion in this test: Watch the play jumps to the finished picture, the
+  // answer having flown from the contact point to where it lands.
+  const ballY = () => host.querySelector('.hero svg .piq-ball').getAttribute('cy');
+  const before = ballY();
+  host.querySelector('.court .motion .replay').click();
+  const svg = host.querySelector('.hero svg');
+  assert.ok(svg.querySelector('.piq-reveal polyline.piq-answer'), 'the answer path is drawn');
+  assert.ok(svg.querySelector('[class*="piq-path"]'), 'their shot stays as a trail');
+  assert.notEqual(ballY(), before, 'the ball ends where the answer lands');
   assert.equal(host.querySelector('.rating.suggested b').textContent, 'Again');
   host.querySelector('.rating.suggested').click();
   assert.equal(result.rating, 1);
@@ -120,7 +129,7 @@ test('mature cards keep the picture, drop the overlays, and bring every aid back
   assert.ok(host.querySelector('.panel svg'), 'map returns after the answer');
 });
 
-test('a mirrored card says so after the answer and records it', { skip }, async () => {
+test('a mirrored card records it without announcing it on the reveal', { skip }, async () => {
   setupDom();
   const m = await modules();
   const app = makeApp(m);
@@ -128,9 +137,29 @@ test('a mirrored card says so after the answer and records it', { skip }, async 
   let result = null;
   m.mountCard(host, { card: app.index.cards.get('c-floater-fp-1'), index: app.index, stage: m.sched.STAGES.B, settings: app.settings, scheduler: app.scheduler, mirrored: true, onDone: (r) => (result = r) });
   host.querySelector('.option').click();
-  assert.match(host.querySelector('.after').textContent, /Mirrored this time/);
+  assert.doesNotMatch(host.querySelector('.after').textContent, /Mirrored/, 'the flipped court is just another look at the situation');
   host.querySelector('.rating.suggested').click();
   assert.equal(result.mirrored, true);
+});
+
+test('the topbar marks the tab you are on, with Court Sense as the Home tab', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const root = document.getElementById('app');
+  const current = () => [...root.querySelectorAll('.topbar a[aria-current="page"]')].map((a) => a.textContent);
+  m.views.renderHome(root, app);
+  assert.deepEqual(current(), ['Court Sense']);
+  location.hash = '#/progress';
+  m.views.renderProgress(root, app);
+  assert.deepEqual(current(), ['Progress']);
+  location.hash = '#/preview/c-dink-fp-1/A';
+  m.views.renderCards(root, app);
+  assert.deepEqual(current(), ['Cards'], 'a card preview belongs to Cards');
+  location.hash = '#/session';
+  m.views.renderHome(root, app);
+  assert.deepEqual(current(), ['Court Sense'], 'a session belongs to Home');
+  location.hash = '';
 });
 
 test('self-graded card: show answer with the keyboard, rate with a number key', { skip }, async () => {

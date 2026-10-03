@@ -213,7 +213,7 @@ in batches, and each batch ends with a summary and a Keep going button.
 | A-6 | Save progress after every rating. An answer given but not rated (the app closed first) is recorded with its suggested rating at the next start. | Built |
 | A-7 | Suggest a rating from correctness and response time; the user can override it. Each rating button shows the resulting interval. | Built |
 | A-8 | Batch size, the optional new-card limit, the longest review gap (default 365 days), camera mode, how much help mature cards keep, and how much time to choose on timed cards (a multiplier on the clock only) are settings. | Built |
-| A-9 | Court cards marked mirrorable alternate between the authored picture and its mirror image (positions flipped left to right, handedness swapped) on successive reviews, starting as authored. The reveal says when a card was mirrored, and the review log records it. | Built |
+| A-9 | Court cards marked mirrorable alternate between the authored picture and its mirror image (positions flipped left to right, handedness swapped) on successive reviews, starting as authored. The review log records which showings were mirrored; the reveal does not say so, since the flipped court is just another look at the same situation. | Built |
 | A-10 | Choice cards draw from an option pool: each showing displays one phrasing of the correct play and up to three wrong answers. The correct choice takes every position once in each run of showings, correct phrasings take turns, and wrong answers rotate so consecutive showings share exactly one. The log records what was on screen. | Built |
 
 With the scheduler's defaults, a card answered correctly every time comes back
@@ -235,9 +235,13 @@ at the five-month mark).
 
 After every answer the card shows the explanation, the focus cue, a closed
 Source info fold with the sources in plain words ("Mircea Morariu (senior pro).
-4.0 to Pro, "…", at 00:14:32.") and any additional note from Claude, a replay
-button under the picture, and the rating buttons. Play and the replay share that
-spot under the picture, so nothing is drawn over the court (D24).
+4.0 to Pro, "…", at 00:14:32.") and any additional note from Claude (the fold
+says when a note is inside), a Watch the play button under the picture, and the
+rating buttons. Watch the play shows their shot arriving with the answer hidden,
+then your answer shot flying from the contact point to its target with its path
+growing behind the ball; on a timed card the button reads Watch again (D25).
+Play and the replay share that spot under the picture, so nothing is drawn over
+the court (D24).
 
 ### 8.3 Court rendering
 
@@ -289,13 +293,18 @@ real speed and the shorter window apply either way.
 | Top-down | Inset mini-map in the corner; full top-down (cropped to the action) below the court after answering; a toggle swaps the main view in stage A and after answering | Side panel above the question |
 | Choices and ratings | Large touch targets; the text under the question 1 pt larger than on a laptop; ratings stick to the bottom of the screen | Right column |
 
+Body text, the choices and everything smaller, is 1 pt larger than the type
+scale on every screen; on a phone the text under the question gains one point
+more. The topbar marks the tab you are on in bold with an underline; Court Sense
+is the Home tab.
+
 ### 8.6 Keyboard (laptop)
 
 | Key | Action |
 |---|---|
 | 1 to 4 | Choose an option; after answering, rate Again, Hard, Good or Easy |
 | Enter or Space | Play a timed card, show an answer, or accept the suggested rating |
-| R | Replay the shot |
+| R | Watch the play (Watch again on a timed card) |
 
 ### 8.7 Offline and install
 

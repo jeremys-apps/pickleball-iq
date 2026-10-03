@@ -128,3 +128,17 @@ keep their own dashed box inside the fold, apart from the source lines, so they
 are still never read as a pro's words; Jeremy chose the label "Additional note"
 (2026-09-30). In the same change Play and the replay moved under the picture,
 because a button drawn on the court hides part of the read.
+
+**D25. A replay shows the whole exchange, and the answer arrow waits for contact.**
+On a court card, Watch the play runs their shot to you with the answer overlay
+hidden, pauses a beat, then flies your answer shot from the contact point to its
+target with the green path growing behind the ball; their path stays as a trail
+and the ball ends where it lands. Timed cards do the same at the end of Watch
+again. The arrow is anchored at the contact point (`ball.now`), never at the
+ball in the frame, so it cannot ride along on a moving ball, which it did before
+(Jeremy's phone notes, 2026-10-02). The button is no longer called a replay,
+because a static card never played the shot before the answer. In the same
+round the mirrored-card note under the reveal was dropped (the flipped court is
+just another look at the situation; the log still records it), the topbar marks
+the tab you are on with Court Sense as the Home tab, and the two body text sizes
+grew a point on every screen.

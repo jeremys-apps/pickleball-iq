@@ -9,7 +9,7 @@
 // timed card, shows an answer, or accepts the suggested rating. R replays.
 
 import { h, isWide, formatInterval, WIDE_QUERY } from './dom.js';
-import { frameFromScene } from '../court/scene.js';
+import { frameFromScene, answerFrame, answerArc } from '../court/scene.js';
 import { renderFirstPerson } from '../court/first-person.js';
 import { renderTopDown } from '../court/top-down.js';
 import { createPlayer } from '../court/playback.js';
@@ -19,7 +19,12 @@ import { suggestRating, Rating } from '../srs/scheduler.js';
 import { sourceLines } from './provenance.js';
 
 const RATING_LABELS = { [Rating.Again]: 'Again', [Rating.Hard]: 'Hard', [Rating.Good]: 'Good', [Rating.Easy]: 'Easy' };
+// A replay has two halves: their shot comes to you (REPLAY_MS) with the answer
+// hidden, a beat at contact (HOLD_MS), then your answer shot flies to its target
+// (ANSWER_MS) with its path growing behind the ball.
 const REPLAY_MS = 900;
+const HOLD_MS = 150;
+const ANSWER_MS = 1000;
 const PHONE_FP = { width: 360, height: 380 };
 const LAPTOP_FP = { width: 800, height: 500 };
 // After an answer every aid returns, at every stage: the reveal shows what the
@@ -82,9 +87,12 @@ export function mountCard(root, ctx) {
     'Top-down',
   );
   // Play and, after the answer, the replay share one spot under the picture, so
-  // neither covers the court and the replay starts with the picture in view.
+  // neither covers the court and the replay starts with the picture in view. A
+  // static card never played before the answer, so its button is not a "replay".
   const playBtn = timed ? h('button', { class: 'btn primary play', type: 'button', onclick: () => start() }, 'Play') : null;
-  const replayBtn = scene ? h('button', { class: 'btn replay', type: 'button', onclick: () => replay() }, timed ? 'Watch again' : 'Replay the shot') : null;
+  const replayBtn = scene ? h('button', { class: 'btn replay', type: 'button', onclick: () => replay() }, timed ? 'Watch again' : 'Watch the play') : null;
+  // With reduced motion the replay skips the flights and shows the finished picture.
+  const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const motionEl = h('div', { class: 'motion', hidden: !timed }, playBtn);
   const showBtn = mc ? null : h('button', { class: 'btn primary', type: 'button', onclick: () => showAnswer() }, 'Show answer');
   // Reading happens before Play; the clock covers only the choice after the freeze.
@@ -125,19 +133,54 @@ export function mountCard(root, ctx) {
 
   function replay() {
     courtEl.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
-    timed ? player.play(0, { toEnd: true }) : replayStatic();
+    if (timed) player.play(0, { toEnd: true }); // its end hands over to flyAnswer
+    else replayStatic();
   }
 
+  // Their shot arrives with the answer hidden; then the answer flies.
   function replayStatic() {
     if (!scene) return;
-    cancelAnimationFrame(raf);
-    const t0 = performance.now();
-    const dur = REPLAY_MS / (stage.speed || 1);
-    const step = () => {
-      const t = Math.min(1, (performance.now() - t0) / dur);
-      frame = frameFromScene(scene, t);
+    if (reducedMotion) return flyAnswer(frameFromScene(scene));
+    animate(
+      REPLAY_MS / (stage.speed || 1),
+      (t) => {
+        frame = frameFromScene(scene, t, { reveal: false });
+        draw();
+      },
+      () => flyAnswer(frameFromScene(scene)),
+    );
+  }
+
+  // The second half of a replay, from `base`, the frame at contact: the target
+  // shows, then the ball flies your answer shot and its path grows behind it.
+  // A positioning answer has no shot to fly, so the overlay simply appears.
+  function flyAnswer(base) {
+    if (!answerArc(scene) || reducedMotion) {
+      frame = answerFrame(scene, base, 1);
       draw();
+      return;
+    }
+    const speed = stage.speed || 1;
+    animate(
+      ANSWER_MS / speed,
+      (k) => {
+        frame = answerFrame(scene, base, k);
+        draw();
+      },
+      null,
+      HOLD_MS / speed,
+    );
+  }
+
+  // Calls onStep(progress 0 to 1) on animation frames, after an optional delay, then onEnd.
+  function animate(durationMs, onStep, onEnd, delayMs = 0) {
+    if (raf != null) cancelAnimationFrame(raf);
+    const t0 = performance.now() + delayMs;
+    const step = () => {
+      const t = Math.min(1, Math.max(0, (performance.now() - t0) / durationMs));
+      onStep(t);
       if (t < 1) raf = requestAnimationFrame(step);
+      else onEnd?.();
     };
     raf = requestAnimationFrame(step);
   }
@@ -151,11 +194,7 @@ export function mountCard(root, ctx) {
         draw();
       },
       onFreeze: (f) => {
-        if (answered) {
-          frame = frameFromScene(scene);
-          draw();
-          return;
-        }
+        if (answered) return flyAnswer(f); // Watch again ran to the end: now the answer flies
         frame = f;
         draw();
         unlock();
@@ -262,13 +301,15 @@ export function mountCard(root, ctx) {
     );
     const note = card.claude_note ?? principle?.claude_note;
     if (sources.length || note) {
-      parts.push(h('details', { class: 'source-info' }, h('summary', {}, 'Source info'), sources, note ? h('p', { class: 'claude-note' }, h('b', {}, 'Additional note: '), note) : null));
+      // The summary says when a note is inside, so a clarification is not missed.
+      parts.push(h('details', { class: 'source-info' }, h('summary', {}, note ? 'Source info and a note' : 'Source info'), sources, note ? h('p', { class: 'claude-note' }, h('b', {}, 'Additional note: '), note) : null));
     }
     if (scene) {
       motionEl.replaceChildren(replayBtn);
       motionEl.hidden = false;
     }
-    if (mirrored) parts.push(h('p', { class: 'note mirrored-note' }, "Mirrored this time: the court is flipped left to right and everyone's handedness is swapped, so it is the same situation seen from the other side."));
+    // A mirrored showing is not announced: the flipped court is simply another
+    // look at the same situation. The review log still records it.
     parts.push(ratingRow());
     afterEl.replaceChildren(...parts);
     afterEl.hidden = false;

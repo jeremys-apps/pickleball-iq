@@ -38,14 +38,50 @@ export function staticArc(scene) {
 }
 
 // Frame for the static card view. t in [0, 1] moves the ball along its arc.
-export function frameFromScene(scene, t = 1) {
+// opts.reveal false leaves the answer overlay out, for the first half of a
+// replay, while the opponent's shot is still on its way to you.
+// frame.contact is where you meet the ball (ball.now). The answer shot starts
+// there whatever the ball in the frame is doing, so its arrow never rides along
+// on a moving ball.
+export function frameFromScene(scene, t = 1, { reveal = true } = {}) {
   const arc = staticArc(scene);
   return {
     players: scene.players.map((p) => ({ ...p })),
     ball: arc ? { pos: arc.at(t), arc, t0: 0, t1: t, hitterId: scene.ball.hitter_id ?? null } : null,
+    contact: arc ? arc.p1 : null,
     eyesOf: eyesPlayer(scene)?.id ?? 'you',
     lookAt: lookAtFor(scene),
-    reveal: scene.answer_overlay ?? null,
+    reveal: reveal ? (scene.answer_overlay ?? null) : null,
+  };
+}
+
+// The answer shot as an arc, from where you meet the ball to its target. Null
+// when the answer is not a shot (a positioning answer, or no overlay at all).
+export function answerArc(scene) {
+  const shot = scene.answer_overlay?.shot;
+  if (!shot?.to) return null;
+  const segs = scene.timeline?.segments;
+  const from = shot.from && shot.from !== 'ball' ? shot.from : (scene.ball?.now ?? (segs?.length ? segs[segs.length - 1].to : null));
+  if (!from) return null;
+  return makeArc(from, shot.to, shot);
+}
+
+// Frame for the second half of a replay: your answer shot in flight, k in
+// [0, 1], continuing from `base`, the frame at contact. The opponent's shot
+// stays drawn as a finished trail, the answer path grows with the ball, and the
+// ball ends where it lands. Without an answer shot the overlay simply appears.
+export function answerFrame(scene, base, k = 1) {
+  const overlay = scene.answer_overlay ?? null;
+  const arc = answerArc(scene);
+  if (!arc) return { ...base, reveal: overlay };
+  const trails = [...(base.trails ?? [])];
+  if (base.ball?.arc) trails.push({ arc: base.ball.arc, t0: base.ball.t0 ?? 0, t1: base.ball.t1 ?? 1 });
+  return {
+    ...base,
+    ball: { pos: arc.at(k), arc, t0: 0, t1: k, hitterId: base.eyesOf, answer: true },
+    trails,
+    contact: arc.p0,
+    reveal: { ...overlay, shot_t: k },
   };
 }
 

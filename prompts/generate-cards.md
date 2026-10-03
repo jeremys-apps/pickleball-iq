@@ -118,6 +118,8 @@ Contact heights (`from.z_in`): dinks 8 to 20, volleys 30 to 50, drives 20 to 40.
 - `ball.now`: the decision point, just before your contact, one to two feet in front of you on the side the principle is about.
 - `ball.net_clearance_in` whenever from and now are on opposite sides of the net.
 - `answer_overlay.target`: an ellipse (`rx_ft` 1.5 to 3, `ry_ft` 1 to 2) where the right shot goes. `answer_overlay.shot.to` with `z_in` (0 for a bounce) and `net_clearance_in`. Use `moves` for positioning answers.
+- The app replays a court card as their shot arriving and then the answer shot flying from `ball.now` to `shot.to`, so give the answer shot its real shape: a high `net_clearance_in` for a reset that rainbows over, a low one for a drive, `apex_in` for a lob.
+- Scenes of one topic agree with each other. When a principle in the deck says where a shot goes (midcourt resets go crosscourt toward the middle, for example), every scene of that shot lands it there unless its own principle says otherwise. "At their feet" is a depth, not an instruction to aim at the player in front of you.
 - `camera`: `{"eyes_of": "you", "mode": "over_shoulder"}`. Use `first_person` only when the lesson is about the view straight in front of your face.
 - `inferred: true` with `inferred_fields` listing everything you estimated. Podcasts rarely give coordinates, so this is almost always true.
 
