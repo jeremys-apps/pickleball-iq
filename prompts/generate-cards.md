@@ -108,7 +108,8 @@ Every player needs `hand` (R or L). Use R for everyone unless the principle name
 | High dink | 12 to 20 |
 | Floater or pop-up | 24 to 40 |
 | Drive | 4 to 12 |
-| Lob | use `apex_in` 120 or more |
+| Lob over players at the kitchen | 100 to 150 |
+| Sky ball (a very high lob) | 200 to 235 |
 
 Contact heights (`from.z_in`): dinks 8 to 20, volleys 30 to 50, drives 20 to 40.
 
@@ -118,7 +119,7 @@ Contact heights (`from.z_in`): dinks 8 to 20, volleys 30 to 50, drives 20 to 40.
 - `ball.now`: the decision point, just before your contact, one to two feet in front of you on the side the principle is about.
 - `ball.net_clearance_in` whenever from and now are on opposite sides of the net.
 - `answer_overlay.target`: an ellipse (`rx_ft` 1.5 to 3, `ry_ft` 1 to 2) where the right shot goes. `answer_overlay.shot.to` with `z_in` (0 for a bounce) and `net_clearance_in`. Use `moves` for positioning answers.
-- The app replays a court card as their shot arriving and then the answer shot flying from `ball.now` to `shot.to`, so give the answer shot its real shape: a high `net_clearance_in` for a reset that rainbows over, a low one for a drive, `apex_in` for a lob.
+- The app replays a court card as their shot arriving and then the answer shot flying from `ball.now` to `shot.to`, so give the answer shot its real shape: a high `net_clearance_in` for a reset that rainbows over, a low one for a drive, a very high one for a lob. A shot that crosses the net takes its shape from `net_clearance_in` alone: the renderer ignores `apex_in` there and falls back to 6 in, so a lob given only `apex_in` draws as a flat drive. `apex_in` shapes only a segment that stays on one side, such as the rise after a bounce.
 - Scenes of one topic agree with each other. When a principle in the deck says where a shot goes (midcourt resets go crosscourt toward the middle, for example), every scene of that shot lands it there unless its own principle says otherwise. "At their feet" is a depth, not an instruction to aim at the player in front of you.
 - `camera`: `{"eyes_of": "you", "mode": "over_shoulder"}`. Use `first_person` only when the lesson is about the view straight in front of your face.
 - `inferred: true` with `inferred_fields` listing everything you estimated. Podcasts rarely give coordinates, so this is almost always true.
