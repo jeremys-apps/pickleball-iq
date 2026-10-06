@@ -38,7 +38,7 @@ function setupDom() {
 const deck = JSON.parse(readFileSync(new URL('../app/data/deck.sample.json', import.meta.url)));
 
 async function modules() {
-  const [{ mountCard }, { runSession, planBatch, finalizePending }, views, sched, store, deckMod, settings] = await Promise.all([
+  const [{ mountCard }, { runSession, planBatch, finalizePending }, views, sched, store, deckMod, settings, people, appPeople] = await Promise.all([
     import('../app/src/ui/card-view.js'),
     import('../app/src/ui/session.js'),
     import('../app/src/ui/views.js'),
@@ -46,15 +46,21 @@ async function modules() {
     import('../app/src/store/progress.js'),
     import('../app/src/deck.js'),
     import('../app/src/store/settings.js'),
+    import('../app/src/store/people.js'),
+    import('../app/src/people.js'),
   ]);
-  return { mountCard, runSession, planBatch, finalizePending, views, sched, store, deckMod, settings };
+  return { mountCard, runSession, planBatch, finalizePending, views, sched, store, deckMod, settings, people, appPeople };
 }
 
 function makeApp(m) {
+  const people = { current: 'tester', people: [{ id: 'tester', name: 'Tester', created_at: '2026-10-05T00:00:00.000Z' }] };
+  localStorage.setItem(m.store.DEVICE_KEY, 'test-device'); // every record on a device carries its id
   return {
     settings: { ...m.settings.DEFAULT_SETTINGS },
     scheduler: m.sched.makeScheduler({ enableFuzz: false }),
-    progress: m.store.emptyProgress('test-device'),
+    people,
+    person: people.people[0],
+    progress: m.store.emptyProgress('test-device', '', 'tester'),
     index: m.deckMod.indexDeck(deck),
     deckSource: 'sample',
     deckError: null,
@@ -253,7 +259,8 @@ test('a batch runs to its summary, records progress, and offers to keep going', 
   assert.ok(root.querySelector('.summary'), 'summary shown');
   assert.equal(app.progress.logs.length, deck.cards.length, 'each card once');
   assert.match(root.querySelector('.takeaway .focus-cue').textContent, /\S/);
-  assert.equal(JSON.parse(localStorage.getItem(m.store.STORAGE_KEY)).logs.length, deck.cards.length, 'progress persisted');
+  assert.equal(JSON.parse(localStorage.getItem(m.store.progressKey('tester'))).logs.length, deck.cards.length, 'progress persisted under the person');
+  assert.equal(localStorage.getItem(m.store.STORAGE_KEY), null, 'nothing under the pre-people key');
   assert.ok(app.progress.logs.every((l) => !l.mirrored), 'as authored the first time');
   const keep = root.querySelector('.summary button.btn.primary');
   assert.match(keep.textContent, /Keep going|Practice ahead/);
@@ -333,11 +340,84 @@ test('closing after answering but before rating loses nothing', { skip }, async 
   root.querySelector('.play:not([hidden])')?.click();
   root.querySelectorAll('.option')[0].click(); // answered, not rated: the app "closes" here
   const before = app.progress.logs.length;
-  const reopened = { ...app, progress: m.store.loadProgress() };
+  const reopened = { ...app, progress: m.store.loadProgress(localStorage, 'tester') };
   assert.equal(reopened.progress.logs.length, before);
   assert.equal(m.finalizePending(reopened), true);
   assert.equal(reopened.progress.logs.length, before + 1);
   assert.equal(reopened.progress.logs.at(-1).auto_rated, true);
+});
+
+test('the first screen asks who is playing, and the name takes over the record kept before people existed', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const root = document.getElementById('app');
+  const old = m.store.emptyProgress('old-device-1', 'Phone');
+  localStorage.setItem(m.store.STORAGE_KEY, JSON.stringify(old));
+  const app = { people: m.people.loadPeople(), person: null, progress: null };
+  let named = null;
+  m.views.renderWelcome(root, { migrating: m.people.hasLegacyProgress(), onSubmit: (name) => (named = m.appPeople.startPerson(app, name)) });
+  assert.equal(root.querySelector('h1').textContent, 'Who is this?');
+  assert.match(root.textContent, /reviews already on this device/);
+  const input = root.querySelector('input[name="name"]');
+  input.value = '!!!';
+  root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+  assert.equal(named, null);
+  assert.match(root.querySelector('[role="status"]').textContent, /plain letter or digit/);
+  input.value = 'Mary Ann';
+  root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+  assert.equal(named.id, 'mary-ann');
+  assert.equal(app.person.name, 'Mary Ann');
+  assert.equal(app.progress.person_id, 'mary-ann');
+  assert.equal(app.progress.device_id, 'old-device-1', 'the old record was adopted, device id included');
+  assert.equal(localStorage.getItem(m.store.STORAGE_KEY), null);
+  assert.equal(m.people.loadPeople().current, 'mary-ann');
+});
+
+test('people on a device: adding one switches to them, each keeps their own progress, and Home says who is playing', { skip }, async () => {
+  setupDom();
+  globalThis.confirm = () => true;
+  const m = await modules();
+  const app = makeApp(m);
+  let synced = 0;
+  app.autoSync = () => synced++;
+  const root = document.getElementById('app');
+  m.runSession(root, app, {});
+  answerUntilSummary(root, app);
+  const testerLogs = app.progress.logs.length;
+  assert.ok(testerLogs > 0);
+  m.views.renderHome(root, app);
+  assert.equal(root.querySelector('.who').textContent, 'Playing as Tester. Add a person.');
+  m.views.renderSettings(root, app);
+  assert.match(root.textContent, /Tester: \d+ reviews recorded/);
+  const list = root.querySelector('.people');
+  assert.equal(list.querySelectorAll('li').length, 1);
+  assert.equal(list.querySelector('li').textContent, 'Testerplaying now');
+  root.querySelector('input[name="newPerson"]').value = 'Anna';
+  list.closest('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+  assert.equal(app.person.id, 'anna');
+  assert.equal(app.progress.person_id, 'anna');
+  assert.equal(app.progress.logs.length, 0, 'Anna starts fresh');
+  assert.equal(app.progress.device_id, 'test-device', 'on the same device');
+  assert.equal(synced, 1, 'her folder syncs');
+  assert.equal(m.planBatch(app.index, app.progress, app.settings).newCount, deck.cards.length, 'every card is new to Anna');
+  m.views.renderHome(root, app);
+  assert.equal(root.querySelector('.who').textContent, 'Playing as Anna. Switch to Tester.');
+  root.querySelector('.who a').click();
+  assert.equal(app.person.id, 'tester');
+  assert.equal(app.progress.logs.length, testerLogs, 'Tester’s reviews are intact');
+  assert.equal(root.querySelector('.who').textContent, 'Playing as Tester. Switch to Anna.');
+  assert.equal(m.store.loadProgress(localStorage, 'anna').logs.length, 0);
+  m.views.renderSettings(root, app);
+  const anna = [...root.querySelectorAll('.people li')].find((li) => li.textContent.startsWith('Anna'));
+  assert.equal(anna.querySelector('.btn').textContent, 'Switch');
+  anna.querySelector('.btn.quiet').click();
+  assert.deepEqual(
+    app.people.people.map((p) => p.id),
+    ['tester'],
+  );
+  assert.equal(localStorage.getItem(m.store.progressKey('anna')), null, 'her record on this device went with her');
+  assert.equal(root.querySelectorAll('.people li').length, 1);
+  assert.match(root.querySelector('.people').closest('fieldset').textContent, /Anna was removed/);
 });
 
 test('home, cards, preview and settings render; settings save', { skip }, async () => {

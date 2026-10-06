@@ -23,7 +23,7 @@ the vocabulary for planning and commits.
 - Follow the endorsement rules exactly as written in `prompts/extract-tips.md`. When unsure, choose the conservative status and flag for review. Never upgrade a status to get content into the deck.
 - Keep a pro's words and Claude's observations apart: observations go only in `claude_note`.
 - Do not load scripts, fonts or styles from third-party origins. The GitHub token lives in this origin's storage, and the CSP in `app/index.html` enforces this.
-- Card, principle and scene ids are permanent once published; progress refers to them.
+- Card, principle and scene ids are permanent once published; progress refers to them. So are people's ids (a name as a slug): progress folders are named by them.
 - A breaking schema change bumps `schema_version` and ships a migration in the same commit.
 
 ## Conventions
@@ -33,6 +33,6 @@ the vocabulary for planning and commits.
 - Court cards carry a `mirrorable` decision. Mirrorable cards never use a word starting with left or right (write "correct", not "right"); `validate` enforces it.
 - Choice cards carry an option pool (one to three correct phrasings, at least two wrong answers). Never assume a fixed order or a single correct option id; use `pickOptions` in `app/src/choices.js`.
 - The renderer is deterministic. Scene changes get checked in the lab from both cameras and at phone and laptop sizes before they ship.
-- UI text is short, plain and specific. The app speaks to one user, Jeremy.
+- UI text is short, plain and specific. The app speaks to one person at a time, in the second person; several people can share a device and a deck, each with their own record (`app/src/store/people.js`).
 - Run the tests and `npm run sw` before every commit that touches `app/`.
 - GitHub sync has only been tested against a fake API (`tests/github-sync.test.mjs`). Treat the first real sync as a test, with an exported progress backup.

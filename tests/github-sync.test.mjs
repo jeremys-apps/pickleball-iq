@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { makeGitHubClient, syncProgress, pullDeck } from '../app/src/store/github-sync.js';
+import { makeGitHubClient, syncProgress, pullDeck, progressFolder } from '../app/src/store/github-sync.js';
 import { emptyProgress, recordReview, mergeProgress } from '../app/src/store/progress.js';
 import { makeScheduler, Rating } from '../app/src/srs/scheduler.js';
 
@@ -15,7 +15,7 @@ function fakeGitHub(initial = {}) {
   const calls = [];
   const fetchImpl = async (url, opts = {}) => {
     const method = opts.method ?? 'GET';
-    calls.push({ url, method, headers: opts.headers });
+    calls.push({ url, method, headers: opts.headers, body: opts.body });
     const u = new URL(url);
     const m = u.pathname.match(/^\/repos\/[^/]+\/[^/]+\/contents\/?(.*)$/);
     const path = decodeURIComponent(m[1]);
@@ -66,6 +66,34 @@ test('phone and laptop converge through per-device files', async () => {
   const call = gh.calls[0];
   assert.equal(call.headers.Authorization, 'Bearer github_pat_test');
   assert.equal(call.headers['X-GitHub-Api-Version'], '2022-11-28');
+});
+
+test('two people on one data repo sync in separate folders and never see each other’s reviews', async () => {
+  const gh = fakeGitHub({ 'progress/old-device.json': JSON.stringify(emptyProgress('old-device', 'Before people')) });
+  const client = makeGitHubClient(cfg, gh.fetchImpl);
+  let jPhone = emptyProgress('phone-111111', 'Phone', 'jeremy');
+  let jLaptop = emptyProgress('laptop-22222', 'Laptop', 'jeremy');
+  let aPhone = emptyProgress('phone-333333', 'Phone', 'anna');
+  review(jPhone, 'c-1', Rating.Good, '2026-10-05T12:00:00.000Z');
+  review(aPhone, 'c-1', Rating.Again, '2026-10-05T12:05:00.000Z');
+  const folder = (p) => progressFolder(cfg, p.person_id);
+  assert.equal(folder(aPhone), 'progress/anna');
+  assert.equal(progressFolder({ progressDir: 'sync/progress' }, 'anna'), 'sync/progress/anna');
+  assert.equal(progressFolder(cfg, null), 'progress', 'a record from before people existed stays in the root folder');
+  jPhone = await syncProgress(client, jPhone, { dir: folder(jPhone), merge });
+  aPhone = await syncProgress(client, aPhone, { dir: folder(aPhone), merge });
+  jLaptop = await syncProgress(client, jLaptop, { dir: folder(jLaptop), merge });
+  assert.deepEqual([...gh.store.keys()].sort(), ['progress/anna/phone-333333.json', 'progress/jeremy/laptop-22222.json', 'progress/jeremy/phone-111111.json', 'progress/old-device.json']);
+  assert.equal(jLaptop.logs.length, 1, 'Jeremy’s laptop sees his phone');
+  assert.equal(jLaptop.logs[0].device_id, 'phone-111111');
+  assert.equal(jLaptop.cards['c-1'].fsrs.reps, 1);
+  assert.equal(aPhone.logs.length, 1, 'Anna sees only her own');
+  assert.equal(aPhone.cards['c-1'].fsrs.lapses, 0);
+  assert.equal(aPhone.logs[0].rating, Rating.Again);
+  const puts = gh.calls.filter((c) => c.method === 'PUT');
+  assert.match(puts.at(-1).url, /progress\/jeremy\/laptop-22222\.json$/);
+  assert.equal(JSON.parse(puts.at(-1).body).message, 'progress: jeremy, Laptop');
+  assert.equal(JSON.parse(gh.store.get('progress/anna/phone-333333.json').text).person_id, 'anna');
 });
 
 test('missing deck gives a message that says what to do', async () => {

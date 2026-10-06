@@ -1,8 +1,10 @@
 // Sync through a PRIVATE GitHub repo using the REST contents API.
 //
 // Layout of the data repo (for example you/pickleball-iq-data):
-//   deck/deck.json             built by `python pipeline/piq.py build-deck`
-//   progress/<device_id>.json  one file per device; a device writes only its own
+//   deck/deck.json                         built by `python pipeline/piq.py build-deck`
+//   progress/<person_id>/<device_id>.json  one folder per person, one file per
+//                                          device; a device writes only its own
+//                                          file and reads only its person's folder
 //
 // Token: a fine-grained personal access token limited to that one repository,
 // with Contents: Read and write. It is stored in this browser's localStorage,
@@ -99,7 +101,12 @@ export async function pullDeck(client, path = 'deck/deck.json') {
   return JSON.parse(text);
 }
 
-// Read every device file, merge into local, then write our own file.
+// The folder a person's files live in: progress/<person_id>. With no person
+// (records from before people existed) it is the root progress folder.
+export const progressFolder = (cfg, personId) => (personId ? `${cfg?.progressDir || 'progress'}/${personId}` : cfg?.progressDir || 'progress');
+
+// Read every device file in the folder, merge into local, then write our own
+// file. Subfolders (other people, when dir is the root) are skipped.
 export async function syncProgress(client, local, { dir = 'progress', merge }) {
   const files = await client.list(dir);
   const ownName = `${local.device_id}.json`;
@@ -114,7 +121,7 @@ export async function syncProgress(client, local, { dir = 'progress', merge }) {
   const put = async (sha) =>
     client.putText(`${dir}/${ownName}`, JSON.stringify(merged), {
       sha,
-      message: `progress: ${local.device_label || local.device_id}`,
+      message: `progress: ${[local.person_id, local.device_label || local.device_id].filter(Boolean).join(', ')}`,
     });
   try {
     await put(own?.sha);

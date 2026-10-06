@@ -1,13 +1,16 @@
-// Home, card browser, card preview, and settings.
+// Home, card browser, card preview, settings, and the first screen that asks
+// who is using the device.
 
 import { h } from './dom.js';
 import { topbar, count } from './chrome.js';
-import { planBatch } from './session.js';
+import { planBatch, finalizePending } from './session.js';
 import { mountCard } from './card-view.js';
 import { stageFor, STAGES, makeScheduler, applyAidPreference, MATURE_AID_CHOICES } from '../srs/scheduler.js';
 import { saveSettings } from '../store/settings.js';
 import { loadSyncConfig, saveSyncConfig } from '../store/github-sync.js';
 import { exportProgress, importProgress, mergeProgress, saveProgress, emptyProgress, progressSizeBytes, formatBytes } from '../store/progress.js';
+import { removePerson, savePeople } from '../store/people.js';
+import { activatePerson, startPerson } from '../people.js';
 import { syncNow } from '../sync.js';
 import { canMirror } from '../court/mirror.js';
 import { timedTrend, topicStats, drillPlan } from '../stats.js';
@@ -29,10 +32,43 @@ export const CHOOSE_TIME_CHOICES = Object.freeze([
   [2, 'Twice as long'],
 ]);
 
+// Switch the app to another person on this device: their record, any answer
+// they left unrated, and a sync of their folder.
+export function switchPerson(app, id) {
+  activatePerson(app, id);
+  finalizePending(app);
+  app.autoSync?.();
+  return app.person;
+}
+
+// Whose record Home shows, with a way to change it: "Playing as Jeremy. Switch
+// to Anna or Ben." With nobody else on the device, a link to add someone.
+function whoLine(root, app) {
+  if (!app.person) return null;
+  const others = (app.people?.people ?? []).filter((p) => p.id !== app.person.id);
+  const links = others.flatMap((p, i) => [
+    i === 0 ? '' : i === others.length - 1 ? ' or ' : ', ',
+    h(
+      'a',
+      {
+        href: '#/',
+        onclick: (e) => {
+          e.preventDefault();
+          switchPerson(app, p.id);
+          renderHome(root, app);
+        },
+      },
+      p.name,
+    ),
+  ]);
+  return h('p', { class: 'note who' }, `Playing as ${app.person.name}. `, ...(others.length ? ['Switch to ', ...links, '.'] : [h('a', { href: '#/settings' }, 'Add a person'), '.']));
+}
+
 export function renderHome(root, app) {
   const plan = planBatch(app.index, app.progress, app.settings);
   const parts = [
     h('h1', {}, 'Today'),
+    whoLine(root, app),
     h('div', { class: 'counts' }, count(plan.dueCount, 'due now'), count(plan.newCount, 'new cards'), count(app.index.deck.cards.length, 'in the deck')),
   ];
   if (plan.items.length && !plan.practice) {
@@ -281,7 +317,11 @@ export function renderSettings(root, app) {
       'fieldset',
       {},
       h('legend', {}, 'Progress on this device'),
-      h('p', { class: 'note' }, `${app.progress.logs.length.toLocaleString()} reviews recorded, ${formatBytes(progressSizeBytes(app.progress))} on this device. Device id ${app.progress.device_id}.`),
+      h(
+        'p',
+        { class: 'note' },
+        `${app.person ? `${app.person.name}: ` : ''}${app.progress.logs.length.toLocaleString()} reviews recorded, ${formatBytes(progressSizeBytes(app.progress))} on this device. Device id ${app.progress.device_id}.`,
+      ),
       h(
         'div',
         { class: 'row' },
@@ -335,7 +375,8 @@ export function renderSettings(root, app) {
 
   function doExport() {
     const blob = new Blob([exportProgress(app.progress)], { type: 'application/json' });
-    const a = h('a', { href: URL.createObjectURL(blob), download: `court-sense-progress-${app.progress.device_id.slice(0, 8)}.json` });
+    const name = [app.person?.id, app.progress.device_id.slice(0, 8)].filter(Boolean).join('-');
+    const a = h('a', { href: URL.createObjectURL(blob), download: `court-sense-progress-${name}.json` });
     document.body.append(a);
     a.click();
     a.remove();
@@ -346,7 +387,7 @@ export function renderSettings(root, app) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const incoming = importProgress(await file.text());
+      const incoming = importProgress(await file.text(), app.person?.id);
       const before = app.progress.logs.length;
       app.progress = mergeProgress(app.progress, incoming, { replay: app.scheduler.replay });
       saveProgress(app.progress);
@@ -357,11 +398,111 @@ export function renderSettings(root, app) {
   }
 
   function doReset() {
-    if (!confirm('Erase the review history on this device? Copies already synced to GitHub are not touched.')) return;
-    app.progress = emptyProgress(app.progress.device_id, app.progress.device_label);
+    const whose = app.person ? `${app.person.name}’s review history` : 'the review history';
+    if (!confirm(`Erase ${whose} on this device? Copies already synced to GitHub are not touched.`)) return;
+    app.progress = emptyProgress(app.progress.device_id, app.progress.device_label, app.person?.id);
     saveProgress(app.progress);
     status.textContent = 'Progress on this device was reset.';
   }
 
-  root.replaceChildren(topbar(), h('main', { class: 'page' }, h('h1', {}, 'Settings'), form));
+  root.replaceChildren(topbar(), h('main', { class: 'page' }, h('h1', {}, 'Settings'), form, peopleSection(app)));
+}
+
+// People on this device: who is playing, switch, remove, add. Adding someone
+// switches to them, so a borrowed phone is handed over in one step. Sync files
+// each person by name (people.js), so the same name on another device is the
+// same person.
+function peopleSection(app) {
+  const status = h('p', { class: 'note', role: 'status' });
+  const input = h('input', { type: 'text', name: 'newPerson', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', maxlength: 60, placeholder: 'Name' });
+  const row = (p) => {
+    if (p.id === app.person?.id) return h('li', {}, h('b', {}, p.name), h('span', { class: 'note' }, 'playing now'));
+    const li = h(
+      'li',
+      {},
+      h('span', {}, p.name),
+      h(
+        'button',
+        {
+          class: 'btn',
+          type: 'button',
+          onclick: () => {
+            switchPerson(app, p.id);
+            location.hash = '#/';
+          },
+        },
+        'Switch',
+      ),
+      h(
+        'button',
+        {
+          class: 'btn quiet',
+          type: 'button',
+          onclick: () => {
+            if (!confirm(`Remove ${p.name} from this device? The reviews kept here for ${p.name} are erased. Copies already synced to GitHub stay.`)) return;
+            app.people = savePeople(removePerson(app.people, p.id));
+            li.remove();
+            status.textContent = `${p.name} was removed from this device.`;
+          },
+        },
+        'Remove',
+      ),
+    );
+    return li;
+  };
+  const add = (e) => {
+    e.preventDefault();
+    try {
+      const person = startPerson(app, input.value);
+      finalizePending(app);
+      app.autoSync?.();
+      status.textContent = `Playing as ${person.name}.`;
+      location.hash = '#/';
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  };
+  return h(
+    'form',
+    { class: 'form', onsubmit: add },
+    h(
+      'fieldset',
+      {},
+      h('legend', {}, 'People'),
+      h('p', { class: 'note' }, 'Each person has their own reviews and progress. Sync files them by name, so use the same name on every device.'),
+      h('ul', { class: 'people' }, ...(app.people?.people ?? []).map(row)),
+      h('label', {}, 'Add a person', input, h('small', {}, 'Adding someone switches to them.')),
+      h('div', { class: 'row' }, h('button', { class: 'btn', type: 'submit' }, 'Add')),
+      status,
+    ),
+  );
+}
+
+// The first screen on a device where nobody is named yet. The name becomes the
+// person's id (store/people.js), so it has to match across their devices.
+export function renderWelcome(root, { migrating = false, onSubmit }) {
+  const input = h('input', { type: 'text', name: 'name', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', maxlength: 60, required: true });
+  const status = h('p', { class: 'note', role: 'status' });
+  const form = h(
+    'form',
+    {
+      class: 'form',
+      onsubmit: (e) => {
+        e.preventDefault();
+        try {
+          onSubmit(input.value);
+        } catch (err) {
+          status.textContent = err.message;
+        }
+      },
+    },
+    h('label', {}, 'Your name', input, h('small', {}, 'Use the same name on every device you sync, so your progress follows you.')),
+    h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'submit' }, 'Start')),
+    status,
+  );
+  const intro = migrating
+    ? 'Court Sense now keeps a separate record for each person. The reviews already on this device go under the name you type.'
+    : 'Court Sense keeps a separate record for each person, so a family can share one deck.';
+  root.replaceChildren(topbar(), h('main', { class: 'page' }, h('section', { class: 'today' }, h('h1', {}, 'Who is this?'), h('p', {}, intro), form)));
+  input.focus?.();
 }

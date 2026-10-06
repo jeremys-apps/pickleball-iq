@@ -721,6 +721,21 @@ shown once, and a card returns in the first batch planned after its wait is over
 phone, the tap that started the batch left the hover style on whatever choice
 appeared under the finger. Hover styles now apply only where a pointer can hover.
 
+Progress 2026-10-05: people (A-11, D27). Jeremy asked for his family to use the
+app without touching each other's progress. A device now asks for a name once;
+the name as a slug is the person's id and their folder in the data repo
+(`progress/<person_id>/<device_id>.json`), and the device keeps one record per
+person under `piq.progress.v1.<person_id>`. Home says who is playing with links
+to switch; Settings lists the people with Switch, Remove and Add, and adding
+someone switches to them. Sync reads only the current person's folder and runs
+again after a switch; merge and import refuse a record that names someone else;
+an unrated answer waits under its person's key. On an upgraded device the first
+name typed adopts the record from before people existed, device id included, so
+the data repo's two files moved into `progress/jeremy/` to meet it. Assumption
+A12 (one user) is superseded. Eight new tests: the registry, the per-person
+keys, the adoption, the merge and import guards, two people on one fake repo,
+the first screen, and a switch in Settings and on Home.
+
 ### Track D: features the goal implies (two or three sessions; runs alongside B and C)
 
 | Step | Work | Tests |

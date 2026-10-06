@@ -1,6 +1,7 @@
-// One sync pass: merge every device's progress, upload ours, refresh the deck.
+// One sync pass for the person using this device: merge their other devices'
+// progress, upload ours, refresh the deck. Other people's folders are not read.
 
-import { loadSyncConfig, isConfigured, makeGitHubClient, syncProgress, pullDeck } from './store/github-sync.js';
+import { loadSyncConfig, isConfigured, makeGitHubClient, syncProgress, pullDeck, progressFolder } from './store/github-sync.js';
 import { mergeProgress, saveProgress } from './store/progress.js';
 import { indexDeck, cacheDeck } from './deck.js';
 
@@ -12,7 +13,7 @@ export async function syncNow(app) {
   const client = makeGitHubClient(cfg);
   if (app.settings.deviceLabel) app.progress.device_label = app.settings.deviceLabel;
   app.progress = await syncProgress(client, app.progress, {
-    dir: cfg.progressDir || 'progress',
+    dir: progressFolder(cfg, app.progress.person_id),
     merge: (a, b) => mergeProgress(a, b, { replay: app.scheduler.replay }),
   });
   saveProgress(app.progress);

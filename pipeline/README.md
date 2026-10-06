@@ -41,7 +41,7 @@ pickleball-iq-data/       PRIVATE
   work/review/            your review decisions
   content/                principles.json, scenes.json, cards.json
   deck/deck.json          what the app loads
-  progress/               written by the app, one file per device
+  progress/               written by the app, one folder per person, one file per device
 ```
 
 Create it once:

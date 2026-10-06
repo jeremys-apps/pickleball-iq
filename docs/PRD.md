@@ -54,6 +54,10 @@ Claude Code. Phone for daily sessions; laptop sometimes, mainly to see the court
 pictures larger. Content production happens in Claude Code sessions on a machine
 with a GPU if one is available.
 
+Family members can train on the same deck. Each person has their own record,
+kept apart on every device and in the data repository (section 8.12); the app
+still speaks to one person at a time.
+
 ## 4. Content sources and trust rules
 
 ### 4.1 Sources
@@ -132,7 +136,7 @@ flowchart LR
   end
   J --> K[(Private data repo: deck/deck.json)]
   K <--> L[App on GitHub Pages: phone and laptop]
-  L <--> M[(Private data repo: progress/device.json)]
+  L <--> M[(Private data repo: progress/person/device.json)]
 ```
 
 Code repository layout:
@@ -188,11 +192,13 @@ moment: four players with handedness, the ball's origin and current position wit
 net clearance, an optional answer overlay, a camera, and for timed cards a
 timeline of shots with a freeze point and response window. A **card** is one
 question about a principle, optionally drawing a scene. The **deck** bundles
-principles, scenes and cards with display names. **Progress** is one file per
-device: current FSRS state per card plus an append-only review log.
+principles, scenes and cards with display names. **Progress** is one record per
+person per device: that person's current FSRS state per card plus an append-only
+review log, named with the person's id.
 
 Ids: tips `<episode_id>-tNNN`, principles `p-<slug>`, scenes `s-<slug>`, cards
-`c-<slug>-<n>`. Ids never change once published, because progress refers to them.
+`c-<slug>-<n>`, people their name as a slug (`mary-ann`). Ids never change once
+published, because progress refers to them.
 Any breaking schema change bumps `schema_version` and ships a migration in the
 same commit.
 
@@ -370,6 +376,19 @@ lesson you are most likely to forget comes first, with links to its cards. Home
 carries the last batch's "take this to the court" cue until the next batch
 replaces it; it lives in the synced settings, newest wins.
 
+### 8.12 People
+
+| Id | Requirement | Status |
+|---|---|---|
+| A-11 | Several people can use one deck without touching each other's progress. A device asks for a name once, keeps one record per person, and shows who is playing on Home with a way to switch. A person's id is their name as a slug, so the same name on two devices is the same person; ids are permanent. Sync reads and writes only the current person's folder, and merges and imports refuse another person's record. Removing a person from a device erases only that device's copy. | Built |
+
+The name is asked for before anything else on a device where nobody is named
+yet. On a device upgraded from the single-user version, the record already
+there goes under the first name typed, and the device keeps its id. Device
+settings (batch size, camera, the token) stay per device, so the people on a
+shared device share them. There is no rename: a name with a typo is removed and
+added again, which costs nothing while the record is empty.
+
 ## 9. Sync, hosting and privacy
 
 The app shell is public on GitHub Pages; it contains no podcast content. The
@@ -378,13 +397,16 @@ writes through the GitHub contents API with a fine-grained personal access token
 only that one repository, Contents read and write, with an expiry date and a
 reminder to rotate it. The token is stored only in the browser.
 
-Each device writes its own file (`progress/<device_id>.json`), so two devices never
-edit the same file. A sync reads every device's file, merges them (review logs
-are unioned; where both devices reviewed a card, its state is rebuilt by
-replaying the combined log through FSRS), writes this device's file, and pulls
-the deck. Sync runs when the app opens and after each session, and on demand in
-Settings. Resetting progress is local only; delete the files in the data repo to
-reset everywhere.
+Each person has a folder, and in it each device writes its own file
+(`progress/<person_id>/<device_id>.json`), so two devices never edit the same
+file and two people never share one. A sync reads every file in the current
+person's folder, merges them (review logs are unioned; where both devices
+reviewed a card, its state is rebuilt by replaying the combined log through
+FSRS), writes this device's file, and pulls the deck. Sync runs when the app
+opens, after each session and after a switch of person, and on demand in
+Settings. Resetting progress is local only; delete the person's folder in the
+data repo to reset everywhere. Family members' devices use the same repository;
+give each device its own token, so any one can be revoked on its own.
 
 Threats worth knowing about. Any script running on the app's origin can read the
 token, so the app loads nothing from third parties (fonts and libraries are
@@ -441,9 +463,10 @@ ramping from 0.6x to real speed. Still to build:
 | T-6 | Two- and three-shot sequences (a dink rally ending in a pop-up) for the kitchen-battle principles. |
 
 **Phase 6, extras.** Built: the Progress view with retention, weak topics and
-a ranked drill list (section 8.11). Remaining: suspend and edit from the card
-browser, links from sources to the episode audio at the timestamp, a weak-topic
-practice mode, and possibly sharing a deck with a partner.
+a ranked drill list (section 8.11), and sharing the deck with family, each
+person with their own record (section 8.12). Remaining: suspend and edit from
+the card browser, links from sources to the episode audio at the timestamp, and
+a weak-topic practice mode.
 
 ## 11. Acceptance criteria for the MVP
 
@@ -486,6 +509,7 @@ Decided by Jeremy in September 2026.
 | Aids become a crutch. | Stage fading down to no path and no map at maturity. |
 | Token exposure. | Single-repo fine-grained token with expiry, no third-party scripts, CSP, shared-origin warning. |
 | Browser storage cleared on iOS. | Install to the home screen, sync after each session, export as a manual backup. |
+| Two people's reviews land in one record. | A record per person on every device and a folder per person in the data repo; sync reads one folder; merges and imports refuse another person's record. |
 | Browser storage fills up: a full-corpus deck of several MB, progress growing 2 to 5 MB a year. | Deck copy in Cache Storage, off the 5 MB localStorage (D23); progress size shown in Settings; progress moves to IndexedDB when it nears 2 MB (plan E3). |
 | Copyright. | Private data repo, paraphrase only, no audio or transcripts published. |
 | The app teaches outdated or level-inappropriate advice. | Level and condition fields, pro repetition in priority, Jeremy's review. |

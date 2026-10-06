@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://piq.local/schemas/progress.schema.json",
   "title": "Progress",
-  "description": "Review state for one device. Stored in localStorage and synced as progress/<device_id>.json in the private data repo. Devices never write each other's files; each device merges all files on read (per card, the newer last_review wins; logs are a union by id).",
+  "description": "Review state for one person on one device. Stored in localStorage under piq.progress.v1.<person_id> and synced as progress/<person_id>/<device_id>.json in the private data repo. Devices never write each other's files and never read another person's folder; each device merges the files in its person's folder on read (per card, the newer last_review wins; logs are a union by id). Records written before people existed have no person_id and sit in the root progress folder.",
   "type": "object",
   "required": [
     "schema_version",
@@ -15,6 +15,11 @@
   "properties": {
     "schema_version": {
       "const": 1
+    },
+    "person_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "description": "The person this record belongs to: their name as a slug, and their folder under progress/. Permanent once used. Absent in records from before people existed."
     },
     "device_id": {
       "type": "string",

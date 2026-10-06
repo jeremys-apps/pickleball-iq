@@ -1,15 +1,23 @@
-// Review progress for this device, persisted in localStorage.
+// Review progress for one person on this device, persisted in localStorage.
 //
-// Sync model (see docs/PRD.md, "Sync"): every device owns one file,
-// progress/<device_id>.json, and never writes anyone else's. On sync a device
-// reads all files and merges them into its own state:
+// People (see docs/PRD.md, section 8.12): every person has their own record,
+// stored under piq.progress.v1.<person_id>, and a device holds one record per
+// person who uses it. The bare key piq.progress.v1 is the record from before
+// people existed; the first person named on the device adopts it (people.js).
+//
+// Sync model (see docs/PRD.md, "Sync"): every device owns one file per person,
+// progress/<person_id>/<device_id>.json, and never writes anyone else's. On
+// sync a device reads all files in the person's folder and merges them into
+// its own state:
 //   logs     union by id (append-only, so nothing is ever lost)
 //   cards    if both sides reviewed a card, rebuild its state by replaying the
 //            merged log; otherwise keep the entry that changed most recently
 //   settings newest updated_at wins
-// Merging is idempotent and order-independent, so repeated syncs converge.
+// Merging is idempotent and order-independent, so repeated syncs converge. A
+// record that names another person is never merged in.
 
 export const STORAGE_KEY = 'piq.progress.v1';
+export const DEVICE_KEY = 'piq.device.v1'; // one id per device, shared by every person's record on it
 export const SCHEMA_VERSION = 1;
 
 const nowIso = () => new Date().toISOString();
@@ -20,9 +28,32 @@ export function newDeviceId() {
   return 'dev-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
 }
 
-export function emptyProgress(deviceId = newDeviceId(), label = '') {
+// Where a person's record lives in storage. No person: the pre-people key.
+export const progressKey = (personId) => (personId ? `${STORAGE_KEY}.${personId}` : STORAGE_KEY);
+
+// This device's id, created on first use. Every person's record on the device
+// carries it, so a person's folder in the data repo holds one file per device.
+export function deviceId(storage = globalThis.localStorage) {
+  let id = null;
+  try {
+    id = storage?.getItem(DEVICE_KEY) ?? null;
+  } catch {
+    /* storage blocked */
+  }
+  if (id) return id;
+  id = newDeviceId();
+  try {
+    storage?.setItem(DEVICE_KEY, id);
+  } catch {
+    /* storage blocked: the id lives in this record only */
+  }
+  return id;
+}
+
+export function emptyProgress(deviceId = newDeviceId(), label = '', personId = null) {
   return {
     schema_version: SCHEMA_VERSION,
+    ...(personId ? { person_id: personId } : {}),
     device_id: deviceId,
     device_label: label,
     updated_at: nowIso(),
@@ -32,24 +63,27 @@ export function emptyProgress(deviceId = newDeviceId(), label = '') {
   };
 }
 
-export function loadProgress(storage = globalThis.localStorage) {
+export function loadProgress(storage = globalThis.localStorage, personId = null) {
   try {
-    const raw = storage?.getItem(STORAGE_KEY);
+    const raw = storage?.getItem(progressKey(personId));
     if (raw) {
       const p = JSON.parse(raw);
-      if (p?.schema_version === SCHEMA_VERSION) return p;
+      if (p?.schema_version === SCHEMA_VERSION) {
+        if (personId) p.person_id = personId;
+        return p;
+      }
     }
   } catch (e) {
     console.warn('Progress could not be read; starting fresh.', e);
   }
-  const p = emptyProgress();
+  const p = emptyProgress(personId ? deviceId(storage) : newDeviceId(), '', personId);
   saveProgress(p, storage);
   return p;
 }
 
 export function saveProgress(p, storage = globalThis.localStorage) {
   p.updated_at = nowIso();
-  storage?.setItem(STORAGE_KEY, JSON.stringify(p));
+  storage?.setItem(progressKey(p.person_id), JSON.stringify(p));
   return p;
 }
 
@@ -88,10 +122,16 @@ const changedAt = (e) => {
   return a > b ? a : b;
 };
 
-// Merge remote into local. local.device_id is kept. replay(logs) -> fsrs state
-// is supplied by the scheduler so this module stays free of FSRS details.
+// True when a record belongs to someone other than the given person. Records
+// from before people existed name nobody and belong to whoever reads them.
+export const isAnotherPerson = (p, personId) => !!(p?.person_id && personId && p.person_id !== personId);
+
+// Merge remote into local. local.device_id and person_id are kept, and a
+// record of another person is left out. replay(logs) -> fsrs state is supplied
+// by the scheduler so this module stays free of FSRS details.
 export function mergeProgress(local, remote, { replay } = {}) {
   if (!remote || remote.schema_version !== SCHEMA_VERSION) return local;
+  if (isAnotherPerson(remote, local.person_id)) return local;
   const out = structuredCloneSafe(local);
 
   const byId = new Map(out.logs.map((l) => [l.id, l]));
@@ -145,10 +185,13 @@ export function exportProgress(p) {
   return JSON.stringify(p, null, 2);
 }
 
-export function importProgress(text) {
+export function importProgress(text, personId = null) {
   const p = JSON.parse(text);
   if (p?.schema_version !== SCHEMA_VERSION || typeof p.cards !== 'object' || !Array.isArray(p.logs)) {
     throw new Error('This file is not a Court Sense progress export (schema_version 1).');
+  }
+  if (isAnotherPerson(p, personId)) {
+    throw new Error(`This export belongs to ${p.person_id}, not to ${personId}. Switch to that person before importing it.`);
   }
   return p;
 }
@@ -175,31 +218,35 @@ function structuredCloneSafe(v) {
 
 // An answer given but not yet rated. Saved at answer time so closing the app
 // before rating loses nothing; finalizePending() records it on the next start.
+// Kept per person (pending.person_id), so an answer waits for the person who
+// gave it even if someone else uses the device in between.
 export const PENDING_KEY = 'piq.pending.v1';
+
+export const pendingKey = (personId) => (personId ? `${PENDING_KEY}.${personId}` : PENDING_KEY);
 
 export function savePending(pending, storage = globalThis.localStorage) {
   try {
-    storage?.setItem(PENDING_KEY, JSON.stringify(pending));
+    storage?.setItem(pendingKey(pending.person_id), JSON.stringify(pending));
   } catch {
     /* storage full or unavailable: the card simply comes back */
   }
 }
 
-export function clearPending(storage = globalThis.localStorage) {
+export function clearPending(storage = globalThis.localStorage, personId = null) {
   try {
-    storage?.removeItem(PENDING_KEY);
+    storage?.removeItem(pendingKey(personId));
   } catch {
     /* ignore */
   }
 }
 
-export function takePending(storage = globalThis.localStorage) {
+export function takePending(storage = globalThis.localStorage, personId = null) {
   let p = null;
   try {
-    p = JSON.parse(storage?.getItem(PENDING_KEY) ?? 'null');
+    p = JSON.parse(storage?.getItem(pendingKey(personId)) ?? 'null');
   } catch {
     p = null;
   }
-  clearPending(storage);
+  clearPending(storage, personId);
   return p;
 }

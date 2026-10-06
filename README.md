@@ -38,9 +38,18 @@ preview any of them at each aid level, including the timed occlusion card.
 2. Settings, Pages, Source: **GitHub Actions**. The workflow in `.github/workflows/pages.yml` publishes `app/`. Run it once by hand from the Actions tab after switching the source; pushes made before the switch fail at the deploy step.
 3. Create the private data repository under your personal account (see `pipeline/README.md`) and a fine-grained
    token limited to it with Contents read and write and an expiry date.
-4. Open the app, go to Settings, enter the repository and token, and name the device.
-   Repeat on the second device.
+4. Open the app, type your name when it asks, then go to Settings, enter the repository and token, and name the device.
+   Repeat on the second device, with the same name.
 5. On the phone, use Share, Add to Home Screen, so it runs full screen and keeps its storage.
+
+## Family
+
+Several people can share one deck. Each person types their name once per device
+(the same name on every device they use), and the app keeps a record per person
+on the device and a folder per person in the data repository, so nobody's
+reviews touch anyone else's. On a shared device, Home says who is playing and
+Settings lists the people with Switch, Remove and Add. Give each person's device
+its own token, so any one can be revoked without the others.
 
 
 

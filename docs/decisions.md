@@ -158,3 +158,22 @@ re-tested inside its own batch, and a miss on the last card may wait one batch
 longer. Practice ahead, offered only when nothing is due and every card has been
 seen, still brings cards back early, as its label says, and prefers cards
 reviewed at least 30 minutes before.
+
+**D27. Progress is per person: a record per person on each device, a folder per
+person in the data repo.** Jeremy's family wants to use the app without touching
+his progress or each other's (2026-10-05). Everyone shares the deck; what must
+stay apart is the review record. A person's id is their name as a slug
+(`mary-ann`), typed once per device, so the same name on two devices is the same
+person and their records merge, and nothing has to be registered anywhere first.
+Ids are permanent like card ids, because progress folders are named by them, so
+there is no rename; a typo is removed and added again while the record is empty.
+Sync reads and writes only the current person's folder, and a merge or an import
+refuses a record that names someone else, so a wrong file cannot mix two people.
+A device keeps one id across its people, so each person's folder holds one file
+per device, and the record from before people existed goes under the first name
+typed on an upgraded device. Device settings (batch size, camera, the token) stay
+per device: they belong to the hardware and the credential, and the people on a
+shared device can live with shared preferences. Considered and rejected: a
+separate progress folder per person set by hand in Settings (a typo would merge
+two people, and a shared device would have nowhere to switch), and accounts (out
+of scope, section 2 of the PRD).

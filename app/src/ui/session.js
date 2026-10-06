@@ -88,7 +88,7 @@ function spreadSiblings(items) {
 // An answered but unrated card (the app was closed before rating) is recorded
 // with its suggested rating the next time the app opens.
 export function finalizePending(app, storage = globalThis.localStorage) {
-  const p = takePending(storage);
+  const p = takePending(storage, app.person?.id);
   if (!p || !app.index.cards.has(p.card_id)) return false;
   if (app.progress.logs.some((l) => l.card_id === p.card_id && l.reviewed_at >= p.reviewed_at)) return false;
   const at = new Date(p.reviewed_at);
@@ -186,6 +186,7 @@ export function runSession(root, app, { onBatchEnd } = {}) {
       onAnswered: (r) => {
         if (r.correct == null) return; // self-graded cards simply come back if unrated
         savePending({
+          person_id: app.person?.id,
           card_id: item.card.id,
           rating: r.suggested,
           correct: r.correct,
@@ -221,7 +222,7 @@ export function runSession(root, app, { onBatchEnd } = {}) {
       reviewed_at: now.toISOString(),
     });
     saveProgress(app.progress);
-    clearPending();
+    clearPending(globalThis.localStorage, app.person?.id);
     sessionPrinciples.add(item.card.principle_id);
     totals.cards += 1;
     results.push({ card: item.card, rating: res.rating, correct: res.correct ?? null, kind: item.kind });
