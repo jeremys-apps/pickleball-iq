@@ -752,6 +752,22 @@ table carry the storage numbers; D23 recorded. Seven deck tests run against an
 in-memory `caches` stub. Still to see on a real device: the first sync on the
 phone after this change moves the old copy and frees localStorage.
 
+Progress 2026-10-05: E4 batches 2 and 3, ten more Cheat Code episodes
+(2025-05-07 to 2025-07-09), went through the whole pipeline. Review: Jeremy
+accepted every dossier recommendation and listened to the seven tips only the
+audio could settle (four of the short agreement lines were Brodie's own).
+Merge: 92 to 298 principles, run as four topic-cluster subagents plus a
+reconciliation pass; the paddle episode with Chris Olson had no pro present
+and stays out of the deck. Cards: 359 new cards and 83 new scenes from six
+topic groups, every scene looked at rendered before install; the deck is 537
+cards, 123 scenes, 1.6 MB. Spot-checks per batch: 9 of 10 and 10 of 10 fully
+right, speaker and label right on all twenty, so both batches pass the pilot
+bar. Fixes from the notes went into the tips, principles and cards (Brodie's
+"a little out of reach", Tanner's "bait them down my sideline" and his soft
+line drive off the short hop). Found on the way: the renderer ignores
+`apex_in` on a shot that crosses the net, so the card prompt now gives lobs a
+`net_clearance_in`.
+
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
 `pipeline/README.md`. The `extract-api` command is never run; its `extract:`
