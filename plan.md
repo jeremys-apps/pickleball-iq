@@ -783,6 +783,25 @@ line drive off the short hop). Found on the way: the renderer ignores
 `apex_in` on a shot that crosses the net, so the card prompt now gives lobs a
 `net_clearance_in`.
 
+Progress 2026-10-06: E4 batch 4, twenty more Cheat Code episodes
+(2025-07-16 to 2025-12-03), went through the whole pipeline in one session.
+Jeremy swapped the two CRBN paddle episodes in that range for the next two
+instructional ones, pre-accepted the review recommendations for this batch, and
+approved Thomas Wilson (tennis episode guest) as a touring pro. One agent per
+episode mapped the speakers and extracted the tips from a compact segment view;
+one agent per two episodes reviewed every tip, not only the flagged ones; five
+tips wait for Jeremy's ears. Merge: 298 to 546 principles (248 new, 3 created
+struck because Tanner contradicts them), run as seven topic clusters, a
+reconciliation pass and a note cleanup. Cards: 432 new cards and 102 new scenes
+from eight groups; 17 existing cards changed where the merge reworded their
+principle or a new principle made a wrong answer right; a review agent looked
+at every new scene at phone size and 13 were fixed. The deck is 969 cards, 225
+scenes, 3.1 MB. Spot-check: two pages of ten (one per half of the batch),
+waiting for Jeremy. Found on the way: after a timed card is answered, the
+reveal redraws the static scene (`frameFromScene` in `card-view.js`) rather
+than the frame at the freeze, so players the timeline moved snap back to
+their starting spots.
+
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
 `pipeline/README.md`. The `extract-api` command is never run; its `extract:`
