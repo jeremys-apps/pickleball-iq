@@ -8,7 +8,7 @@ import { renderFirstPerson } from '../app/src/court/first-person.js';
 import { renderTopDown, renderSideView } from '../app/src/court/top-down.js';
 import { makeArc } from '../app/src/court/trajectory.js';
 import { netHeightFt, paddleSideX } from '../app/src/court/geometry.js';
-import { compileTimeline, frameAt, createPlayer, MIN_FLIGHT_MS } from '../app/src/court/playback.js';
+import { compileTimeline, frameAt, contactFrame, createPlayer, MIN_FLIGHT_MS } from '../app/src/court/playback.js';
 
 const deck = JSON.parse(readFileSync(new URL('../app/data/deck.sample.json', import.meta.url)));
 const scene = (id) => deck.scenes.find((s) => s.id === id);
@@ -173,4 +173,65 @@ test('the player honors the freeze lead and can run to the end for the reveal', 
   p.play(0, { toEnd: true });
   assert.deepEqual(stops, [2080, 2480]);
   assert.equal(p.compiled.freezeAt, 2080);
+});
+
+test('the contact frame keeps players where the lead-in moved them, with the answer', () => {
+  const s = scene('s-occlusion-floater');
+  const c = compileTimeline(s);
+  const f = contactFrame(s, c);
+  const last = c.segs[c.segs.length - 1];
+  assert.ok(Math.abs(f.players.find((p) => p.id === 'opp2').x - 14.2) < 0.01, 'opp2 stays where his movement ended');
+  assert.equal(frameFromScene(s).players.find((p) => p.id === 'opp2').x, 15, 'the static frame is the starting setup');
+  assert.deepEqual(f.contact, last.arc.p1);
+  assert.deepEqual(f.ball.pos, last.arc.at(1), 'the ball sits at the contact point');
+  assert.equal(f.ball.t1, 1);
+  assert.deepEqual(f.trails, [], 'a volley is one shot, drawn as the ball arc');
+  assert.deepEqual(f.reveal, s.answer_overlay);
+  assert.equal(contactFrame(s, c, { reveal: false }).reveal, null);
+  const plain = (x) => JSON.parse(JSON.stringify(x)); // arcs carry closures; compare their data
+  assert.deepEqual(plain(createPlayer(s, { reducedMotion: true }).contactFrame()), plain(f));
+});
+
+test('an answer move the lead-in already made draws no arrow', () => {
+  const s = scene('s-occlusion-floater');
+  const withMove = (to) => ({ ...s, answer_overlay: { ...s.answer_overlay, moves: [{ player_id: 'opp2', to }] } });
+  const arrows = (sc) => {
+    const f = contactFrame(sc, compileTimeline(sc));
+    return {
+      map: (renderTopDown(f).svg.match(/<line class="piq-answer"/g) ?? []).length,
+      eye: (renderFirstPerson(f, { revealAll: true }).svg.match(/<polyline class="piq-answer"/g) ?? []).length,
+    };
+  };
+  const none = arrows(s);
+  assert.deepEqual(arrows(withMove({ x: 14.2, y: 30.1 })), none, 'opp2 is already there at contact: no stub arrow');
+  const real = arrows(withMove({ x: 11, y: 30.1 }));
+  assert.equal(real.map, none.map + 1, 'a real move still draws on the map');
+  assert.ok(real.eye > none.eye, 'and in your view');
+});
+
+test('the contact frame draws a ball that bounced before contact with its bounce', () => {
+  const s = scene('s-occlusion-floater');
+  const landing = { x: 6.4, y: 18.5, z_in: 0 };
+  const now = { x: 6.6, y: 16.4, z_in: 14 };
+  const bounced = {
+    ...s,
+    ball: { from: { x: 4.7, y: 28.6, z_in: 20 }, now, net_clearance_in: 10, hitter_id: 'opp1' },
+    timeline: {
+      segments: [
+        { id: 'in', kind: 'shot', hitter_id: 'opp1', from: { x: 4.7, y: 28.6, z_in: 20 }, to: landing, net_clearance_in: 10, duration_ms: 900 },
+        { id: 'up', kind: 'bounce', from: landing, to: now, apex_in: 16, duration_ms: 300 },
+      ],
+      movements: [],
+      freeze_at_ms: 1050,
+    },
+  };
+  const c = compileTimeline(bounced);
+  const f = contactFrame(bounced, c);
+  assert.equal(f.trails.length, 1, 'the flight before the bounce stays drawn');
+  assert.equal(f.trails[0].arc, c.segs[0].arc);
+  assert.equal(f.ball.arc, c.segs[1].arc, 'the ball arc is the bounce up to contact');
+  assert.equal(f.ball.hitterId, 'opp1', 'the shot belongs to the player who hit it, not to the bounce');
+  // Both pieces reach the map as orange tracks; the static frame has one arc from ball.from to ball.now.
+  const tracks = (fr) => (renderTopDown(fr).svg.match(/class="piq-path/g) ?? []).length;
+  assert.ok(tracks(f) > tracks(frameFromScene(bounced)), 'the bounce adds a track the static frame lacks');
 });

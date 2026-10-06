@@ -8,7 +8,7 @@
 import { COURT, facingY, paddleSideX, f1, netHeightFt } from './geometry.js';
 import { sampleArc, apexOf } from './trajectory.js';
 import { yawOf, horizontalHalfFov } from './camera.js';
-import { labelFor } from './scene.js';
+import { labelFor, movesToDraw } from './scene.js';
 import { renderCss, TOKENS } from './theme.js';
 
 let uidCounter = 0;
@@ -148,11 +148,8 @@ export function renderTopDown(frame, opts = {}) {
         g += `<line class="piq-answer" x1="${f1(X(from.x))}" y1="${f1(Y(from.y))}" x2="${f1(X(to.x))}" y2="${f1(Y(to.y))}" stroke-width="${mini ? 1.5 : 2.5}" marker-end="url(#piq-ah-${uid})"/>`;
       }
     }
-    for (const mv of r.moves ?? []) {
-      const p = frame.players.find((q) => q.id === mv.player_id);
-      if (p) {
-        g += `<line class="piq-answer" x1="${f1(X(p.x))}" y1="${f1(Y(p.y))}" x2="${f1(X(mv.to.x))}" y2="${f1(Y(mv.to.y))}" stroke-width="${mini ? 1.5 : 2.5}" marker-end="url(#piq-ah-${uid})"/>`;
-      }
+    for (const { p, mv } of movesToDraw(frame)) {
+      g += `<line class="piq-answer" x1="${f1(X(p.x))}" y1="${f1(Y(p.y))}" x2="${f1(X(mv.to.x))}" y2="${f1(Y(mv.to.y))}" stroke-width="${mini ? 1.5 : 2.5}" marker-end="url(#piq-ah-${uid})"/>`;
     }
     out.push(g + '</g>');
   }

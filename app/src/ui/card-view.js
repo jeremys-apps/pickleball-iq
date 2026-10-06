@@ -194,7 +194,8 @@ export function mountCard(root, ctx) {
         draw();
       },
       onFreeze: (f) => {
-        if (answered) return flyAnswer(f); // Watch again ran to the end: now the answer flies
+        // Watch again ran to the end: the answer flies from the moment of contact.
+        if (answered) return flyAnswer(player.contactFrame());
         frame = f;
         draw();
         unlock();
@@ -264,8 +265,10 @@ export function mountCard(root, ctx) {
       if ((o.id === choiceId || o.correct) && o.feedback) b.append(h('span', { class: 'fb' }, o.feedback));
     }
     if (timed) {
+      // The reveal shows the moment of contact: players where the lead-in moved
+      // them and the shot coming to you with its bounce, not the starting setup.
       player.stop();
-      frame = frameFromScene(scene);
+      frame = player.contactFrame();
     }
     view.classList.add('is-revealed');
     draw();
@@ -388,6 +391,6 @@ export function mountCard(root, ctx) {
   root.replaceChildren(view);
   draw();
 
-  // freezeAt and clock are exposed for tests and the lab; nothing else reads them.
-  return { destroy, answer, start, showAnswer, rate, freezeAt: player?.compiled.freezeAt ?? null, clock: { windowMs, designWindowMs } };
+  // freezeAt, clock and frame are exposed for tests and the lab; nothing else reads them.
+  return { destroy, answer, start, showAnswer, rate, freezeAt: player?.compiled.freezeAt ?? null, clock: { windowMs, designWindowMs }, frame: () => frame };
 }

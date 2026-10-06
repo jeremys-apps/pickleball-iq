@@ -14,7 +14,7 @@
 import { COURT, netHeightFt, sideOfNet, paddleSideX, facingY, f1, clamp } from './geometry.js';
 import { makeCamera, eyePosition, project, clipPolygon, clipSegment, depthOf } from './camera.js';
 import { makeArc, sampleArc } from './trajectory.js';
-import { labelFor } from './scene.js';
+import { labelFor, movesToDraw } from './scene.js';
 import { renderCss, TOKENS } from './theme.js';
 
 export const DEFAULT_AIDS = Object.freeze({ path: true, shadow: true, stalk: true });
@@ -252,9 +252,7 @@ function revealMarkup(cam, frame, uid) {
       }
     }
   }
-  for (const mv of r.moves ?? []) {
-    const p = frame.players.find((q) => q.id === mv.player_id);
-    if (!p) continue;
+  for (const { p, mv } of movesToDraw(frame)) {
     const a = project(cam, [p.x, p.y, 0.03]);
     const b = project(cam, [mv.to.x, mv.to.y, 0.03]);
     if (a && b) {

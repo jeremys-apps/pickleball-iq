@@ -235,6 +235,28 @@ test('timed cards freeze earlier as they mature, and the time-to-choose setting 
   stretched.destroy();
 });
 
+test('a timed card reveals the moment of contact, not the starting setup', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const host = document.getElementById('app');
+  const card = app.index.cards.get('c-occlusion-floater-1');
+  const scene = app.index.scenes.get(card.scene_id);
+  const api = m.mountCard(host, { card, index: app.index, stage: m.sched.STAGES.A, settings: app.settings, scheduler: app.scheduler, onDone: () => {} });
+  const opp2x = () => api.frame().players.find((p) => p.id === 'opp2').x;
+  assert.equal(opp2x(), 15, 'before Play, the starting setup');
+  host.querySelector('.court .motion .play').click(); // reduced motion in this test: freezes at once
+  [...host.querySelectorAll('.option')].find((b) => card.options.find((o) => o.id === b.dataset.id)?.correct).click();
+  assert.ok(Math.abs(opp2x() - 14.2) < 0.01, 'the opponent stays where the lead-in moved him');
+  assert.deepEqual(api.frame().reveal, scene.answer_overlay, 'the answer shows');
+  const last = scene.timeline.segments.at(-1).to;
+  assert.deepEqual(api.frame().ball.pos.map((v) => Math.round(v * 10) / 10), [last.x, last.y, Math.round((last.z_in / 12) * 10) / 10], 'the ball sits at contact');
+  host.querySelector('.motion .replay').click(); // Watch again: reduced motion runs to the end at once
+  assert.equal(api.frame().ball.answer, true, 'the answer shot has flown');
+  assert.ok(Math.abs(opp2x() - 14.2) < 0.01, 'and the players are still where the lead-in left them');
+  api.destroy();
+});
+
 function answerUntilSummary(root, app, max = 60) {
   for (let guard = 0; guard < max && !root.querySelector('.summary'); guard++) {
     root.querySelector('.play:not([hidden])')?.click(); // timed card: reduced motion freezes at once

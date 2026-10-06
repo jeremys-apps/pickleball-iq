@@ -85,6 +85,22 @@ export function answerFrame(scene, base, k = 1) {
   };
 }
 
+// The answer moves a frame still has to draw, as {p, mv}: the player in the
+// frame and the move. A player already within MOVE_MIN_FT of the move's target
+// has nothing left to show (at a timed card's moment of contact the lead-in may
+// have made the move already), and a zero-length arrow would leave a stray
+// arrowhead on the player.
+export const MOVE_MIN_FT = 0.4;
+
+export function movesToDraw(frame) {
+  const out = [];
+  for (const mv of frame.reveal?.moves ?? []) {
+    const p = frame.players.find((q) => q.id === mv.player_id);
+    if (p && Math.hypot(mv.to.x - p.x, mv.to.y - p.y) >= MOVE_MIN_FT) out.push({ p, mv });
+  }
+  return out;
+}
+
 // Label shown on a player marker.
 export function labelFor(player, eyesOfId) {
   if (player.label) return player.label;

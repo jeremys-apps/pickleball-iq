@@ -80,6 +80,28 @@ export function frameAt(scene, compiled, ms, { reveal = false } = {}) {
   };
 }
 
+// The moment of contact, for the picture after an answer: players where the
+// timeline has moved them, the shot coming to you drawn whole and the ball at
+// the contact point, where the answer shot starts. A bounce continues the shot
+// before it, so a ball that bounced on your side shows its flight and its bounce.
+// (frameFromScene would draw the scene's starting setup and one arc that skips
+// the bounce.)
+export function contactFrame(scene, compiled, { reveal = true } = {}) {
+  const segs = compiled.segs;
+  const last = segs[segs.length - 1];
+  let first = segs.length - 1;
+  while (first > 0 && segs[first].kind === 'bounce') first--;
+  return {
+    players: playerPositions(scene, compiled, compiled.total),
+    ball: { pos: last.arc.at(1), arc: last.arc, t0: 0, t1: 1, hitterId: segs[first].hitter_id ?? null, segmentId: last.id },
+    trails: segs.slice(first, -1).map((s) => ({ arc: s.arc, t0: 0, t1: 1 })),
+    contact: last.arc.p1,
+    eyesOf: compiled.eyesOf,
+    lookAt: compiled.lookAt,
+    reveal: reveal ? (scene.answer_overlay ?? null) : null,
+  };
+}
+
 // Drives playback. speed < 1 is slow motion (used for new cards).
 // opts.freezeLeadMs freezes earlier than authored (see compileTimeline).
 // play(fromMs, { toEnd: true }) ignores the freeze and runs to the end of the
@@ -134,6 +156,7 @@ export function createPlayer(scene, opts = {}) {
       speed = s;
     },
     frameAt: (ms, o) => frameAt(scene, compiled, ms, o),
+    contactFrame: (o) => contactFrame(scene, compiled, o),
     destroy: stop,
   };
 }

@@ -107,6 +107,15 @@ freezing immediately. The stage's `freezeLeadMs` pulls that stop earlier than
 and never later than authored; `play(0, { toEnd: true })` runs through to the
 end of the timeline for the reveal after an answer.
 
+The picture right after an answer on a timed card is `contactFrame`: the moment
+of contact, with players where the timeline moved them and the shot coming to
+you drawn whole, so a ball that bounced on your side shows its flight and its
+bounce. `frameFromScene` would show the scene's starting setup and one arc from
+`ball.from` to `ball.now` that skips the bounce. Watch again flies the answer
+from the same frame. An answer move whose player already stands within
+`MOVE_MIN_FT` of its target draws no arrow (`movesToDraw` in `scene.js`), since
+the lead-in may have made that move already.
+
 ## Replays
 
 A frame may carry three more things. `contact` is the point where you meet the
