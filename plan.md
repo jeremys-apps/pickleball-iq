@@ -797,10 +797,11 @@ from eight groups; 17 existing cards changed where the merge reworded their
 principle or a new principle made a wrong answer right; a review agent looked
 at every new scene at phone size and 13 were fixed. The deck is 969 cards, 225
 scenes, 3.1 MB. Spot-check: two pages of ten (one per half of the batch),
-waiting for Jeremy. Found on the way: after a timed card is answered, the
-reveal redraws the static scene (`frameFromScene` in `card-view.js`) rather
-than the frame at the freeze, so players the timeline moved snap back to
-their starting spots.
+waiting for Jeremy. Found on the way and fixed the same day (code 42f028c):
+after a timed card was answered, the reveal redrew the static scene
+(`frameFromScene` in `card-view.js`), so players the timeline moved snapped
+back to their starting spots and a bounce on your side looked like a volley;
+it now shows the moment of contact (`contactFrame` in `playback.js`).
 
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
