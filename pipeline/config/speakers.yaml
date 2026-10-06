@@ -72,3 +72,10 @@ speakers:
     tier: touring_pro
     credential: "PPA Tour pro since 2022 (doubles and mixed), CRBN pro team. Former Utah Valley University volleyball libero and high-school volleyball coach. Verified 2026-10-03 against the PPA Tour athlete page and the CRBN pro team page."
     shows: [cheatcode]
+
+  - id: thomas-wilson
+    name: Thomas Wilson
+    aliases: [Thomas]
+    tier: touring_pro
+    credential: "PPA Tour pro since 2022 (men's doubles and mixed; 3 career PPA titles), CRBN pro team, called a Major League Pickleball champion by CRBN. Played college tennis at Purdue and Texas. Verified 2026-10-05 against the PPA Tour athlete page and the CRBN pro team page."
+    shows: [cheatcode]
