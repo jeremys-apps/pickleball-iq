@@ -91,6 +91,15 @@ tip's `action` is that reason ("Expect the crosscourt reset to create offense
 because it goes to an opponent's inside foot"), and the action the pro accepts
 lives in the pro's own tip.
 
+**A reply the transcript lost.** WhisperX can drop a pro's short reply when the
+other speaker talks over it, leaving at most a stray word under the pro's label,
+or it can file the reply under the other speaker's label with low confidence.
+Before you label a statement `no_pro_present`, look at the end of that turn: a
+pause and then a stray word under the pro's label, or a lone agreement ("Love
+it") that fits the pro better than the speaker, may be the pro answering. Keep
+the label the transcript supports, set `needs_review`, and give the timestamp
+so it can be checked by ear.
+
 **When unsure, choose the more conservative status** (implicit rather than
 explicit, qualified rather than implicit when there is any hedge) and set
 `needs_review: true` with a reason. Sarcastic agreement is not agreement.
