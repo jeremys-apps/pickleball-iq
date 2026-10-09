@@ -51,7 +51,7 @@ Decide `endorsement.status` for every tip.
 | `endorsed_implicit` | A non-pro said it, a pro was an active participant in the same discussion, and the pro did not object. | the pro present |
 | `qualified` | A non-pro said it and a pro agreed with a condition ("it depends", "only outdoors", "at higher levels"). Put the condition in `conditions`. | the pro |
 | `refuted` | A non-pro said it and a pro disagreed, even softly. Extract the pro's correction as its own `pro_stated` tip and set `corrected_by_tip_id`. | the pro |
-| `no_pro_present` | A non-pro said it with no pro in the discussion (a solo intro, a host-only segment or episode). Still extract it; the deck excludes it. | null |
+| `no_pro_present` | A non-pro said it with no pro in the discussion (a solo intro, a host-only segment or episode), or closed the discussion before a pro could answer. Still extract it; the deck excludes it. | null |
 
 **Provisional pros.** The legend marks some speakers as provisional pros
 (currently Kevin Tsati, whose level is unverified). Their own advice is
@@ -65,6 +65,11 @@ and extract the full pro's correction.
 
 "Active participant in the same discussion" means the pro spoke within about
 three minutes before or after the statement and the topic had not changed.
+The pro must also have had a chance to answer. When a non-pro adds a point
+after the pro's last word and then closes the discussion, moving straight on to
+the next question or segment, the pro's silence is not agreement: label it
+`no_pro_present`. A host working through a list with the pro still in the
+discussion is different, because the pro can still come in.
 
 **Soft disagreement is disagreement.** "I'd push back a little", "I don't love
 that", "not necessarily", "that's more of a 3.5 thing", "I'd rather..." all

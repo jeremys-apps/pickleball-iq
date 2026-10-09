@@ -803,6 +803,28 @@ after a timed card was answered, the reveal redrew the static scene
 back to their starting spots and a bounce on your side looked like a volley;
 it now shows the moment of contact (`contactFrame` in `playback.js`).
 
+Progress 2026-10-09: batch 4 passes its spot-check. Jeremy's five listen
+answers were merged first (3 new principles, 2 new sources, 6 cards). The
+first page for each half came back 8 of 10 fully right. Both label misses were
+Tanner replies the transcript had lost or filed under Brodie: "Love it. No
+comment. That's perfect." dropped under Brodie's next words, and a
+low-confidence "Love it." under Brodie's label. The wording misses were in the
+tips: whose dink set up the shadowing case, "a heavy drive" made plural, and a
+plant tied to three options when Brodie tied it to one. Fresh pages, ten tips
+each not shown before, came back 10 of 10 and 9 of 10. The one miss there:
+Brodie added flashing the Erne after Tanner's answer and went straight on to
+the next question, so Tanner never had a chance to answer; that principle is
+now `draft` and out of the deck. Each kind of miss became an extraction rule:
+check the end of a turn for a lost reply before `no_pro_present` (code
+3e5124d); keep the speaker's structure, meaning whose shot, how many and which
+option a step goes with (128191a); and a pro's silence is not agreement when a
+host closes the discussion before the pro can answer (with this note). Three
+older implicit tips have that last shape (the shuffle-volley warm-up, no music
+before a match, Brodie's boxer cue) and wait for Jeremy's call. His other notes
+went into the tips, principles and cards ("midcourt depth", Tanner's "it's just
+a matter of where it's coming to", all of Brodie's music). The deck is 974
+cards from 543 principles, with 225 scenes.
+
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
 `pipeline/README.md`. The `extract-api` command is never run; its `extract:`
