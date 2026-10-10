@@ -79,3 +79,10 @@ speakers:
     tier: touring_pro
     credential: "PPA Tour pro since 2022 (men's doubles and mixed; 3 career PPA titles), CRBN pro team, called a Major League Pickleball champion by CRBN. Played college tennis at Purdue and Texas. Verified 2026-10-05 against the PPA Tour athlete page and the CRBN pro team page."
     shows: [cheatcode]
+
+  - id: zane-navratil
+    name: Zane Navratil
+    aliases: [Zane]
+    tier: touring_pro
+    credential: "PPA Tour pro, world No. 1 in men's singles in 2021, still playing PPA Tour events in 2026; elected president of the UPA Pro Player Committee in 2025. Played college tennis at UW-Whitewater. Verified 2026-10-10 against Wikipedia and his pickleball.com player profile."
+    shows: [cheatcode]
