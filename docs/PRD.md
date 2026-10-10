@@ -96,9 +96,17 @@ Every extracted tip gets one status. The deck admits the first four by default.
 
 Partial disagreement splits a claim: the accepted part keeps its endorsement, the
 rejected part is refuted. Ambiguous cases take the more conservative status and
-go to human review. A pro contradicting a non-pro-backed principle in a later
-episode strikes it (section 6, P-9). Two pros disagreeing is a tension, not a
-refutation: both principles stay, linked, with their conditions.
+go to human review.
+
+Conflicting tips follow three rules (Jeremy, October 2026). When a speaker
+contradicts their own earlier tip, the later one wins, since they have more
+experience by then. A pro's tip always overrides a non-pro's: a pro
+contradicting a principle that rests only on non-pro tips strikes it, anywhere
+in the corpus (section 6, P-9). Two pros disagreeing is a tension, not a
+refutation: both principles stay, linked, and every card on the point gives
+both viewpoints with the players' names. A pro's out-loud agreement with
+another speaker's tip counts as that pro's own view on that date; silence does
+not.
 
 To tighten the deck to spoken agreement only, remove `endorsed_implicit` from
 `deck.allowed_endorsements`; rebuilding the deck applies it retroactively.
@@ -171,7 +179,7 @@ docs/                this PRD and supporting notes
 | P-6 | Extract raw tips per the rules in section 4, one JSONL file per episode, validated with cross-checks (endorser must be a pro, id prefixes, known speakers). | Prompt, skill and validator written |
 | P-7 | Queue tips flagged `needs_review`; record approve, reject or edit decisions with notes in an append-only log. | Built (CLI + skill) |
 | P-8 | Merge reviewed tips into principles with all sources, conditions, common mistakes, distractor candidates and a priority score favoring advice repeated by several pros. | Prompt and skill written |
-| P-9 | Strike non-pro-backed principles a pro contradicts anywhere in the corpus; link pro-versus-pro disagreements with `tension_with`. | In the merge prompt |
+| P-9 | Strike principles resting only on non-pro tips that a pro contradicts anywhere in the corpus, and a speaker's earlier view that their own later tip contradicts (an out-loud agreement counts as the agreeing pro's view); link pro-versus-pro disagreements with `tension_with` and name both pros on their cards. | In the merge and card prompts; existing content audited 2026-10-10 |
 | P-10 | Generate cards from each principle's content with no target count: one court card per distinct situation the sources describe, plus a card for each stated reason, form cue, named mistake and drill detail. Court cards get scenes that follow the formation and height tables. | Prompt and skill written |
 | P-11 | Check scenes semantically (sides of the net, clearances, timeline chains) beyond JSON Schema. | Built (`tools/check-scenes.mjs`) |
 | P-12 | Build the deck: only active principles with allowed endorsements, their cards and referenced scenes, display names for speakers, shows and episodes, and a content hash. Warn when filters leave it empty. | Built |
