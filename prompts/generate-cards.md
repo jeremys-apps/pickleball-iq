@@ -131,13 +131,16 @@ One or two lead-in shots ending at the decision point, then a freeze.
 | Segment | `duration_ms` |
 |---|---|
 | Dink | 900 to 1300 |
+| Penetrating dink (fast, low and deep) | 650 to 800 |
 | Bounce to contact | 300 to 450 |
+| Skid to contact after a penetrating dink | 150 to 250 |
 | Drive | 450 to 700 |
 | Speed-up | 400 to 600 |
 | Floater or pop-up | 1000 to 1400 |
 
 - Segments chain: each `from` equals the previous `to`. A bounce is a segment ending at `z_in: 0`, followed by a `kind: "bounce"` segment up to the contact point with an `apex_in`.
-- `freeze_at_ms`: 100 to 200 ms before the last segment ends. The static `ball.now` should equal the last segment's `to`. As a card matures the app freezes up to 250 ms earlier than this, so the last segment should last at least 400 ms.
+- `freeze_at_ms`: 100 to 200 ms before the last segment ends. The static `ball.now` should equal the last segment's `to`. As a card matures the app freezes up to 250 ms earlier than this, so the last segment should last at least 400 ms. The exception is the quick skid after a penetrating dink: the app always shows 150 ms of the last segment, so that freeze stays where it is authored.
+- When the pace of the incoming ball is the cue (penetrating against dead), keep its speed true to the table. New cards play at 0.6x, so a fast ball drawn at ordinary speed looks slow.
 - `response_window_ms`: 3000 by default. The app scales it by card maturity.
 - Add `movements` for players who would move (shifting toward the middle, split-stepping forward).
 
