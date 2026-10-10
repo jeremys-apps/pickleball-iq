@@ -819,11 +819,13 @@ check the end of a turn for a lost reply before `no_pro_present` (code
 3e5124d); keep the speaker's structure, meaning whose shot, how many and which
 option a step goes with (128191a); and a pro's silence is not agreement when a
 host closes the discussion before the pro can answer (with this note). Three
-older implicit tips have that last shape (the shuffle-volley warm-up, no music
-before a match, Brodie's boxer cue) and wait for Jeremy's call. His other notes
+older implicit tips had that last shape (the shuffle-volley warm-up, no music
+before a match, Brodie's boxer cue). Jeremy listened and Tanner said nothing in
+any of them, so they are `no_pro_present` too: two more principles went to
+`draft`, and the boxer card, never reviewed, left the content. His other notes
 went into the tips, principles and cards ("midcourt depth", Tanner's "it's just
-a matter of where it's coming to", all of Brodie's music). The deck is 974
-cards from 543 principles, with 225 scenes.
+a matter of where it's coming to", all of Brodie's music). The deck is 971
+cards from 541 principles, with 225 scenes.
 
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
