@@ -235,3 +235,25 @@ test('the contact frame draws a ball that bounced before contact with its bounce
   const tracks = (fr) => (renderTopDown(fr).svg.match(/class="piq-path/g) ?? []).length;
   assert.ok(tracks(f) > tracks(frameFromScene(bounced)), 'the bounce adds a track the static frame lacks');
 });
+
+test('players behind a baseline keep their marker and backhand label on the cropped map', () => {
+  // A singles rally: you two feet behind your baseline, the opponent a foot behind theirs.
+  const s = JSON.parse(JSON.stringify(scene('s-floater-backhands')));
+  s.format = 'singles';
+  s.players = [
+    { id: 'you', team: 'us', x: 10, y: -2, hand: 'R' },
+    { id: 'opp1', team: 'them', x: 10, y: 45, hand: 'R' },
+  ];
+  s.ball = { from: { x: 9.6, y: 44.5, z_in: 30 }, now: { x: 11, y: -0.8, z_in: 30 }, net_clearance_in: 10, hitter_id: 'opp1', shot_type: 'drive' };
+  s.answer_overlay = { target: { x: 16, y: 41, rx_ft: 2, ry_ft: 1.5 }, shot: { from: 'ball', to: { x: 16, y: 41, z_in: 0 }, net_clearance_in: 8 } };
+  const f = frameFromScene(s);
+  const svg = renderTopDown(f, { variant: 'full', showBackhand: true, crop: 'auto', revealAll: true }).svg;
+  const H = Number(svg.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+  const bh = Number(svg.match(/<text class="piq-annot" x="[^"]+" y="([^"]+)"/)[1]);
+  assert.ok(bh > 4 && bh < H - 4, `the BH label (y ${bh}) is inside the map (height ${H})`);
+  const [cy, r] = svg.match(/<circle class="piq-player-us" cx="[^"]+" cy="([^"]+)" r="([^"]+)"/).slice(1).map(Number);
+  assert.ok(cy + r <= H, `your marker (bottom ${cy + r}) is inside the map (height ${H})`);
+  // A scene with everyone inside the lines keeps its old crop.
+  const plain = renderTopDown(frameFromScene(scene('s-floater-backhands')), { variant: 'full', showBackhand: true, crop: 'auto' }).svg;
+  assert.match(plain, /viewBox="0 0 [\d.]+ [\d.]+"/);
+});

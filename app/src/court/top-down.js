@@ -58,6 +58,20 @@ export function renderTopDown(frame, opts = {}) {
       yBot = Math.max(yBot, Math.min(...ys) - 3);
     }
   }
+  // Whatever the crop, keep each player's whole marker on the map, and an opponent's backhand label,
+  // drawn 2.4 ft behind them: a player behind a baseline (a returner, a singles player) sits past the margin.
+  const rFt = (mini ? Math.max(3, 0.9 * s) : Math.max(11, 1.35 * s)) / s;
+  for (const p of frame.players) {
+    let hi = p.y + rFt;
+    let lo = p.y - rFt;
+    if (!mini && opts.showBackhand && p.team === 'them') {
+      const ly = p.y - facingY(p) * 2.4;
+      hi = Math.max(hi, ly + 1);
+      lo = Math.min(lo, ly - 1);
+    }
+    yTop = Math.max(yTop, hi + 0.25);
+    yBot = Math.min(yBot, lo - 0.25);
+  }
   const W = (COURT.width + 2 * m) * s;
   const H = (yTop - yBot) * s;
   const X = (x) => (x + m) * s;
