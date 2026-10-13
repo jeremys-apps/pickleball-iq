@@ -827,6 +827,29 @@ went into the tips, principles and cards ("midcourt depth", Tanner's "it's just
 a matter of where it's coming to", all of Brodie's music). The deck is 971
 cards from 541 principles, with 225 scenes.
 
+Progress 2026-10-12: E4 batch 5, the last sixteen Cheat Code episodes, went
+through the whole pipeline, so every episode of the show is now processed.
+Jeremy asked for all of them, including the DUPR CEO interview and the two
+CRBN paddle episodes he had swapped out of batch 4 (none of the three has a
+pro, so their tips stay on file as `no_pro_present`), pre-accepted the review
+recommendations again, approved Zane Navratil as a touring pro, and ruled that
+a later tip overturning a speaker's earlier view is applied where clear and
+held for him where doubtful. The run spread over two days because the weekly
+usage limit stopped it for 46 hours; a heartbeat job resumed it. Review: 386
+tips, 101 decisions, 15 tips for his ears. Merge: 550 to 703 principles (153
+new, 30 of them the deck's first singles principles from Kevin Tsati's two
+singles episodes), seven topic clusters and a reconciliation pass; the
+later-wins rule struck Brodie's think-one-step-ahead (Tanner's January 2026
+dink coverage), moved Tanner's drive power to 60 to 70 percent and his Erne
+footwork to his later word, and held nine tips as seven questions for Jeremy.
+Cards: 282 new cards and 43 new scenes from six groups, 67 older cards fixed
+in place where a new principle made a wrong answer right or named a second pro.
+A phone-size scene review fixed seven scenes and found that the top-down
+crop cut off the backhand label of a player behind a baseline (fixed in
+`top-down.js`, with a render test). The deck is 1243 cards from 688 principles,
+with 265 scenes, 4.2 MB. Waiting for Jeremy: the 15 listen clips, the seven
+held questions and two spot-check pages of ten tips each.
+
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
 `pipeline/README.md`. The `extract-api` command is never run; its `extract:`
