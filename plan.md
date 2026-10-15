@@ -850,6 +850,14 @@ crop cut off the backhand label of a player behind a baseline (fixed in
 with 265 scenes, 4.2 MB. Waiting for Jeremy: the 15 listen clips, the seven
 held questions and two spot-check pages of ten tips each.
 
+Progress 2026-10-15: Jeremy listened to the 15 batch 5 clips. Tanner agreed
+out loud with four of Brodie's tips, and Andrei with one; Andrei, not Brodie,
+called the midcourt bunt the go-to shot; Tanner turned down sliding for
+injury, so that tip is rejected. A small follow-up merge took the principles
+from 703 to 712 (nine new, three with a new source), and 16 text cards cover
+the new ones. The deck is 1259 cards from 697 principles, with 265 scenes.
+Still waiting for Jeremy: the seven held questions and the two spot-check pages.
+
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
 `pipeline/README.md`. The `extract-api` command is never run; its `extract:`
