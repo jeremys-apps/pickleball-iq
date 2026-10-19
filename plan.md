@@ -858,6 +858,14 @@ from 703 to 712 (nine new, three with a new source), and 16 text cards cover
 the new ones. The deck is 1259 cards from 697 principles, with 265 scenes.
 Still waiting for Jeremy: the seven held questions and the two spot-check pages.
 
+Progress 2026-10-18: Jeremy answered the seven held later-wins questions (five
+no, two yes). Tanner's later remarks leave four of his earlier principles
+standing and add two new ones (his flat attack on their drop, the lob mattering
+more now); his follow-the-shovel-drop-in remark and Kevin's singles middle
+return are recorded struck; the dagger is restored for every level. 717
+principles (700 active), deck 1265 cards. Still waiting for Jeremy: the two
+batch 5 spot-check pages.
+
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
 `pipeline/README.md`. The `extract-api` command is never run; its `extract:`
