@@ -866,6 +866,11 @@ return are recorded struck; the dagger is restored for every level. 717
 principles (700 active), deck 1265 cards. Still waiting for Jeremy: the two
 batch 5 spot-check pages.
 
+Progress 2026-10-29: the older-half spot-check page passed, 9 of 10 fully
+right. The miss was a Tanner reply in the middle of Brodie's turn, which now
+endorses Brodie's drop mix; the split is a new paragraph in
+`prompts/extract-tips.md`. Deck 1266 cards. The newer-half page still waits.
+
 Cost rule (Q10, A15): every Claude step runs inside Claude Code on the
 subscription, interactively or through the headless `claude -p` loop in
 `pipeline/README.md`. The `extract-api` command is never run; its `extract:`

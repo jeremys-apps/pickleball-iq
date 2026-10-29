@@ -69,7 +69,11 @@ The pro must also have had a chance to answer. When a non-pro adds a point
 after the pro's last word and then closes the discussion, moving straight on to
 the next question or segment, the pro's silence is not agreement: label it
 `no_pro_present`. A host working through a list with the pro still in the
-discussion is different, because the pro can still come in.
+discussion is different, because the pro can still come in. Split such a turn
+at the pro's reply: the point the pro answered gets his endorsement, and only
+what the non-pro adds after the reply goes unendorsed. Brodie's 80-percent
+drop mix drew Tanner's "I would stick with it. If you have it, do it.", so it
+is endorsed; his "the heavier the dip, the better", said after, is not.
 
 **Soft disagreement is disagreement.** "I'd push back a little", "I don't love
 that", "not necessarily", "that's more of a 3.5 thing", "I'd rather..." all
