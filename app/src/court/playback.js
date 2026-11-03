@@ -9,7 +9,7 @@
 // timeline (scene.js lookAtFor) so the view never pans.
 
 import { makeArc } from './trajectory.js';
-import { lookAtFor, eyesPlayer } from './scene.js';
+import { lookAtFor, eyesPlayer, framingFor } from './scene.js';
 import { clamp, lerp } from './geometry.js';
 
 const smoothstep = (p) => p * p * (3 - 2 * p);
@@ -45,6 +45,7 @@ export function compileTimeline(scene, { freezeLeadMs = 0 } = {}) {
     responseWindowMs: tl.response_window_ms ?? 3000,
     movements,
     lookAt: lookAtFor(scene),
+    framing: framingFor(scene),
     eyesOf: eyesPlayer(scene)?.id ?? 'you',
   };
 }
@@ -64,18 +65,27 @@ function playerPositions(scene, compiled, ms) {
   });
 }
 
-// Frame at scene time ms. The trail shows only the shot in flight.
+// Frame at scene time ms. The trail shows only the shot in flight; a bounce
+// continues the shot before it, so after a bounce the flight up to it stays
+// drawn and you can see where the ball landed and how it came up.
 export function frameAt(scene, compiled, ms, { reveal = false } = {}) {
   const m = clamp(ms, 0, compiled.total);
-  const seg = compiled.segs.find((s) => m >= s.start && m <= s.end) ?? compiled.segs[compiled.segs.length - 1];
+  const segs = compiled.segs;
+  let i = segs.findIndex((s) => m >= s.start && m <= s.end);
+  if (i < 0) i = segs.length - 1;
+  const seg = segs[i];
+  let first = i;
+  while (first > 0 && segs[first].kind === 'bounce') first--;
   const lt = seg.end > seg.start ? (m - seg.start) / (seg.end - seg.start) : 1;
-  const last = compiled.segs[compiled.segs.length - 1];
+  const last = segs[segs.length - 1];
   return {
     players: playerPositions(scene, compiled, m),
-    ball: { pos: seg.arc.at(lt), arc: seg.arc, t0: 0, t1: lt, hitterId: seg.hitter_id ?? null, segmentId: seg.id },
+    ball: { pos: seg.arc.at(lt), arc: seg.arc, t0: 0, t1: lt, hitterId: segs[first].hitter_id ?? null, segmentId: seg.id },
+    trails: segs.slice(first, i).map((s) => ({ arc: s.arc, t0: 0, t1: 1 })),
     contact: last.arc.p1, // the decision point, where the answer shot starts
     eyesOf: compiled.eyesOf,
     lookAt: compiled.lookAt,
+    framing: compiled.framing,
     reveal: reveal ? (scene.answer_overlay ?? null) : null,
   };
 }
@@ -98,6 +108,7 @@ export function contactFrame(scene, compiled, { reveal = true } = {}) {
     contact: last.arc.p1,
     eyesOf: compiled.eyesOf,
     lookAt: compiled.lookAt,
+    framing: compiled.framing,
     reveal: reveal ? (scene.answer_overlay ?? null) : null,
   };
 }

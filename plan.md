@@ -736,6 +736,28 @@ A12 (one user) is superseded. Eight new tests: the registry, the per-person
 keys, the adoption, the merge and import guards, two people on one fake repo,
 the first screen, and a switch in Settings and on Home.
 
+Progress 2026-11-03: Jeremy's fourth round of phone notes, six items. (1) Balls
+bounced near a player's feet and then turned toward them: 57 of the deck's 66
+bounces turned 2 degrees or more, up to 60, and one bounced back toward the net.
+Every landing spot now sits on the line from the hit to where the ball is met,
+keeping its depth; the ATP roll keeps its sidespin kick, marked `kick`, and the
+scene checker flags any other turn (D28). (2) A quarter to a third of the
+picture was sky, and the ball near him fell out of the bottom (his phone uses
+true first person): the camera now tilts to each scene, putting the highest
+thing it must show just under the top edge (D28). (3) A card asked about
+resetting every ball on the way in but answered about their fourths; both cards
+of that principle now set up dropped thirds, as Tanner's own example does, and
+gloss the fourth as the ball after your drop. (4) Court cards open in your view,
+and a new card opens in the view you last switched to; the toggle moved under
+the picture and the mini-map to the corner away from your paddle (D30). (5) The
+far-side path, dashed and thin, is solid red with a dark edge, and a bounce keeps
+the flight before it drawn. (6) A person's first mention on a card, top to
+bottom, gets the full name and later mentions the first name, applied as the app
+draws the card (D29); non-speakers come from `content/people.json`, and "Kwong"
+is Quang Duong. Left first-name only, with no confirmed spelling: Mark, Tanner's
+APP Cincinnati partner ("Mark Danquart" as transcribed), and Paris, Danni-Elle's
+teammate.
+
 ### Track D: features the goal implies (two or three sessions; runs alongside B and C)
 
 | Step | Work | Tests |

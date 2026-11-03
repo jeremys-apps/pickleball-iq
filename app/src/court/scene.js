@@ -6,7 +6,7 @@
 
 import { COURT, inToFt, facingY } from './geometry.js';
 import { defaultLookAt } from './camera.js';
-import { makeArc } from './trajectory.js';
+import { makeArc, sampleArc } from './trajectory.js';
 
 export const playerById = (scene, id) => scene.players.find((p) => p.id === id);
 
@@ -25,7 +25,8 @@ export function ballNowFt(scene) {
   return null;
 }
 
-// The camera aims at one fixed point per card so playback never pans.
+// The camera aims at one fixed point per card so playback never pans. The
+// renderer keeps this point's heading and sets the tilt from framingFor.
 export function lookAtFor(scene) {
   const la = scene.camera?.look_at;
   if (la) return [la.x, la.y, inToFt(la.z_in ?? 17)];
@@ -35,6 +36,35 @@ export function lookAtFor(scene) {
 export function staticArc(scene) {
   if (!scene.ball?.from || !scene.ball?.now) return null;
   return makeArc(scene.ball.from, scene.ball.now, scene.ball);
+}
+
+// The figures' heads reach about this high (first-person.js draws the head at
+// 5.15 ft with a 0.42 ft radius).
+const HEAD_TOP_FT = 5.6;
+const framings = new WeakMap();
+
+// What the camera keeps in view (camera.js aimFor), as world points in feet:
+// the opponents' heads where they start and where the timeline moves them, the
+// flight of the shot you read (the last shot of a timeline with its bounces),
+// and the point where you meet it. An earlier shot of the lead-in, your own sky
+// ball say, may leave the frame while it flies. Computed once per scene, so
+// every frame of a card is framed alike. The answer is left out, so the framing
+// never hints at it.
+export function framingFor(scene) {
+  let f = framings.get(scene);
+  if (f) return f;
+  const heads = [];
+  for (const p of scene.players) if (p.team === 'them') heads.push([p.x, p.y, HEAD_TOP_FT]);
+  for (const mv of scene.timeline?.movements ?? []) {
+    if (playerById(scene, mv.player_id)?.team === 'them') heads.push([mv.to.x, mv.to.y, HEAD_TOP_FT]);
+  }
+  const segs = scene.timeline?.segments ?? [];
+  let first = segs.length - 1;
+  while (first > 0 && segs[first].kind === 'bounce') first--;
+  const arcs = segs.length ? segs.slice(first).map((s) => makeArc(s.from, s.to, s)) : [staticArc(scene)].filter(Boolean);
+  f = { heads, flight: arcs.flatMap((a) => sampleArc(a, 0, 1, 24)), contact: ballNowFt(scene) };
+  framings.set(scene, f);
+  return f;
 }
 
 // Frame for the static card view. t in [0, 1] moves the ball along its arc.
@@ -51,6 +81,7 @@ export function frameFromScene(scene, t = 1, { reveal = true } = {}) {
     contact: arc ? arc.p1 : null,
     eyesOf: eyesPlayer(scene)?.id ?? 'you',
     lookAt: lookAtFor(scene),
+    framing: framingFor(scene),
     reveal: reveal ? (scene.answer_overlay ?? null) : null,
   };
 }
@@ -112,6 +143,17 @@ export function labelFor(player, eyesOfId) {
 const near = (a, b, tol = 0.5) =>
   Math.hypot(a.x - b.x, a.y - b.y) <= tol && Math.abs((a.z_in ?? 0) - (b.z_in ?? 0)) <= tol * 12;
 
+// A ball without spin keeps its line through a bounce. Small turns are rounding.
+export const BOUNCE_TURN_MAX_DEG = 3;
+const heading = (a, b) => (Math.atan2(b.x - a.x, b.y - a.y) * 180) / Math.PI;
+const groundFt = (s) => Math.hypot(s.to.x - s.from.x, s.to.y - s.from.y);
+// How far a bounce segment turns from the segment before it, in degrees (positive
+// toward +x). A segment with almost no ground travel has no heading to compare.
+export function bounceTurnDeg(before, bounce) {
+  if (groundFt(before) < 0.3 || groundFt(bounce) < 0.3) return 0;
+  return ((heading(bounce.from, bounce.to) - heading(before.from, before.to) + 540) % 360) - 180;
+}
+
 // Semantic checks beyond JSON Schema. Returns [{level: 'error'|'warn', msg}].
 export function checkScene(scene) {
   const issues = [];
@@ -155,6 +197,10 @@ export function checkScene(scene) {
   segs.forEach((s, i) => {
     checkArc(s.from, s.to, s, `timeline segment ${s.id ?? i}`);
     if (i > 0 && !near(segs[i - 1].to, s.from)) warn(`timeline segment ${s.id ?? i} does not start where the previous one ended`);
+    const turn = i > 0 && s.kind === 'bounce' && !s.kick ? bounceTurnDeg(segs[i - 1], s) : 0;
+    if (Math.abs(turn) > BOUNCE_TURN_MAX_DEG) {
+      warn(`timeline segment ${s.id ?? i} turns ${Math.round(turn)} deg off the bounce; put the landing spot on the line from the hit to the contact, or mark a spin kick with "kick": true`);
+    }
   });
   if (segs.length && scene.ball?.now && !near(segs[segs.length - 1].to, scene.ball.now, 1.5)) {
     warn('ball.now does not match the end of the timeline');

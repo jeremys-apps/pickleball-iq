@@ -10,6 +10,8 @@ import { mountCard } from './card-view.js';
 import { shouldMirror } from '../court/mirror.js';
 import { stageFor, applyAidPreference, Rating, State } from '../srs/scheduler.js';
 import { recordReview, saveProgress, newIntroducedOn, localDay, savePending, clearPending, takePending } from '../store/progress.js';
+import { saveSettings } from '../store/settings.js';
+import { makeNamer } from '../names.js';
 
 const REST_MS = 30 * 60000;
 
@@ -111,14 +113,15 @@ export function finalizePending(app, storage = globalThis.localStorage) {
 }
 
 // The cue to carry onto the court: from a missed card first, then a new one.
-function focusCue(results) {
+// Shown on its own, so a person it names gets the full name.
+function focusCue(results, people) {
   const pool = [
     ...results.filter((r) => r.correct === false || r.rating === Rating.Again),
     ...results.filter((r) => r.kind === 'new'),
     ...results,
   ];
   const hit = pool.find((r) => r.card.focus_cue);
-  return hit ? { text: hit.card.focus_cue, card_id: hit.card.id } : null;
+  return hit ? { text: makeNamer(people, hit.card).name(hit.card.focus_cue), card_id: hit.card.id } : null;
 }
 
 // A drill that trains something you missed in this batch.
@@ -183,6 +186,10 @@ export function runSession(root, app, { onBatchEnd } = {}) {
       scheduler: app.scheduler,
       state: entry?.fsrs,
       mirrored: shouldMirror(item.card, entry?.fsrs),
+      onViewChange: (view) => {
+        app.settings = { ...app.settings, courtView: view };
+        saveSettings(app.settings);
+      },
       onAnswered: (r) => {
         if (r.correct == null) return; // self-graded cards simply come back if unrated
         savePending({
@@ -239,7 +246,7 @@ export function runSession(root, app, { onBatchEnd } = {}) {
     const picks = results.filter((r) => r.correct != null);
     const right = picks.filter((r) => r.correct).length;
     const minutes = Math.max(1, Math.round((Date.now() - batchStart) / 60000));
-    const cue = focusCue(results);
+    const cue = focusCue(results, app.index.people);
     const drill = drillFor(results, app.index);
     const up = planBatch(app.index, app.progress, app.settings, { sessionPrinciples });
     const dueNext = up.items.filter((x) => x.kind === 'review').length;

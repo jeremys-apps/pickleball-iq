@@ -649,7 +649,7 @@ def cmd_validate(ctx: Ctx, args):
 
 # ---------------------------------------------------------------- deck
 
-def build_deck(ctx: Ctx, principles: list, scenes: list, cards: list, include_samples: bool = False) -> dict:
+def build_deck(ctx: Ctx, principles: list, scenes: list, cards: list, include_samples: bool = False, people: list | None = None) -> dict:
     d = ctx.cfg.get("deck", {})
     allowed = set(d.get("allowed_endorsements", ["pro_stated", "endorsed_explicit", "endorsed_implicit", "qualified"]))
     allow_notes = bool(d.get("allow_show_notes_sources", False))
@@ -699,6 +699,12 @@ def build_deck(ctx: Ctx, principles: list, scenes: list, cards: list, include_sa
     shows = {sid: {"name": ctx.shows[sid]["name"]} for sid in sorted(show_ids) if sid in ctx.shows}
 
     body = {"principles": kept, "scenes": kept_scenes, "cards": kept_cards}
+    # Other people the kept cards name in full (content/people.json), so the app
+    # can give a person's full name at their first mention on a card.
+    card_words = json.dumps(kept_cards, ensure_ascii=False)
+    named = sorted({n for n in people or [] if n in card_words})
+    if named:
+        body["people"] = named
     digest = hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
     return {
         "schema_version": 1,
@@ -724,7 +730,7 @@ def cmd_build_deck(ctx: Ctx, args):
     if errs:
         print("\n".join(errs))
         sys.exit(f"{len(errs)} problems in content/. Fix them before building.")
-    deck = build_deck(ctx, principles, scenes, cards, include_samples=args.include_samples)
+    deck = build_deck(ctx, principles, scenes, cards, include_samples=args.include_samples, people=load("people.json"))
     derr = list(v["deck"].iter_errors(deck))
     if derr:
         sys.exit("Built deck failed validation: " + derr[0].message)

@@ -254,8 +254,11 @@ says when a note is inside), a Watch the play button under the picture, and the
 rating buttons. Watch the play shows their shot arriving with the answer hidden,
 then your answer shot flying from the contact point to its target with its path
 growing behind the ball; on a timed card the button reads Watch again (D25).
-Play and the replay share that spot under the picture, so nothing is drawn over
-the court (D24).
+Play and the replay share that spot under the picture, with the view toggle
+beside them on a phone, so nothing is drawn over the court (D24, D30).
+
+A person a card names gets their full name at the first mention, reading top
+to bottom, and the first name after that (D29).
 
 ### 8.3 Court rendering
 
@@ -263,13 +266,21 @@ Scenes are data; the renderer draws them the same way every time
 (`docs/rendering-notes.md`). The main view is from your position. The default
 camera sits just over your shoulder (2.3 ft to the side away from your paddle,
 2.7 ft back, 0.4 ft up) because a shot coming straight at your eyes collapses
-into a line in a true first-person view; true first person is a setting.
+into a line in a true first-person view; true first person is a setting. The
+camera keeps one heading per card and tilts down as far as the scene allows:
+the highest thing it must show (an opponent's head, the top of the incoming
+shot) sits just under the top edge, so the picture is mostly court and the ball
+stays in view as it comes close (D28).
 
-Aids that make the flight readable: the path dashed on their side of the net and
-solid on yours, a shadow on the court, a dashed stalk from ball to shadow, and a
-tick on the stalk at net height so above-net and below-net balls are unmistakable.
+Aids that make the flight readable: the path red with a dark edge on their side
+of the net and yellow on yours, a shadow on the court, a dashed stalk from ball
+to shadow, and a tick on the stalk at net height so above-net and below-net
+balls are unmistakable.
 Players are upright figures with paddles on the correct side; the top-down and
 mini-map views label backhands and show your camera's field of view as a wedge.
+A bounce keeps the shot's line, so the ball heads straight at its target; only a
+spin kick a card is about turns off the bounce (D28). After a bounce the flight
+before it stays drawn, so you can see where the ball landed.
 The answer overlay (target zone, shot path, player moves) stays hidden until you answer. A mirrored card is an exact reflection of its scene, camera included, so it is the same situation seen from the other side of the court; only cards whose text names no side are mirrored. Reference renders of the sample scenes are in `docs/img/` (`npm run renders`).
 
 ### 8.4 Aid fading
@@ -304,7 +315,7 @@ real speed and the shorter window apply either way.
 | | Phone (under 900 px wide) | Laptop (900 px and wider) |
 |---|---|---|
 | Court view | Full width, 360 x 380 viewBox | Left column (three fifths), 800 x 500 viewBox, sticky while scrolling |
-| Top-down | Inset mini-map in the corner; full top-down (cropped to the action) below the court after answering; a toggle swaps the main view in stage A and after answering | Side panel above the question |
+| Top-down | Inset mini-map in the bottom corner away from your paddle; full top-down (cropped to the action) below the court after answering; a toggle under the picture swaps the main view in stage A and after answering. A court card opens in your view; a new card opens in the view you last switched to (D30) | Side panel above the question |
 | Choices and ratings | Large touch targets; the text under the question 1 pt larger than on a laptop; ratings stick to the bottom of the screen | Right column |
 
 Body text, the choices and everything smaller, is 1 pt larger than the type

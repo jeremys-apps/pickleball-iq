@@ -9,12 +9,14 @@
 // timed card, shows an answer, or accepts the suggested rating. R replays.
 
 import { h, isWide, formatInterval, WIDE_QUERY } from './dom.js';
-import { frameFromScene, answerFrame, answerArc } from '../court/scene.js';
+import { frameFromScene, answerFrame, answerArc, eyesPlayer } from '../court/scene.js';
+import { paddleSideX } from '../court/geometry.js';
 import { renderFirstPerson } from '../court/first-person.js';
 import { renderTopDown } from '../court/top-down.js';
 import { createPlayer } from '../court/playback.js';
 import { mirrorScene } from '../court/mirror.js';
 import { pickOptions } from '../choices.js';
+import { makeNamer } from '../names.js';
 import { suggestRating, Rating } from '../srs/scheduler.js';
 import { sourceLines } from './provenance.js';
 
@@ -31,7 +33,7 @@ const LAPTOP_FP = { width: 800, height: 500 };
 // read should have been, while the question itself is posed with the stage's aids.
 const FULL_AIDS = Object.freeze({ path: true, shadow: true, stalk: true });
 
-// ctx: {card, index, stage, settings, scheduler, state, onDone(result)}
+// ctx: {card, index, stage, settings, scheduler, state, onDone(result), onViewChange(view)}
 // result: {rating, correct, timedOut, choice, responseMs, view}
 export function mountCard(root, ctx) {
   const { card, index, stage, settings, scheduler, state, onDone } = ctx;
@@ -43,6 +45,12 @@ export function mountCard(root, ctx) {
   const timed = card.type === 'timed_decision' && !!scene?.timeline;
   // The choices for this showing: one correct phrasing and up to three wrong answers.
   const shown = mc ? pickOptions(card, ctx.showing ?? state?.reps ?? 0) : [];
+  // A person's first mention on screen gets the full name, later ones the first
+  // name, so every text goes through the namer in the order it appears.
+  const note = card.claude_note ?? principle?.claude_note;
+  const namer = makeNamer(index.people, card, note);
+  const promptText = namer.name(card.prompt);
+  const optionTexts = new Map(shown.map((o) => [o.id, namer.name(o.text)]));
   const cameraMode = settings.cameraMode ?? 'over_shoulder';
   const panelKind = stage.panel; // callers apply the mature-card preference
   // designWindowMs is the card's window at this stage and drives the rating
@@ -53,7 +61,10 @@ export function mountCard(root, ctx) {
     timed && stage.windowScale ? Math.round((scene.timeline.response_window_ms ?? 3000) * stage.windowScale) : null;
   const windowMs = designWindowMs == null ? null : Math.round(designWindowMs * (settings.chooseTimeScale ?? 1));
 
-  let hero = !isWide() && card.preferred_view === 'top_down' && stage.id === 'A' ? 'top_down' : 'first_person';
+  // A court card opens in your view. On a phone a new card (stage A) opens in
+  // the view you last switched to instead; later stages fade the top-down map,
+  // so they always open in your view.
+  let hero = !isWide() && settings.courtView === 'top_down' && stage.id === 'A' ? 'top_down' : 'first_person';
   let frame = scene ? frameFromScene(scene) : null;
   let player = null;
   let started = !timed;
@@ -68,7 +79,9 @@ export function mountCard(root, ctx) {
 
   const view = h('article', { class: `card-view is-${card.type} stage-${stage.id}${scene ? ' has-stage' : ''}` });
   const heroEl = h('div', { class: 'hero' });
-  const insetEl = h('div', { class: 'inset' });
+  // The mini-map sits in the bottom corner away from your paddle, where the
+  // ball you meet never is.
+  const insetEl = h('div', { class: scene && paddleSideX(eyesPlayer(scene)) < 0 ? 'inset is-right' : 'inset' });
   const clockEl = h('div', { class: 'clock', hidden: true, 'aria-hidden': 'true' }, h('i'));
   const panelEl = h('div', { class: 'panel' });
   const optionsEl = h('div', { class: 'options', role: 'group', 'aria-label': 'Choices' });
@@ -81,6 +94,7 @@ export function mountCard(root, ctx) {
       type: 'button',
       onclick: () => {
         hero = hero === 'first_person' ? 'top_down' : 'first_person';
+        ctx.onViewChange?.(hero); // remembered for the cards that follow
         draw();
       },
     },
@@ -89,11 +103,15 @@ export function mountCard(root, ctx) {
   // Play and, after the answer, the replay share one spot under the picture, so
   // neither covers the court and the replay starts with the picture in view. A
   // static card never played before the answer, so its button is not a "replay".
+  // The view toggle sits beside them: the top of the picture is the far court.
   const playBtn = timed ? h('button', { class: 'btn primary play', type: 'button', onclick: () => start() }, 'Play') : null;
   const replayBtn = scene ? h('button', { class: 'btn replay', type: 'button', onclick: () => replay() }, timed ? 'Watch again' : 'Watch the play') : null;
   // With reduced motion the replay skips the flights and shows the finished picture.
   const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const motionEl = h('div', { class: 'motion', hidden: !timed }, playBtn);
+  const motionEl = h('div', { class: 'motion' }, playBtn, toggle);
+  const syncMotion = () => {
+    motionEl.hidden = [...motionEl.children].every((b) => b.hidden);
+  };
   const showBtn = mc ? null : h('button', { class: 'btn primary', type: 'button', onclick: () => showAnswer() }, 'Show answer');
   // Reading happens before Play; the clock covers only the choice after the freeze.
   const hint = timed
@@ -129,6 +147,7 @@ export function mountCard(root, ctx) {
     panelEl.innerHTML = panel;
     toggle.hidden = wide || !(stage.id === 'A' || answered);
     toggle.textContent = hero === 'first_person' ? 'Top-down' : 'Your view';
+    syncMotion();
   }
 
   function replay() {
@@ -208,7 +227,7 @@ export function mountCard(root, ctx) {
     if (started) return;
     started = true;
     playBtn.hidden = true;
-    motionEl.hidden = true;
+    syncMotion();
     if (hint) hint.hidden = true;
     view.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
     player.play(0);
@@ -238,7 +257,7 @@ export function mountCard(root, ctx) {
           'button',
           { class: 'option', type: 'button', disabled: !optionsLive, dataset: { id: o.id }, onclick: () => answer(o.id) },
           h('span', { class: 'key', 'aria-hidden': 'true' }, String(i + 1)),
-          h('span', { class: 'text' }, o.text),
+          h('span', { class: 'text' }, optionTexts.get(o.id)),
         ),
       );
     });
@@ -262,7 +281,7 @@ export function mountCard(root, ctx) {
       b.disabled = true;
       if (o.correct) b.classList.add('is-correct');
       if (o.id === choiceId) b.classList.add('is-chosen');
-      if ((o.id === choiceId || o.correct) && o.feedback) b.append(h('span', { class: 'fb' }, o.feedback));
+      if ((o.id === choiceId || o.correct) && o.feedback) b.append(h('span', { class: 'fb' }, namer.name(o.feedback)));
     }
     if (timed) {
       // The reveal shows the moment of contact: players where the lead-in moved
@@ -293,23 +312,24 @@ export function mountCard(root, ctx) {
       const verdict = r.correct ? 'Correct' : r.timedOut ? 'Time ran out' : 'Not quite';
       parts.push(h('p', { class: `verdict ${r.correct ? 'good' : 'bad'}` }, verdict));
     } else {
-      parts.push(h('p', { class: 'answer' }, card.answer));
+      parts.push(h('p', { class: 'answer' }, namer.name(card.answer)));
     }
-    parts.push(h('p', {}, card.explanation));
-    if (card.focus_cue) parts.push(h('p', { class: 'focus-cue' }, `On court: ${card.focus_cue}`));
+    parts.push(h('p', {}, namer.name(card.explanation)));
+    if (card.focus_cue) parts.push(h('p', { class: 'focus-cue' }, `On court: ${namer.name(card.focus_cue)}`));
     // Who said it and Claude's own note, folded away under the lesson. The note
-    // keeps its own box so it is never read as a pro's words.
-    const sources = sourceLines(principle, index).map((s) =>
-      h('p', { class: 'source' }, s.text, s.url ? [' ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, 'Episode')] : null),
-    );
-    const note = card.claude_note ?? principle?.claude_note;
+    // keeps its own box so it is never read as a pro's words. The source lines
+    // always give full names; the note after them follows the naming rule.
+    const sources = sourceLines(principle, index).map((s) => {
+      namer.mark(s.text);
+      return h('p', { class: 'source' }, s.text, s.url ? [' ', h('a', { href: s.url, target: '_blank', rel: 'noopener' }, 'Episode')] : null);
+    });
     if (sources.length || note) {
       // The summary says when a note is inside, so a clarification is not missed.
-      parts.push(h('details', { class: 'source-info' }, h('summary', {}, note ? 'Source info and a note' : 'Source info'), sources, note ? h('p', { class: 'claude-note' }, h('b', {}, 'Additional note: '), note) : null));
+      parts.push(h('details', { class: 'source-info' }, h('summary', {}, note ? 'Source info and a note' : 'Source info'), sources, note ? h('p', { class: 'claude-note' }, h('b', {}, 'Additional note: '), namer.name(note)) : null));
     }
     if (scene) {
-      motionEl.replaceChildren(replayBtn);
-      motionEl.hidden = false;
+      motionEl.replaceChildren(replayBtn, toggle);
+      syncMotion();
     }
     // A mirrored showing is not announced: the flipped court is simply another
     // look at the same situation. The review log still records it.
@@ -384,8 +404,8 @@ export function mountCard(root, ctx) {
     player?.stop();
   }
 
-  const side = h('div', { class: 'side' }, panelEl, hint, h('p', { class: 'prompt' }, card.prompt), mc ? optionsEl : showBtn, afterEl);
-  const courtEl = h('div', { class: 'court' }, h('div', { class: 'stage' }, heroEl, insetEl, clockEl, toggle), motionEl);
+  const side = h('div', { class: 'side' }, panelEl, hint, h('p', { class: 'prompt' }, promptText), mc ? optionsEl : showBtn, afterEl);
+  const courtEl = h('div', { class: 'court' }, h('div', { class: 'stage' }, heroEl, insetEl, clockEl), motionEl);
   if (scene) view.append(courtEl);
   view.append(side);
   root.replaceChildren(view);

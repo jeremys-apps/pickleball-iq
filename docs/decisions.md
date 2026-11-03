@@ -177,3 +177,49 @@ shared device can live with shared preferences. Considered and rejected: a
 separate progress folder per person set by hand in Settings (a typo would merge
 two people, and a shared device would have nowhere to switch), and accounts (out
 of scope, section 2 of the PRD).
+
+**D28. The camera tilts to the scene, and a bounce keeps the shot's line.**
+Jeremy's phone notes (2026-11-03): a quarter to a third of the picture was sky
+above the opponents' heads, and the ball near him, which he can see on court
+even when it is low, fell out of the bottom of the frame; and balls bounced near
+a player's feet and then turned toward them. The camera keeps its heading per
+card and now takes its tilt from the scene: down until the highest thing it must
+show, an opponent's head or the top of the shot you read, sits 7 percent below
+the top edge, never so far that the horizon drops below that line. Raising the
+principal point or lowering the old aim point by a fixed amount was considered
+and rejected: either cut off lobs, which need the room above the horizon, and a
+fixed amount suits a baseline view or a kitchen view but not both. The answer
+overlay stays out of the fit so the framing never hints at the answer. Of 66
+bounces in the deck, 57 turned 2 degrees or more, some by 35 to 60 degrees, and
+one bounced back toward the net. Each landing spot moved across onto the line
+from the hit to where the ball is met, keeping its depth, so the ball heads at
+its target the whole way. The ATP scene keeps its kick, a sidespin roll running
+wide past the post, marked `"kick": true`; the scene checker flags any other
+turn. With the tilt the phone's mini-map moved to the bottom corner away from
+your paddle, where the ball you meet never is.
+
+**D29. A person's full name goes with their first mention on a card.** Jeremy
+asked (2026-11-03) that the first mention of a person, reading top to bottom,
+carry the last name, and every later one the first name alone. The choices
+change order and selection between showings, so no fixed wording can know which
+mention comes first; the app applies the rule as it draws a card, in the order
+texts appear (question, choices, then feedback, explanation, court cue and the
+note). The source lines keep their full names and count as a mention. Speakers'
+names come from the deck's speaker list. Other people a card names come from
+`content/people.json` in the data repo, which `build-deck` copies into the deck,
+and count on a card only when its text gives the full name somewhere, so a first
+name that is also an ordinary word ("Will", "Mark") never picks up a last name
+elsewhere. An earlier request for full names on every mention was withdrawn
+(2026-10-02) before anything changed.
+
+**D30. Court cards open in your view; the view toggle lives under the picture.**
+Cards written to lead with the top-down map opened in it, which Jeremy did not
+want (2026-11-03). Every court card now opens in your view, and on a phone a new
+card opens in the view you last switched to, kept with the device settings
+(`courtView`); later stages open in your view regardless, since they fade the
+map. With the picture tilted down, the top of the frame is the far court, and the
+toggle there covered an opponent's head in 16 to 38 percent of the scenes (by
+camera mode and hand), so it moved
+under the picture beside Play and Watch the play, extending D24. `preferred_view`
+stays in the card schema so existing cards validate, but the app no longer reads
+it.

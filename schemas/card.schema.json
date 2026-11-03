@@ -52,7 +52,7 @@
         "first_person",
         "top_down"
       ],
-      "description": "Which view leads for new cards. Aid fading may override."
+      "description": "No longer read by the app (November 2026): every court card opens in your view, and on a phone a new card opens in the view you last switched to. Kept so existing cards validate."
     },
     "options": {
       "type": "array",

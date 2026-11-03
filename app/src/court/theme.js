@@ -21,6 +21,11 @@ export const TOKENS = Object.freeze({
   ball: '#D9F03E',
   ballStroke: '#3D4806',
   path: '#F5C443',
+  // Their side of the net: a solid red path with a dark edge, so a ball's flight
+  // and bounce over the far court stand out from the court, its lines and the
+  // orange opponents. The switch from red to yellow marks the net crossing.
+  pathFar: '#FF4D6D',
+  pathCasing: 'rgba(8, 14, 22, 0.6)',
   shadow: 'rgba(0, 0, 0, 0.38)',
   stalk: 'rgba(255, 255, 255, 0.8)',
   tick: '#FFFFFF',
@@ -59,7 +64,8 @@ function rules(val) {
 .piq-stalk{stroke:${val('stalk')};stroke-width:1.2;stroke-dasharray:3 3;fill:none}
 .piq-tick{stroke:${val('tick')};stroke-width:2.4;stroke-linecap:round}
 .piq-path{stroke:${val('path')};fill:none;stroke-linecap:round}
-.piq-path-far{stroke-dasharray:5 4}
+.piq-path-far{stroke:${val('pathFar')};stroke-linejoin:round}
+.piq-path-casing{stroke:${val('pathCasing')};fill:none;stroke-linecap:round;stroke-linejoin:round}
 .piq-answer{stroke:${val('answer')};fill:none;stroke-width:3;stroke-linecap:round}
 .piq-answer-zone{fill:${val('answerZone')};stroke:${val('answer')};stroke-width:1.2;stroke-dasharray:4 3}
 .piq-arrowhead{fill:${val('answer')}}

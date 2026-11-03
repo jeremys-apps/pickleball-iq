@@ -23,8 +23,21 @@ far baseline comfortably below the top edge. Geometry is clipped against a near
 plane at 0.5 ft: polygons with Sutherland-Hodgman, segments individually, so the
 court floor and nearby players never flip behind the eye.
 
-The camera aims at one fixed point per card (`lookAtFor` in `scene.js`), computed
-from the static scene, so animated playback never pans.
+The camera's heading comes from one fixed point per card (`lookAtFor` in
+`scene.js`), computed from the static scene, so animated playback never pans.
+Its tilt comes from the scene's framing (`framingFor` in `scene.js`, `aimFor` in
+`camera.js`): the opponents' heads, the flight of the shot you read (the last
+shot of a timeline with its bounces) and the point where you meet it. The camera
+tilts down until the highest of those sits `topMarginRatio` (7 percent) below
+the top edge, and the horizon never drops below that line, so a card is mostly
+court with a thin band of sky and a ball coming close stays in view (Jeremy's
+phone notes, 2026-11-03: too much sky above the opponents, and the ball near
+you, which you can see on court, fell out of the bottom). A point's height on
+screen depends only on its elevation along the heading, so the tilt works the
+same at every viewport size. When a high ball and the meeting point cannot both
+fit, the meeting point wins as long as the opponents' heads stay in view. An
+earlier shot of the lead-in (your own sky ball, say) may leave the frame while it
+flies, and the answer overlay is left out so the framing never hints at it.
 
 **Why over the shoulder.** A ball coming straight at your eyes stays on the line
 of sight, so its projection barely moves: the whole arc collapses into a short
@@ -47,10 +60,20 @@ from both cameras.
 Players are billboards: upright figures with a head, torso, arms and a paddle on
 the correct side, scaled by depth and always facing the camera. A near-side
 player whose feet project off-screen is skipped rather than drawn as a giant
-fragment. The ball path is sampled from the arc, drawn dashed on their side of
-the net and solid on yours, with stroke width tapered by depth. Draw order is
+fragment. The ball path is sampled from the arc, drawn red with a dark edge on
+their side of the net and yellow on yours, with the yellow width tapered by
+depth. The far side keeps one width (2.4 px) because perspective would thin it
+past reading; it was dashed until November 2026, when Jeremy found the dashes
+hard to follow on cards that turn on how the ball bounces on their side. Red
+leans toward pink so it stays apart from the orange opponents. Draw order is
 depth-sorted in two groups split by the net, so far-side objects never overlap
 near-side ones incorrectly.
+
+A bounce carries the ball on along the line of the shot before it: a scene puts
+the landing spot on the straight line from the hit to where the ball is met, so
+the ball heads at its target the whole way. Only a spin kick the card is about
+may turn off the bounce, marked `"kick": true` on the bounce segment;
+`checkScene` warns about any other turn of more than `BOUNCE_TURN_MAX_DEG`.
 
 ## Ball flight model
 
@@ -100,7 +123,8 @@ fits a phone screen. `renderSideView` shows heights against the net for the lab.
 
 `playback.js` compiles a scene's timeline into chained segments. `frameAt` is a
 pure function from time to frame (ball position, trail, player positions), which
-keeps animation testable. `createPlayer` drives it with `requestAnimationFrame`,
+keeps animation testable. While the ball bounces, the flight of its shot up to
+the bounce stays drawn as a trail, so the landing spot stays on screen. `createPlayer` drives it with `requestAnimationFrame`,
 applies the stage speed, stops at `freeze_at_ms`, and honors reduced motion by
 freezing immediately. The stage's `freezeLeadMs` pulls that stop earlier than
 `freeze_at_ms`, clamped so at least `MIN_FLIGHT_MS` of the last shot is shown

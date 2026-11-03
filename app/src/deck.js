@@ -8,6 +8,7 @@
 // insecure origins, some private windows).
 
 import { loadSyncConfig, isConfigured, makeGitHubClient, pullDeck } from './store/github-sync.js';
+import { peopleOf } from './names.js';
 
 export const DECK_CACHE_KEY = 'piq.deck.cache.v1'; // localStorage: migration source and no-Cache-API fallback
 export const DECK_CACHE_NAME = 'piq-data-v1'; // must not start with 'court-sense-': sw.js deletes those on activate
@@ -121,5 +122,6 @@ export function indexDeck(deck) {
     speakers: deck.speakers ?? {},
     episodes: deck.episodes ?? {},
     shows: deck.shows ?? {},
+    people: peopleOf(deck), // full names, for naming people on cards (names.js)
   };
 }

@@ -16,6 +16,10 @@ export const CAMERA_DEFAULTS = Object.freeze({
   // wider screens simply see more to the sides.
   focalPerHeight: 0.6,
   centerYRatio: 0.4625,
+  // Framing (aimFor): the highest thing the card shows sits this far below the
+  // top edge, and the ball where you meet it at least this far above the bottom.
+  topMarginRatio: 0.07,
+  bottomMarginRatio: 0.06,
 });
 
 export const CAMERA_MODES = Object.freeze(['over_shoulder', 'first_person']);
@@ -39,6 +43,41 @@ export function defaultLookAt(player, ballNowFt, opts = {}) {
   const side = paddleSideX(player);
   const x = ballNowFt ? ballNowFt[0] + 0.5 * side : player.x + side;
   return [x, COURT.netY, o.lookHeightFt];
+}
+
+// The point to aim at from `eye`: the heading of lookAt, tilted down as far as
+// the framing allows, so the picture holds as much court and as little sky as
+// it can. The highest thing to show (an opponent's head, the top of the ball's
+// flight) sits topMarginRatio below the top edge, and the horizon never drops
+// below that line. When a high ball and the point where you meet it cannot both
+// fit, the meeting point wins, as long as the opponents' heads stay in view.
+// framing: {heads, flight, contact} from scene.js framingFor.
+export function aimFor(eye, lookAt, framing, view, opts = {}) {
+  const o = { ...CAMERA_DEFAULTS, ...opts };
+  const dx = lookAt[0] - eye[0];
+  const dy = lookAt[1] - eye[1];
+  const L = Math.hypot(dx, dy);
+  if (L < 1e-6) return lookAt;
+  const hx = dx / L;
+  const hy = dy / L;
+  // Elevation above the eye, seen along the heading. A point's height on screen
+  // depends only on this angle, whatever its offset to the side.
+  const elevation = (p) => {
+    const ahead = (p[0] - eye[0]) * hx + (p[1] - eye[1]) * hy;
+    return ahead > o.nearDepthFt ? Math.atan2(p[2] - eye[2], ahead) : null;
+  };
+  const highest = (pts) => Math.max(0, ...(pts ?? []).map(elevation).filter((a) => a != null));
+  const focal = view.focal ?? view.height * o.focalPerHeight;
+  const cy = view.height * o.centerYRatio;
+  const upRoom = Math.atan((cy - view.height * o.topMarginRatio) / focal);
+  const downRoom = Math.atan((view.height * (1 - o.bottomMarginRatio) - cy) / focal);
+  // pitch is the downward tilt. Nothing below the horizon pushes it past upRoom.
+  let pitch = upRoom - Math.max(highest(framing.heads), highest(framing.flight));
+  const contact = framing.contact ? elevation(framing.contact) : null;
+  if (contact != null && pitch < -downRoom - contact) {
+    pitch = Math.min(-downRoom - contact, upRoom - highest(framing.heads));
+  }
+  return [eye[0] + hx * L, eye[1] + hy * L, eye[2] - Math.tan(pitch) * L];
 }
 
 export function makeCamera(eye, target, view, opts = {}) {

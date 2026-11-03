@@ -207,7 +207,9 @@ test('timed card: play, freeze unlocks options, time running out counts as a mis
   await new Promise((r) => setTimeout(r, 80));
   assert.equal(host.querySelector('.verdict').textContent, 'Time ran out');
   assert.ok(!host.querySelector('.motion').hidden);
-  assert.equal(host.querySelector('.motion').textContent, 'Watch again', 'Watch again takes the place of Play');
+  assert.equal(host.querySelector('.motion .replay').textContent, 'Watch again', 'Watch again takes the place of Play');
+  assert.equal(host.querySelector('.motion .play'), null);
+  assert.equal(host.querySelector('.stage button'), null, 'no button is drawn over the court, the view toggle included');
   host.querySelector('.rating.suggested').click();
   assert.equal(result.timedOut, true);
   assert.equal(result.rating, 1);
@@ -268,6 +270,74 @@ function answerUntilSummary(root, app, max = 60) {
     root.querySelector('.rating.suggested').click();
   }
 }
+
+test('a court card opens in your view, and on a phone a new card opens in the view you last switched to', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const host = document.getElementById('app');
+  const views = [];
+  const mount = (id, stage, settings = app.settings) =>
+    m.mountCard(host, { card: app.index.cards.get(id), index: app.index, stage, settings, scheduler: app.scheduler, onDone: () => {}, onViewChange: (v) => views.push(v) });
+  // c-backhands-td-1 was written to lead with the map (preferred_view top_down).
+  mount('c-backhands-td-1', m.sched.STAGES.A);
+  assert.ok(host.querySelector('.hero svg.piq-fp'), 'your view first');
+  const toggle = host.querySelector('.court .motion .toggle-view');
+  assert.ok(toggle && !toggle.hidden, 'the toggle sits under the picture');
+  assert.equal(toggle.textContent, 'Top-down');
+  toggle.click();
+  assert.ok(host.querySelector('.hero svg.piq-td'));
+  assert.deepEqual(views, ['top_down'], 'the switch is reported so it can be remembered');
+  mount('c-dink-fp-1', m.sched.STAGES.A, { ...app.settings, courtView: 'top_down' });
+  assert.ok(host.querySelector('.hero svg.piq-td'), 'the next new card opens in the view you chose');
+  mount('c-dink-fp-1', m.sched.STAGES.B, { ...app.settings, courtView: 'top_down' });
+  assert.ok(host.querySelector('.hero svg.piq-fp'), 'later stages fade the map, so they open in your view');
+  assert.ok(host.querySelector('.motion').hidden, 'no toggle before the answer in stage B, so the row under the picture is empty');
+});
+
+test('in a session, the view you switch to is saved with the device settings', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const root = document.getElementById('app');
+  m.runSession(root, app, {});
+  for (let guard = 0; guard < 20 && !root.querySelector('.motion .toggle-view:not([hidden])'); guard++) answerUntilSummary(root, app, 1);
+  root.querySelector('.motion .toggle-view').click();
+  assert.equal(app.settings.courtView, 'top_down');
+  assert.equal(m.settings.loadSettings().courtView, 'top_down', 'kept for the next start');
+});
+
+test('the mini-map sits in the bottom corner away from your paddle', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const host = document.getElementById('app');
+  const mount = (mirrored) =>
+    m.mountCard(host, { card: app.index.cards.get('c-dink-fp-1'), index: app.index, stage: m.sched.STAGES.B, settings: app.settings, scheduler: app.scheduler, mirrored, onDone: () => {} });
+  mount(false);
+  assert.ok(host.querySelector('.inset svg') && !host.querySelector('.inset').classList.contains('is-right'), 'a right-hander meets the ball on the right');
+  mount(true); // the mirror image makes you a left-hander
+  assert.ok(host.querySelector('.inset').classList.contains('is-right'));
+});
+
+test('a person gets the full name at the first mention on a card, top to bottom, and the first name after that', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const named = structuredClone(deck);
+  named.speakers = { 'tanner-tomassi': { name: 'Tanner Tomassi', tier: 'touring_pro' } };
+  const card = named.cards.find((c) => c.id === 'c-dink-fp-1');
+  card.prompt = "Tanner's dink rule: what's the play?";
+  for (const o of card.options) if (o.correct) o.feedback = 'Yes. Tanner Tomassi lets it bounce.';
+  card.explanation = 'Tanner lets this one bounce.';
+  const app = { ...makeApp(m), index: m.deckMod.indexDeck(named) };
+  const host = document.getElementById('app');
+  m.mountCard(host, { card, index: app.index, stage: m.sched.STAGES.A, settings: app.settings, scheduler: app.scheduler, onDone: () => {} });
+  assert.equal(host.querySelector('.prompt').textContent, "Tanner Tomassi's dink rule: what's the play?");
+  const right = [...host.querySelectorAll('.option')].find((b) => card.options.find((o) => o.id === b.dataset.id).correct);
+  right.click();
+  assert.equal(right.querySelector('.fb').textContent, 'Yes. Tanner lets it bounce.', 'a full name written later becomes the first name');
+  assert.equal(host.querySelector('.after p:not(.verdict)').textContent, 'Tanner lets this one bounce.');
+});
 
 test('a batch runs to its summary, records progress, and offers to keep going', { skip }, async () => {
   setupDom();

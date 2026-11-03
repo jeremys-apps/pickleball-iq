@@ -22,7 +22,8 @@
 .piq-stalk{stroke:rgba(255, 255, 255, 0.8);stroke-width:1.2;stroke-dasharray:3 3;fill:none}
 .piq-tick{stroke:#FFFFFF;stroke-width:2.4;stroke-linecap:round}
 .piq-path{stroke:#F5C443;fill:none;stroke-linecap:round}
-.piq-path-far{stroke-dasharray:5 4}
+.piq-path-far{stroke:#FF4D6D;stroke-linejoin:round}
+.piq-path-casing{stroke:rgba(8, 14, 22, 0.6);fill:none;stroke-linecap:round;stroke-linejoin:round}
 .piq-answer{stroke:#5FE3A8;fill:none;stroke-width:3;stroke-linecap:round}
 .piq-answer-zone{fill:rgba(95, 227, 168, 0.3);stroke:#5FE3A8;stroke-width:1.2;stroke-dasharray:4 3}
 .piq-arrowhead{fill:#5FE3A8}

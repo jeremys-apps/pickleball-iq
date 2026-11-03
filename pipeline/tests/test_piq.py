@@ -256,6 +256,15 @@ class DeckTests(TempData):
         tight = piq.build_deck(self.ctx, ps, [], cs)
         self.assertEqual({p["id"] for p in tight["principles"]}, {"p-stated"}, "tightening drops implicit endorsements")
 
+    def test_people_the_cards_name(self):
+        ps = [self.principle("p-stated", "pro_stated")]
+        c = self.card("c-1", "p-stated")
+        c["explanation"] = "Tanner and his partner Richard Livornese drop their thirds."
+        deck = piq.build_deck(self.ctx, ps, [], [c], people=["Richard Livornese", "Ben Johns"])
+        self.assertEqual(deck["people"], ["Richard Livornese"], "only people a card in the deck names")
+        self.assertEqual(list(piq.validators()["deck"].iter_errors(deck)), [])
+        self.assertNotIn("people", piq.build_deck(self.ctx, ps, [], [self.card("c-1", "p-stated")], people=["Ben Johns"]))
+
     def test_samples_only_on_request(self):
         args = (SAMPLE["principles"], SAMPLE["scenes"], SAMPLE["cards"])
         self.assertEqual(piq.build_deck(self.ctx, *args)["cards"], [])

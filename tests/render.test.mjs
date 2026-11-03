@@ -3,11 +3,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { frameFromScene, checkScene, answerFrame, answerArc } from '../app/src/court/scene.js';
+import { frameFromScene, checkScene, answerFrame, answerArc, framingFor, bounceTurnDeg, BOUNCE_TURN_MAX_DEG } from '../app/src/court/scene.js';
 import { renderFirstPerson } from '../app/src/court/first-person.js';
 import { renderTopDown, renderSideView } from '../app/src/court/top-down.js';
 import { makeArc } from '../app/src/court/trajectory.js';
 import { netHeightFt, paddleSideX } from '../app/src/court/geometry.js';
+import { project, CAMERA_DEFAULTS } from '../app/src/court/camera.js';
+import { mirrorScene } from '../app/src/court/mirror.js';
+import { TOKENS } from '../app/src/court/theme.js';
 import { compileTimeline, frameAt, contactFrame, createPlayer, MIN_FLIGHT_MS } from '../app/src/court/playback.js';
 
 const deck = JSON.parse(readFileSync(new URL('../app/data/deck.sample.json', import.meta.url)));
@@ -63,10 +66,101 @@ test('over-the-shoulder view spreads a straight-on path wider than true first pe
   assert.ok(sOts > sFp * 1.5, `expected OTS spread (${sOts.toFixed(1)}) well above FP (${sFp.toFixed(1)})`);
 });
 
-test('path is dashed beyond the net and solid on your side', () => {
-  const { svg } = renderFirstPerson(frameFromScene(scene('s-floater-backhands')));
-  assert.match(svg, /piq-path piq-path-far/);
-  assert.match(svg, /<line class="piq-path"/);
+test('the path is solid red with a dark edge beyond the net and yellow on your side', () => {
+  const f = frameFromScene(scene('s-floater-backhands'));
+  for (const svg of [renderFirstPerson(f, { embedCss: true }).svg, renderTopDown(f, { embedCss: true }).svg]) {
+    assert.match(svg, /<polyline class="piq-path-casing"[^>]*\/><polyline class="piq-path piq-path-far"/, 'the edge is drawn under the red line');
+    assert.match(svg, new RegExp(`\\.piq-path-far\\{stroke:${TOKENS.pathFar}`));
+    assert.doesNotMatch(svg, /\.piq-path-far\{[^}]*dasharray/, 'no dashes');
+  }
+  assert.match(renderFirstPerson(f).svg, /<line class="piq-path"/);
+});
+
+// Where a world point lands on screen, as a fraction of the height.
+const screenY = (fp, p) => project(fp.camera, p).y / fp.camera.height;
+const headTops = (s) => s.players.filter((p) => p.team === 'them').map((p) => [p.x, p.y, 5.6]);
+
+for (const mode of ['over_shoulder', 'first_person']) {
+  test(`the camera tilts down to show the court: the highest thing near the top edge, little sky, the ball in view (${mode})`, () => {
+    for (const id of ['s-floater-backhands', 's-dropping-dink']) {
+      const s = scene(id);
+      const fp = renderFirstPerson(frameFromScene(s), { mode, width: 360, height: 380 });
+      // The highest of the opponents' heads and the ball's flight.
+      const top = Math.min(...[...headTops(s), ...framingFor(s).flight].map((p) => screenY(fp, p)));
+      assert.ok(Math.abs(top - CAMERA_DEFAULTS.topMarginRatio) < 0.01, `${id}: the highest content at ${top.toFixed(3)} of the height`);
+      assert.ok(Math.min(...headTops(s).map((p) => screenY(fp, p))) >= top, 'heads in the frame');
+      const pitch = Math.asin(-fp.camera.f[2]);
+      const horizon = (fp.camera.cy - fp.camera.focal * Math.tan(pitch)) / fp.camera.height;
+      // In true first person your eyes are lower than their heads.
+      const aboveEyes = [...headTops(s), ...framingFor(s).flight].some((p) => p[2] > fp.camera.eye[2]);
+      if (aboveEyes) assert.ok(horizon > CAMERA_DEFAULTS.topMarginRatio, `${id}: whatever is above your eyes gets room above the horizon`);
+      else assert.ok(horizon <= CAMERA_DEFAULTS.topMarginRatio + 1e-6, `${id}: the horizon (${horizon.toFixed(3)}) is no lower than the top margin`);
+      const contact = screenY(fp, frameFromScene(s).contact);
+      assert.ok(contact > 0 && contact < 1, `${id}: the ball where you meet it is on screen (${contact.toFixed(2)})`);
+    }
+  });
+}
+
+test('the tilt is the same at phone and laptop sizes, and for the mirror image', () => {
+  const s = scene('s-dropping-dink');
+  const f = frameFromScene(s);
+  const phone = renderFirstPerson(f, { width: 360, height: 380 }).camera.f[2];
+  assert.ok(Math.abs(renderFirstPerson(f, { width: 800, height: 500 }).camera.f[2] - phone) < 1e-9);
+  assert.ok(Math.abs(renderFirstPerson(frameFromScene(mirrorScene(s))).camera.f[2] - phone) < 1e-9);
+});
+
+test('the framing never hints at the answer, and only the shot you read can tilt the camera up', () => {
+  const s = scene('s-occlusion-floater');
+  const pitch = (sc) => renderFirstPerson(contactFrame(sc, compileTimeline(sc))).camera.f[2];
+  const lobAnswer = { ...s, answer_overlay: { shot: { from: 'ball', to: { x: 10, y: 42, z_in: 0 }, net_clearance_in: 230 } } };
+  assert.equal(pitch(lobAnswer), pitch(s), 'a lob for an answer does not change the picture');
+  // Your own high lob earlier in the lead-in may leave the frame; the shot coming to you sets the tilt.
+  const [first, ...rest] = s.timeline.segments;
+  const lobFirst = { ...s, timeline: { ...s.timeline, segments: [{ ...first, net_clearance_in: 200 }, ...rest] } };
+  assert.equal(pitch(lobFirst), pitch(s));
+  const segs = s.timeline.segments;
+  const last = segs[segs.length - 1];
+  const lobLast = { ...s, timeline: { ...s.timeline, segments: [...segs.slice(0, -1), { ...last, net_clearance_in: 200 }] } };
+  assert.ok(pitch(lobLast) > pitch(s), 'a high ball coming to you tilts the camera up to keep it in view');
+});
+
+test('a bounce keeps the line of the shot unless it is a spin kick', () => {
+  const s = scene('s-occlusion-floater');
+  const shot = { id: 'in', kind: 'shot', hitter_id: 'opp1', from: { x: 4.7, y: 28.6, z_in: 20 }, to: { x: 6.4, y: 18.5, z_in: 0 }, net_clearance_in: 10, duration_ms: 900 };
+  const withBounce = (to, extra = {}) => ({
+    ...s,
+    ball: { from: shot.from, now: { ...to }, net_clearance_in: 10, hitter_id: 'opp1' },
+    timeline: { segments: [shot, { id: 'up', kind: 'bounce', from: shot.to, to, apex_in: 16, duration_ms: 300, ...extra }], movements: [], freeze_at_ms: 1050 },
+  });
+  const turns = (sc) => checkScene(sc).filter((i) => /off the bounce/.test(i.msg));
+  const straight = { x: 6.4 + (1.7 / 10.1) * 2.1, y: 16.4, z_in: 14 }; // on the line from the hit through the landing spot
+  assert.deepEqual(turns(withBounce(straight)), []);
+  const turned = { x: 8.2, y: 17.2, z_in: 14 };
+  assert.ok(Math.abs(bounceTurnDeg(shot, { from: shot.to, to: turned })) > BOUNCE_TURN_MAX_DEG);
+  assert.equal(turns(withBounce(turned)).length, 1);
+  assert.deepEqual(turns(withBounce(turned, { kick: true })), [], 'a spin kick the card is about may turn');
+});
+
+test('after a bounce the flight before it stays drawn during playback', () => {
+  const s = scene('s-occlusion-floater');
+  const landing = { x: 6.4, y: 18.5, z_in: 0 };
+  const bounced = {
+    ...s,
+    timeline: {
+      segments: [
+        { id: 'in', kind: 'shot', hitter_id: 'opp1', from: { x: 4.7, y: 28.6, z_in: 20 }, to: landing, net_clearance_in: 10, duration_ms: 900 },
+        { id: 'up', kind: 'bounce', from: landing, to: { x: 6.75, y: 16.4, z_in: 14 }, apex_in: 16, duration_ms: 300 },
+      ],
+      movements: [],
+      freeze_at_ms: 1050,
+    },
+  };
+  const c = compileTimeline(bounced);
+  assert.deepEqual(frameAt(bounced, c, 500).trails, [], 'in flight, only the shot itself');
+  const hop = frameAt(bounced, c, 1050);
+  assert.equal(hop.trails.length, 1);
+  assert.equal(hop.trails[0].arc, c.segs[0].arc, 'the shot up to the bounce is still drawn');
+  assert.equal(hop.ball.hitterId, 'opp1', 'and the bouncing ball is still their shot');
 });
 
 test('answer overlay is present but hidden until reveal', () => {

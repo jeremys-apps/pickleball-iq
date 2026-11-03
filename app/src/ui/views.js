@@ -13,6 +13,7 @@ import { removePerson, savePeople } from '../store/people.js';
 import { activatePerson, startPerson } from '../people.js';
 import { syncNow } from '../sync.js';
 import { canMirror } from '../court/mirror.js';
+import { makeNamer } from '../names.js';
 import { timedTrend, topicStats, drillPlan } from '../stats.js';
 
 const TYPE_LABEL = {
@@ -152,7 +153,7 @@ export function renderProgress(root, app) {
                 )
               : h('li', {}, 'Not linked to a principle yet.'),
           ),
-          h('p', { class: 'note' }, d.cards.map((c, i) => [i ? ', ' : 'Cards: ', h('a', { href: `#/preview/${encodeURIComponent(c.id)}` }, c.prompt)])),
+          h('p', { class: 'note' }, d.cards.map((c, i) => [i ? ', ' : 'Cards: ', h('a', { href: `#/preview/${encodeURIComponent(c.id)}` }, promptAsShown(app, c))])),
         ),
       )
     : [h('p', { class: 'note' }, 'No drills in the deck yet.')];
@@ -183,11 +184,14 @@ function nextDueText(app) {
   return `All caught up. The next review is due ${min.toLocaleString([], { weekday: 'long', hour: 'numeric', minute: '2-digit' })}.`;
 }
 
+// A card's question as the card shows it, people's full names included.
+const promptAsShown = (app, c) => makeNamer(app.index.people, c).name(c.prompt);
+
 export function renderCards(root, app) {
   const items = app.index.deck.cards.map((c) => {
     const e = app.progress.cards[c.id];
     const status = !e ? 'New' : e.suspended ? 'Suspended' : `Due ${new Date(e.fsrs.due).toLocaleDateString()}`;
-    return h('li', {}, h('a', { href: `#/preview/${encodeURIComponent(c.id)}` }, c.prompt), h('span', { class: 'note' }, ` ${TYPE_LABEL[c.type]}. ${status}.`));
+    return h('li', {}, h('a', { href: `#/preview/${encodeURIComponent(c.id)}` }, promptAsShown(app, c)), h('span', { class: 'note' }, ` ${TYPE_LABEL[c.type]}. ${status}.`));
   });
   root.replaceChildren(
     topbar(),
@@ -220,6 +224,10 @@ export function renderPreview(root, app, cardId, stageId, mirror = false) {
     state: app.progress.cards[cardId]?.fsrs,
     mirrored: mirror && canMirror(card),
     showing: mirror ? 1 : 0, // as authored = first showing; mirrored = the next one
+    onViewChange: (view) => {
+      app.settings = { ...app.settings, courtView: view };
+      saveSettings(app.settings);
+    },
     onDone: () => {
       location.hash = '#/cards';
     },

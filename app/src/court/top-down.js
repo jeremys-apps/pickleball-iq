@@ -107,9 +107,9 @@ export function renderTopDown(frame, opts = {}) {
   if (frame.ball?.arc && !frame.ball.answer) tracks.push({ arc: frame.ball.arc, t0: frame.ball.t0 ?? 0, t1: frame.ball.t1 ?? 1 });
   for (const tr of tracks) {
     for (const run of trackRuns(tr.arc, tr.t0 ?? 0, tr.t1 ?? 1, X, Y)) {
-      out.push(
-        `<polyline class="piq-path${run.far ? ' piq-path-far' : ''}" stroke-width="${run.far ? (mini ? 1 : 1.6) : mini ? 1.5 : 2.6}" points="${run.points}"/>`,
-      );
+      const w = run.far ? (mini ? 1.3 : 2.4) : mini ? 1.5 : 2.6;
+      if (run.far) out.push(`<polyline class="piq-path-casing" stroke-width="${w + (mini ? 1 : 2)}" points="${run.points}"/>`);
+      out.push(`<polyline class="piq-path${run.far ? ' piq-path-far' : ''}" stroke-width="${w}" points="${run.points}"/>`);
     }
   }
 

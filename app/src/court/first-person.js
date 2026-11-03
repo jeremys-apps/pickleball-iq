@@ -1,10 +1,10 @@
 // First-person (or over-the-shoulder) court view, rendered as an SVG string.
 //
 // Visual aids and why they exist (docs/rendering-notes.md has the geometry):
-//   path   Dashed on the far side of the net, solid on yours, and thicker as it
-//          nears you. Width comes from real depth, so the taper is perspective,
-//          not decoration. The dashed/solid switch marks the net crossing, the
-//          one point where comparing ball height to the net is honest.
+//   path   Red with a dark edge on the far side of the net, yellow on yours and
+//          thicker as it nears you. Width comes from real depth, so the taper is
+//          perspective, not decoration. The red/yellow switch marks the net
+//          crossing, the one point where comparing ball height to the net is honest.
 //   shadow A shadow directly under the ball shows where over the court it is.
 //   stalk  A dashed line from the shadow up to the ball with a tick at net
 //          height, drawn at the ball's own depth. Near the end of its flight the
@@ -12,7 +12,7 @@
 //          even when it is higher. Ball above the tick = above net height.
 
 import { COURT, netHeightFt, sideOfNet, paddleSideX, facingY, f1, clamp } from './geometry.js';
-import { makeCamera, eyePosition, project, clipPolygon, clipSegment, depthOf } from './camera.js';
+import { makeCamera, eyePosition, aimFor, project, clipPolygon, clipSegment, depthOf } from './camera.js';
 import { makeArc, sampleArc } from './trajectory.js';
 import { labelFor, movesToDraw } from './scene.js';
 import { renderCss, TOKENS } from './theme.js';
@@ -167,6 +167,10 @@ function personMarkup(cam, p, eyesOfId, { skipIfOffscreen = false } = {}) {
   return `<g class="piq-person">${behind}${bodyEl}${headEl}${front}${labelEl}</g>`;
 }
 
+// Their side of the net is far away, so its path keeps one width rather than
+// tapering with depth, wide enough to follow a bounce over the far court.
+const FAR_PATH_W = 2.4;
+
 function trailMarkup(cam, arc, t0, t1, beyond) {
   const res = { far: '', near: '', farDepth: Infinity, nearDepth: Infinity, farPts: [], nearPts: [] };
   if (!arc || t1 <= t0) return res;
@@ -179,7 +183,8 @@ function trailMarkup(cam, arc, t0, t1, beyond) {
     const ptsW = sampleArc(arc, a, b, n);
     if (isFar) {
       for (const run of polylineRuns(cam, ptsW)) {
-        res.far += `<polyline class="piq-path piq-path-far" stroke-width="1.6" points="${ptsAttr(run)}"/>`;
+        const pts = ptsAttr(run);
+        res.far += `<polyline class="piq-path-casing" stroke-width="${FAR_PATH_W + 2}" points="${pts}"/><polyline class="piq-path piq-path-far" stroke-width="${FAR_PATH_W}" points="${pts}"/>`;
         res.farPts.push(...run);
         for (const p of run) res.farDepth = Math.min(res.farDepth, p.depth);
       }
@@ -285,7 +290,10 @@ export function renderFirstPerson(frame, opts = {}) {
   if (!owner) throw new Error(`renderFirstPerson: no player with id "${frame.eyesOf}"`);
 
   const eye = eyePosition(owner, mode, opts.camera);
-  const cam = makeCamera(eye, frame.lookAt, { width, height }, opts.camera);
+  // Frames built from a scene carry its framing: keep the look point's heading
+  // and tilt down to show the most court (camera.js aimFor).
+  const aim = frame.framing ? aimFor(eye, frame.lookAt, frame.framing, { width, height }, opts.camera) : frame.lookAt;
+  const cam = makeCamera(eye, aim, { width, height }, opts.camera);
   const camSide = sideOfNet(eye[1]);
   const beyond = (y) => sideOfNet(y) !== camSide;
 
@@ -304,7 +312,7 @@ export function renderFirstPerson(frame, opts = {}) {
     if (markup) (beyond(p.y) ? far : nearList).push({ d: depthOf(cam, [p.x, p.y, 0]), markup });
   }
 
-  const debug = { eye, lookAt: frame.lookAt, camera: cam };
+  const debug = { eye, lookAt: frame.lookAt, aim, camera: cam };
   // Finished shots (their ball, while your answer flies in a replay) stay as trails.
   if (aids.path) {
     for (const tr of frame.trails ?? []) {

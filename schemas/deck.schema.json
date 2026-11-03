@@ -86,6 +86,14 @@
         }
       }
     },
+    "people": {
+      "type": "array",
+      "description": "Full names of people the cards name who are not speakers (a partner, a pro held up as a model), so the app can give a person's full name at their first mention on a card. From content/people.json in the data repo.",
+      "items": {
+        "type": "string",
+        "pattern": "^\\S+( \\S+)+$"
+      }
+    },
     "principles": {
       "type": "array",
       "items": {

@@ -153,11 +153,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
   overflow: hidden;
 }
+.stage .inset.is-right { left: auto; right: 8px; }
 .stage .inset:empty { display: none; }
-.motion { display: flex; justify-content: center; padding-top: 8px; }
+.motion { display: flex; justify-content: center; gap: 8px; padding-top: 8px; }
 .stage .clock { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255, 255, 255, 0.15); }
 .stage .clock i { display: block; height: 100%; width: 100%; background: #F5C443; transform-origin: left center; }
-.stage .toggle-view { position: absolute; right: 8px; top: 8px; min-height: 36px; padding: 4px 10px; font-size: var(--step--1); }
 
 .side { display: grid; gap: 12px; align-content: start; }
 .side .panel:empty { display: none; }
@@ -240,7 +240,7 @@ legend { font-family: var(--font-head); font-weight: 600; padding: 0 6px; }
   .court { position: sticky; top: 12px; }
   .stage { margin: 0; border-radius: 12px; }
   .stage .inset { display: none; }
-  .stage .toggle-view { display: none; }
+  .motion .toggle-view { display: none; }
   .side .panel svg { max-width: 300px; }
   .card-view:not(.has-stage) { max-width: 680px; }
 }
