@@ -307,7 +307,7 @@ test('in a session, the view you switch to is saved with the device settings', {
   assert.equal(m.settings.loadSettings().courtView, 'top_down', 'kept for the next start');
 });
 
-test('the mini-map sits in the bottom corner away from your paddle', { skip }, async () => {
+test('the mini-map sits in the bottom corner away from where you meet the ball', { skip }, async () => {
   setupDom();
   const m = await modules();
   const app = makeApp(m);

@@ -278,22 +278,27 @@ function netTopYAt(topProjected, x) {
   return null;
 }
 
+// The camera renderFirstPerson draws a frame with. opts: {width, height, mode, camera}
+export function cameraFor(frame, opts = {}) {
+  const view = { width: opts.width ?? 520, height: opts.height ?? 400 };
+  const owner = frame.players.find((p) => p.id === frame.eyesOf);
+  if (!owner) throw new Error(`renderFirstPerson: no player with id "${frame.eyesOf}"`);
+  const eye = eyePosition(owner, opts.mode ?? 'over_shoulder', opts.camera);
+  // Frames built from a scene carry its framing: keep the look point's heading
+  // and tilt down to show the most court (camera.js aimFor).
+  const aim = frame.framing ? aimFor(eye, frame.lookAt, frame.framing, view, opts.camera) : frame.lookAt;
+  return makeCamera(eye, aim, view, opts.camera);
+}
+
 // frame: from scene.js frameFromScene() or playback.js frameAt().
 // opts: {width, height, mode, aids, uid, embedCss, revealAll, camera, ariaLabel}
 export function renderFirstPerson(frame, opts = {}) {
   const width = opts.width ?? 520;
   const height = opts.height ?? 400;
-  const mode = opts.mode ?? 'over_shoulder';
   const aids = { ...DEFAULT_AIDS, ...(opts.aids || {}) };
   const uid = opts.uid ?? nextUid();
-  const owner = frame.players.find((p) => p.id === frame.eyesOf);
-  if (!owner) throw new Error(`renderFirstPerson: no player with id "${frame.eyesOf}"`);
-
-  const eye = eyePosition(owner, mode, opts.camera);
-  // Frames built from a scene carry its framing: keep the look point's heading
-  // and tilt down to show the most court (camera.js aimFor).
-  const aim = frame.framing ? aimFor(eye, frame.lookAt, frame.framing, { width, height }, opts.camera) : frame.lookAt;
-  const cam = makeCamera(eye, aim, { width, height }, opts.camera);
+  const cam = cameraFor(frame, opts);
+  const { eye, target: aim } = cam;
   const camSide = sideOfNet(eye[1]);
   const beyond = (y) => sideOfNet(y) !== camSide;
 

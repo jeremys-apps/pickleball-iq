@@ -315,7 +315,7 @@ real speed and the shorter window apply either way.
 | | Phone (under 900 px wide) | Laptop (900 px and wider) |
 |---|---|---|
 | Court view | Full width, 360 x 380 viewBox | Left column (three fifths), 800 x 500 viewBox, sticky while scrolling |
-| Top-down | Inset mini-map in the bottom corner away from your paddle; full top-down (cropped to the action) below the court after answering; a toggle under the picture swaps the main view in stage A and after answering. A court card opens in your view; a new card opens in the view you last switched to (D30) | Side panel above the question |
+| Top-down | Inset mini-map in the bottom corner away from where you meet the ball; full top-down (cropped to the action) below the court after answering; a toggle under the picture swaps the main view in stage A and after answering. A court card opens in your view; a new card opens in the view you last switched to (D30) | Side panel above the question |
 | Choices and ratings | Large touch targets; the text under the question 1 pt larger than on a laptop; ratings stick to the bottom of the screen | Right column |
 
 Body text, the choices and everything smaller, is 1 pt larger than the type

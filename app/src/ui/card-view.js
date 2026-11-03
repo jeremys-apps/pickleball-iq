@@ -11,7 +11,8 @@
 import { h, isWide, formatInterval, WIDE_QUERY } from './dom.js';
 import { frameFromScene, answerFrame, answerArc, eyesPlayer } from '../court/scene.js';
 import { paddleSideX } from '../court/geometry.js';
-import { renderFirstPerson } from '../court/first-person.js';
+import { renderFirstPerson, cameraFor } from '../court/first-person.js';
+import { project } from '../court/camera.js';
 import { renderTopDown } from '../court/top-down.js';
 import { createPlayer } from '../court/playback.js';
 import { mirrorScene } from '../court/mirror.js';
@@ -79,9 +80,7 @@ export function mountCard(root, ctx) {
 
   const view = h('article', { class: `card-view is-${card.type} stage-${stage.id}${scene ? ' has-stage' : ''}` });
   const heroEl = h('div', { class: 'hero' });
-  // The mini-map sits in the bottom corner away from your paddle, where the
-  // ball you meet never is.
-  const insetEl = h('div', { class: scene && paddleSideX(eyesPlayer(scene)) < 0 ? 'inset is-right' : 'inset' });
+  const insetEl = h('div', { class: 'inset' });
   const clockEl = h('div', { class: 'clock', hidden: true, 'aria-hidden': 'true' }, h('i'));
   const panelEl = h('div', { class: 'panel' });
   const optionsEl = h('div', { class: 'options', role: 'group', 'aria-label': 'Choices' });
@@ -221,6 +220,15 @@ export function mountCard(root, ctx) {
       },
     });
     frame = player.frameAt(0);
+  }
+
+  // The mini-map sits in the bottom corner away from where you meet the ball,
+  // as your view shows it at contact: a backhand meets it on the other side.
+  if (scene) {
+    const atContact = timed ? player.contactFrame() : frameFromScene(scene);
+    const cam = cameraFor(atContact, { ...PHONE_FP, mode: cameraMode });
+    const c = atContact.contact && project(cam, atContact.contact);
+    insetEl.classList.toggle('is-right', c ? c.x < cam.width / 2 : paddleSideX(eyesPlayer(scene)) < 0);
   }
 
   function start() {

@@ -193,10 +193,18 @@ overlay stays out of the fit so the framing never hints at the answer. Of 66
 bounces in the deck, 57 turned 2 degrees or more, some by 35 to 60 degrees, and
 one bounced back toward the net. Each landing spot moved across onto the line
 from the hit to where the ball is met, keeping its depth, so the ball heads at
-its target the whole way. The ATP scene keeps its kick, a sidespin roll running
-wide past the post, marked `"kick": true`; the scene checker flags any other
-turn. With the tilt the phone's mini-map moved to the bottom corner away from
-your paddle, where the ball you meet never is.
+its target the whole way. The ATP scene at first kept a 60-degree kick, because
+its roll came from the player straight across from you, and from there no
+straight ball lands in and is still outside the post when you reach it. On
+Jeremy's call it was rebuilt as a crosscourt roll: every ATP chance he has seen
+comes off a crosscourt shot, and both of Brodie's examples are sharp crosscourt
+rolls. You play the left side; their left-side player's crosscourt backhand roll
+lands just inside your sideline and carries straight on past the post, where you
+meet it on your backhand. No scene turns at a bounce now; `"kick": true` stays
+for a spin kick a card is about, and the scene checker flags any other turn.
+With the tilt the phone's mini-map moved to the bottom corner away from where
+you meet the ball, judged in your view at contact; going by your paddle side
+instead left 18 backhand contact points under it in true first person.
 
 **D29. A person's full name goes with their first mention on a card.** Jeremy
 asked (2026-11-03) that the first mention of a person, reading top to bottom,
