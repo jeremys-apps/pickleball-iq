@@ -210,7 +210,9 @@ names come from the deck's speaker list. Other people a card names come from
 and count on a card only when its text gives the full name somewhere, so a first
 name that is also an ordinary word ("Will", "Mark") never picks up a last name
 elsewhere. An earlier request for full names on every mention was withdrawn
-(2026-10-02) before anything changed.
+(2026-10-02) before anything changed. Jeremy's own name stays out of card text
+and notes altogether; a note cites a review decision by what it was and its date
+("checked by ear", "spot-check, 2026-10-29").
 
 **D30. Court cards open in your view; the view toggle lives under the picture.**
 Cards written to lead with the top-down map opened in it, which Jeremy did not
