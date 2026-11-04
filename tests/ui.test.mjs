@@ -779,3 +779,36 @@ test('Settings, Sync now: a failed sync shows the reason in the status line', { 
     globalThis.fetch = realFetch;
   }
 });
+
+test('Settings, Sync now: a refused session turns the Account section to Sign in at once and keeps the unsynced review', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const { fakeGitHub } = await import('./fake-github.mjs');
+  const { signSession } = await import('../server/src/auth.js');
+  const app = makeApp(m);
+  const at = new Date('2026-11-04T07:10:00.000Z');
+  const { state } = app.scheduler.review(app.scheduler.newState(at), m.sched.Rating.Hard, at);
+  m.store.recordReview(app.progress, 'c-backhands-td-1', state, { rating: m.sched.Rating.Hard, reviewed_at: at.toISOString() });
+  const gh = fakeGitHub({ 'deck/deck.json': JSON.stringify(deck) });
+  const realFetch = globalThis.fetch;
+  const worker = await useWorker(gh);
+  // Signed with the Worker's old key, as every session is once SESSION_SECRET changes.
+  worker.account.saveSession('tester', await signSession('the-old-session-secret-0123456789', 'tester'));
+  try {
+    const root = document.getElementById('app');
+    m.views.renderSettings(root, app);
+    [...root.querySelectorAll('button')].find((b) => b.textContent === 'Sync now').click();
+    const status = () => root.querySelector('form [role="status"]').textContent;
+    await until(() => /signed out/.test(status()), 'the signed-out message');
+    assert.equal(status(), 'You are signed out. Sign in again in Settings.');
+    const accountSet = [...root.querySelectorAll('fieldset')].find((f) => f.querySelector('legend').textContent === 'Account');
+    assert.match(accountSet.textContent, /Tester is not signed in, so nothing syncs\./, 'the page stops saying Tester is signed in');
+    const signIn = [...accountSet.querySelectorAll('a')].find((a) => a.textContent === 'Sign in');
+    assert.equal(signIn?.getAttribute('href'), '#/signin/tester', 'Sign in is right there');
+    assert.ok(!worker.account.sessionFor('tester'), 'the refused session is forgotten');
+    assert.equal(app.progress.logs.length, 1, 'the review made since the last sync is kept');
+    assert.ok(!gh.store.has('progress/tester/test-device.json'), 'nothing was written');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

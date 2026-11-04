@@ -240,10 +240,11 @@ const clampInt = (v, lo, hi, fallback) => {
 };
 const str = (v) => String(v ?? '').trim();
 
-export function renderSettings(root, app) {
+// message: a status line to show at once, as after a sync that signed the person out.
+export function renderSettings(root, app, { message = '' } = {}) {
   const s = app.settings;
   const signedIn = canSync(app);
-  const status = h('p', { class: 'note', role: 'status' });
+  const status = h('p', { class: 'note', role: 'status' }, message);
   const field = (name, label, value, { type = 'text', hint, ...rest } = {}) =>
     h(
       'label',
@@ -370,6 +371,9 @@ export function renderSettings(root, app) {
       await syncNow(app);
       status.textContent = `Synced. ${app.progress.logs.length} reviews across your devices; the deck has ${app.index.deck.cards.length} cards.`;
     } catch (e) {
+      // A refused session is forgotten by the sync: draw the page again, so the
+      // Account section offers Sign in instead of still saying who is signed in.
+      if (signedIn && !canSync(app)) return renderSettings(root, app, { message: e.message });
       status.textContent = e.message;
     }
   }
