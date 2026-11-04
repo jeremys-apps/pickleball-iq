@@ -7,6 +7,10 @@ name = "court-sense"
 main = "src/worker.js"
 compatibility_date = "2026-11-03"
 workers_dev = true
+# No preview addresses: each uploaded version would keep answering at its own
+# address with the secrets it was uploaded with, and a new SESSION_SECRET would
+# sign nobody out there.
+preview_urls = false
 
 [vars]
 DATA_REPO = "ViciousJ/pickleball-iq-data"

@@ -446,3 +446,12 @@ test("the module's default export is the Worker's fetch handler", async () => {
   assert.equal(res.status, 204);
   assert.equal(res.headers.get('Access-Control-Allow-Origin'), ORIGIN);
 });
+
+test('the Worker answers only at its own address: wrangler.toml turns preview addresses off', () => {
+  // An uploaded version would otherwise keep answering at its preview address
+  // with the secrets it was uploaded with, where a new SESSION_SECRET cuts nobody off.
+  const config = readFileSync(new URL('../server/wrangler.toml', import.meta.url), 'utf8');
+  const topLevel = config.split(/^\[/m)[0];
+  assert.match(topLevel, /^workers_dev\s*=\s*true\s*$/m, 'the Worker keeps its workers.dev address');
+  assert.match(topLevel, /^preview_urls\s*=\s*false\s*$/m, 'preview addresses are off, as a top-level setting');
+});
