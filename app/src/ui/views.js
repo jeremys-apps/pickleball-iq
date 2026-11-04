@@ -1,5 +1,5 @@
-// Home, card browser, card preview, settings, and the first screen that asks
-// who is using the device.
+// Home, card browser, card preview, settings, and the sign-in screen, which is
+// the first screen on a device where nobody has signed in.
 
 import { h } from './dom.js';
 import { topbar, count } from './chrome.js';
@@ -7,11 +7,10 @@ import { planBatch, finalizePending } from './session.js';
 import { mountCard } from './card-view.js';
 import { stageFor, STAGES, makeScheduler, applyAidPreference, MATURE_AID_CHOICES } from '../srs/scheduler.js';
 import { saveSettings } from '../store/settings.js';
-import { loadSyncConfig, saveSyncConfig } from '../store/github-sync.js';
 import { exportProgress, importProgress, mergeProgress, saveProgress, emptyProgress, progressSizeBytes, formatBytes } from '../store/progress.js';
-import { removePerson, savePeople } from '../store/people.js';
-import { activatePerson, startPerson } from '../people.js';
-import { syncNow } from '../sync.js';
+import { removePerson, savePeople, personById } from '../store/people.js';
+import { activatePerson, signInPerson, createPersonAccount } from '../people.js';
+import { syncNow, canSync } from '../sync.js';
 import { canMirror } from '../court/mirror.js';
 import { makeNamer } from '../names.js';
 import { timedTrend, topicStats, drillPlan } from '../stats.js';
@@ -89,11 +88,12 @@ export function renderHome(root, app) {
   const cue = app.progress.settings?.last_cue;
   if (cue?.text) parts.push(h('div', { class: 'takeaway' }, h('p', { class: 'note' }, 'Take this to the court'), h('p', { class: 'focus-cue' }, cue.text)));
   if (app.deckSource === 'sample') {
-    parts.push(h('p', { class: 'banner' }, 'This is the sample deck: a few cards written to exercise the app. Connect your data repository in Settings to load your real deck.'));
+    parts.push(h('p', { class: 'banner' }, 'This is the sample deck: a few cards written to exercise the app. Sign in to load the real deck.'));
   }
   if (app.deckError) {
-    parts.push(h('p', { class: 'banner warn' }, `Your deck could not be loaded from GitHub, so ${app.deckSource === 'cache' ? 'the copy saved on this device' : 'the sample deck'} is in use. ${app.deckError}`));
+    parts.push(h('p', { class: 'banner warn' }, `Your deck could not be loaded, so ${app.deckSource === 'cache' ? 'the copy saved on this device' : 'the sample deck'} is in use. ${app.deckError}`));
   }
+  if (!canSync(app)) parts.push(h('p', { class: 'banner' }, 'Not signed in, so nothing syncs. ', h('a', { href: '#/settings' }, 'Open Settings to sign in'), '.'));
   if (app.sync?.message) parts.push(h('p', { class: 'note' }, app.sync.message));
   parts.push(
     h('p', { class: 'note' }, h('a', { href: '#/cards' }, `Browse all ${app.index.deck.cards.length} cards`), ' or see your ', h('a', { href: '#/progress' }, 'progress and drills'), '.'),
@@ -242,7 +242,7 @@ const str = (v) => String(v ?? '').trim();
 
 export function renderSettings(root, app) {
   const s = app.settings;
-  const cfg = loadSyncConfig() ?? {};
+  const signedIn = canSync(app);
   const status = h('p', { class: 'note', role: 'status' });
   const field = (name, label, value, { type = 'text', hint, ...rest } = {}) =>
     h(
@@ -303,14 +303,15 @@ export function renderSettings(root, app) {
     h(
       'fieldset',
       {},
-      h('legend', {}, 'Data repository'),
-      h('p', { class: 'note' }, 'Your deck and progress live in a private GitHub repository. Use a fine-grained token limited to that one repository with Contents set to Read and write, and give it an expiry date.'),
-      field('owner', 'Owner', cfg.owner),
-      field('repo', 'Repository', cfg.repo),
-      field('branch', 'Branch', cfg.branch ?? 'main'),
-      field('deckPath', 'Deck file', cfg.deckPath ?? 'deck/deck.json'),
-      field('progressDir', 'Progress folder', cfg.progressDir ?? 'progress'),
-      field('token', 'Token', cfg.token, { type: 'password', hint: 'Stored only in this browser.' }),
+      h('legend', {}, 'Account'),
+      app.person
+        ? h(
+            'p',
+            { class: 'note' },
+            signedIn ? `Signed in as ${app.person.name}. Your progress syncs to your account.` : `${app.person.name} is not signed in, so nothing syncs.`,
+          )
+        : null,
+      app.person && !signedIn ? h('div', { class: 'row' }, h('a', { class: 'btn', href: `#/signin/${encodeURIComponent(app.person.id)}` }, 'Sign in')) : null,
       field('deviceLabel', 'Name for this device', s.deviceLabel, { hint: 'For example Phone or Laptop. Shows in sync commit messages.' }),
       h('label', {}, h('span', {}, h('input', { type: 'checkbox', name: 'autoSync', checked: s.autoSync !== false }), ' Sync when the app opens and after each session')),
     ),
@@ -358,14 +359,6 @@ export function renderSettings(root, app) {
       app.scheduler = makeScheduler({ requestRetention: next.requestRetention, maximumInterval: next.maxIntervalDays });
     }
     app.settings = next;
-    saveSyncConfig({
-      owner: str(fd.get('owner')),
-      repo: str(fd.get('repo')),
-      branch: str(fd.get('branch')) || 'main',
-      deckPath: str(fd.get('deckPath')) || 'deck/deck.json',
-      progressDir: str(fd.get('progressDir')) || 'progress',
-      token: str(fd.get('token')),
-    });
     app.progress.device_label = next.deviceLabel;
     saveProgress(app.progress);
   }
@@ -416,13 +409,13 @@ export function renderSettings(root, app) {
   root.replaceChildren(topbar(), h('main', { class: 'page' }, h('h1', {}, 'Settings'), form, peopleSection(app)));
 }
 
-// People on this device: who is playing, switch, remove, add. Adding someone
-// switches to them, so a borrowed phone is handed over in one step. Sync files
-// each person by name (people.js), so the same name on another device is the
-// same person.
+// People on this device: who is playing, switch, remove, add. Each person signs
+// in with their own account, and adding someone opens the sign-in screen and
+// then switches to them, so a borrowed phone is handed over in one step.
+// Switching needs no password. There is no Sign out; Remove takes someone else
+// off the device, their session with them.
 function peopleSection(app) {
   const status = h('p', { class: 'note', role: 'status' });
-  const input = h('input', { type: 'text', name: 'newPerson', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', maxlength: 60, placeholder: 'Name' });
   const row = (p) => {
     if (p.id === app.person?.id) return h('li', {}, h('b', {}, p.name), h('span', { class: 'note' }, 'playing now'));
     const li = h(
@@ -458,59 +451,108 @@ function peopleSection(app) {
     );
     return li;
   };
-  const add = (e) => {
-    e.preventDefault();
-    try {
-      const person = startPerson(app, input.value);
-      finalizePending(app);
-      app.autoSync?.();
-      status.textContent = `Playing as ${person.name}.`;
-      location.hash = '#/';
-    } catch (err) {
-      status.textContent = err.message;
-    }
-  };
   return h(
-    'form',
-    { class: 'form', onsubmit: add },
+    'div',
+    { class: 'form' },
     h(
       'fieldset',
       {},
       h('legend', {}, 'People'),
-      h('p', { class: 'note' }, 'Each person has their own reviews and progress. Sync files them by name, so use the same name on every device.'),
+      h('p', { class: 'note' }, 'Each person signs in with their own account. Adding someone switches to them.'),
       h('ul', { class: 'people' }, ...(app.people?.people ?? []).map(row)),
-      h('label', {}, 'Add a person', input, h('small', {}, 'Adding someone switches to them.')),
-      h('div', { class: 'row' }, h('button', { class: 'btn', type: 'submit' }, 'Add')),
+      h('div', { class: 'row' }, h('a', { class: 'btn', href: '#/signin' }, 'Add a person')),
       status,
     ),
   );
 }
 
-// The first screen on a device where nobody is named yet. The name becomes the
-// person's id (store/people.js), so it has to match across their devices.
-export function renderWelcome(root, { migrating = false, onSubmit }) {
-  const input = h('input', { type: 'text', name: 'name', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', maxlength: 60, required: true });
+const USERNAME_HINT = 'Your name is fine, for example Mary Ann. Use the same one on every device.';
+const FORGOT = 'Ask Jeremy to reset your password. Once he has, create your account again with the same name, and your progress is kept.';
+
+// The sign-in screen, in two modes: Sign in, and Create an account with the
+// family code. Where nobody has signed in yet it is the only way in, so it has
+// no Cancel. A name can be filled in, for someone already on the device whose
+// session went or whose password was reset; switching modes keeps what was
+// typed. The username's slug is the person's id (store/people.js), so it has to
+// match across their devices.
+export function renderSignIn(root, app, { mode = 'sign-in', name = '', migrating = false, onDone, onCancel = null } = {}) {
+  const creating = mode === 'create';
   const status = h('p', { class: 'note', role: 'status' });
+  const forgot = h('p', { class: 'note', hidden: true }, FORGOT);
+  const username = h('input', { type: 'text', name: 'username', value: name, autocomplete: 'username', autocapitalize: 'words', spellcheck: 'false', maxlength: 60, required: true });
+  const password = h('input', { type: 'password', name: 'password', autocomplete: creating ? 'new-password' : 'current-password', required: true });
+  const code = creating ? h('input', { type: 'text', name: 'familyCode', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', required: true }) : null;
+  const submitButton = h('button', { class: 'btn primary', type: 'submit' }, creating ? 'Create account' : 'Sign in');
+  const link = (label, onclick) =>
+    h(
+      'a',
+      {
+        class: 'btn quiet',
+        href: '#',
+        onclick: (e) => {
+          e.preventDefault();
+          onclick();
+        },
+      },
+      label,
+    );
+  const switchTo = (next) => () => renderSignIn(root, app, { mode: next, name: username.value, migrating, onDone, onCancel });
+  let busy = false;
+  async function submit() {
+    if (busy) return;
+    busy = true;
+    submitButton.disabled = true;
+    status.textContent = 'Signing in...';
+    try {
+      const person = creating
+        ? await createPersonAccount(app, { name: username.value, password: password.value, familyCode: code.value })
+        : await signInPerson(app, { name: username.value, password: password.value });
+      status.textContent = '';
+      onDone?.(person);
+    } catch (err) {
+      status.textContent = err.message;
+      busy = false;
+      submitButton.disabled = false;
+    }
+  }
   const form = h(
     'form',
     {
       class: 'form',
       onsubmit: (e) => {
         e.preventDefault();
-        try {
-          onSubmit(input.value);
-        } catch (err) {
-          status.textContent = err.message;
-        }
+        submit();
       },
     },
-    h('label', {}, 'Your name', input, h('small', {}, 'Use the same name on every device you sync, so your progress follows you.')),
-    h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'submit' }, 'Start')),
+    h('label', {}, 'Username', username, h('small', {}, USERNAME_HINT)),
+    h('label', {}, 'Password', password, creating ? h('small', {}, 'At least 8 characters.') : null),
+    creating ? h('label', {}, 'Family code', code, h('small', {}, 'Jeremy gives this to the family.')) : null,
+    h('div', { class: 'row' }, submitButton, onCancel ? h('button', { class: 'btn', type: 'button', onclick: () => onCancel() }, 'Cancel') : null),
     status,
+    creating
+      ? h('div', { class: 'row' }, link('Sign in instead', switchTo('sign-in')))
+      : h('div', { class: 'row' }, link('Create an account', switchTo('create')), link('Forgot your password?', () => (forgot.hidden = false))),
+    forgot,
   );
-  const intro = migrating
-    ? 'Court Sense now keeps a separate record for each person. The reviews already on this device go under the name you type.'
-    : 'Court Sense keeps a separate record for each person, so a family can share one deck.';
-  root.replaceChildren(topbar(), h('main', { class: 'page' }, h('section', { class: 'today' }, h('h1', {}, 'Who is this?'), h('p', {}, intro), form)));
-  input.focus?.();
+  const intro = migrating ? h('p', {}, 'Court Sense now keeps a separate record for each person. The reviews already on this device go to the account you sign in to.') : null;
+  root.replaceChildren(topbar(), h('main', { class: 'page' }, h('section', { class: 'today' }, h('h1', {}, creating ? 'Create an account' : 'Sign in'), intro, form)));
+  (name ? password : username).focus?.();
+}
+
+// The #/signin route: add a person, or sign in again someone already on the
+// device (#/signin/<id>, with their name filled in). Success switches to them,
+// records an answer they left unrated, and goes Home; Cancel goes back to
+// Settings.
+export function renderSignInPage(root, app, id = '') {
+  const known = id ? personById(app.people, id) : null;
+  renderSignIn(root, app, {
+    name: known?.name ?? '',
+    onDone: () => {
+      finalizePending(app);
+      location.hash = '#/';
+    },
+    onCancel: () => {
+      location.hash = '#/settings';
+    },
+  });
 }

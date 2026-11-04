@@ -1,9 +1,10 @@
-// Both pages share an origin, and with it the storage that holds sync
-// credentials, so neither may load anything from another origin, and network
-// calls may go only to the origin itself and the data service.
+// Both pages share an origin, and with it the storage that holds people's
+// sessions, so neither may load anything from another origin. The app may call
+// its own origin and the sign-in Worker; the lab, only its own origin.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { ACCOUNT_API } from '../app/src/store/account.js';
 
 const page = (name) => readFileSync(new URL(`../app/${name}`, import.meta.url), 'utf8');
 
@@ -20,10 +21,15 @@ function policyOf(html) {
   );
 }
 
+const WORKER = new URL(ACCOUNT_API).origin;
 const CONNECT = {
-  'index.html': ["'self'", 'https://api.github.com'],
-  'lab.html': ["'self'", 'https://api.github.com'],
+  'index.html': ["'self'", WORKER],
+  'lab.html': ["'self'"],
 };
+
+test('the app calls the deployed sign-in Worker', () => {
+  assert.equal(WORKER, 'https://court-sense.jeremys-apps.workers.dev');
+});
 
 for (const name of Object.keys(CONNECT)) {
   test(`${name}: scripts, styles and fonts come from the app's origin, and calls go only where the app needs`, () => {
@@ -35,6 +41,7 @@ for (const name of Object.keys(CONNECT)) {
     assert.deepEqual(p['font-src'], ["'self'"]);
     assert.deepEqual(p['img-src'], ["'self'", 'data:', 'blob:']);
     assert.deepEqual(p['connect-src'], CONNECT[name]);
+    assert.ok(!html.includes('api.github.com'), 'no call goes to GitHub itself');
     assert.deepEqual(p['object-src'], ["'none'"]);
     assert.deepEqual(p['base-uri'], ["'self'"]);
     const external = html.match(/<(script|link|img)\b[^>]*\b(src|href)="(https?:)?\/\/[^"]*"/gi);

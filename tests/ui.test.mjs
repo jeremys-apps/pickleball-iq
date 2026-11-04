@@ -439,77 +439,228 @@ test('closing after answering but before rating loses nothing', { skip }, async 
   assert.equal(reopened.progress.logs.at(-1).auto_rated, true);
 });
 
-test('the first screen asks who is playing, and the name takes over the record kept before people existed', { skip }, async () => {
+const clickLink = (root, text) => {
+  const a = [...root.querySelectorAll('a')].find((x) => x.textContent === text);
+  assert.ok(a, `a link "${text}"`);
+  a.click();
+};
+const buttonsIn = (el) => [...el.querySelectorAll('button')].map((b) => b.textContent);
+const statusOf = (root) => root.querySelector('main [role="status"]');
+const submitForm = (root, values) => {
+  for (const [name, value] of Object.entries(values)) root.querySelector(`input[name="${name}"]`).value = value;
+  root.querySelector('main form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+};
+const FORGOT = 'Ask Jeremy to reset your password. Once he has, create your account again with the same name, and your progress is kept.';
+
+test('the first screen is Sign in, with Create an account and Forgot your password, and no way in without an account', { skip }, async () => {
   setupDom();
   const m = await modules();
   const root = document.getElementById('app');
-  const old = m.store.emptyProgress('old-device-1', 'Phone');
-  localStorage.setItem(m.store.STORAGE_KEY, JSON.stringify(old));
-  const app = { people: m.people.loadPeople(), person: null, progress: null };
-  let named = null;
-  m.views.renderWelcome(root, { migrating: m.people.hasLegacyProgress(), onSubmit: (name) => (named = m.appPeople.startPerson(app, name)) });
-  assert.equal(root.querySelector('h1').textContent, 'Who is this?');
-  assert.match(root.textContent, /reviews already on this device/);
-  const input = root.querySelector('input[name="name"]');
-  input.value = '!!!';
-  root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
-  assert.equal(named, null);
-  assert.match(root.querySelector('[role="status"]').textContent, /plain letter or digit/);
-  input.value = 'Mary Ann';
-  root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
-  assert.equal(named.id, 'mary-ann');
-  assert.equal(app.person.name, 'Mary Ann');
-  assert.equal(app.progress.person_id, 'mary-ann');
-  assert.equal(app.progress.device_id, 'old-device-1', 'the old record was adopted, device id included');
-  assert.equal(localStorage.getItem(m.store.STORAGE_KEY), null);
-  assert.equal(m.people.loadPeople().current, 'mary-ann');
+  const app = { settings: { ...m.settings.DEFAULT_SETTINGS }, scheduler: m.sched.makeScheduler({ enableFuzz: false }), people: m.people.loadPeople(), person: null, progress: null, index: null };
+  m.views.renderSignIn(root, app, { onDone: () => assert.fail('nobody signed in') });
+  assert.equal(root.querySelector('h1').textContent, 'Sign in');
+  assert.deepEqual(
+    [...root.querySelectorAll('main input')].map((i) => [i.name, i.type, i.getAttribute('autocomplete')]),
+    [
+      ['username', 'text', 'username'],
+      ['password', 'password', 'current-password'],
+    ],
+  );
+  assert.equal(root.querySelector('input[name="username"]').getAttribute('autocapitalize'), 'words');
+  assert.match(root.textContent, /Your name is fine, for example Mary Ann\. Use the same one on every device\./);
+  assert.deepEqual(buttonsIn(root.querySelector('main')), ['Sign in'], 'no Cancel, and no way to start without an account');
+  assert.deepEqual(
+    [...root.querySelectorAll('main a')].map((a) => a.textContent),
+    ['Create an account', 'Forgot your password?'],
+  );
+  const forgotLine = () => [...root.querySelectorAll('main p')].find((p) => p.textContent === FORGOT);
+  assert.ok(!forgotLine() || forgotLine().hidden, 'the reset line waits for its link');
+  clickLink(root, 'Forgot your password?');
+  assert.equal(forgotLine().hidden, false);
+
+  root.querySelector('input[name="username"]').value = 'Mary Ann';
+  clickLink(root, 'Create an account');
+  assert.equal(root.querySelector('h1').textContent, 'Create an account');
+  assert.deepEqual(
+    [...root.querySelectorAll('main input')].map((i) => i.name),
+    ['username', 'password', 'familyCode'],
+  );
+  assert.ok(![...root.querySelectorAll('input')].some((i) => i.type === 'email' || /mail/i.test(i.name)), 'no email field');
+  assert.equal(root.querySelector('input[name="username"]').value, 'Mary Ann', 'what was typed stays');
+  assert.equal(root.querySelector('input[name="password"]').getAttribute('autocomplete'), 'new-password');
+  assert.equal(root.querySelector('input[name="familyCode"]').getAttribute('autocapitalize'), 'off');
+  assert.match(root.textContent, /At least 8 characters\./);
+  assert.match(root.textContent, /Jeremy gives this to the family\./);
+  assert.deepEqual(buttonsIn(root.querySelector('main')), ['Create account']);
+  clickLink(root, 'Sign in instead');
+  assert.equal(root.querySelector('h1').textContent, 'Sign in');
+  assert.equal(root.querySelector('input[name="username"]').value, 'Mary Ann');
+  assert.equal(app.person, null, 'still nobody');
 });
 
-test('people on a device: adding one switches to them, each keeps their own progress, and Home says who is playing', { skip }, async () => {
+test('signing in on the first screen through the Worker makes the person current and takes over the record kept before people existed', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const { fakeGitHub } = await import('./fake-github.mjs');
+  const realFetch = globalThis.fetch;
+  const gh = fakeGitHub({ 'deck/deck.json': JSON.stringify(deck) });
+  const worker = await useWorker(gh);
+  try {
+    await worker.account.createAccount({ id: 'mary-ann', name: 'Mary Ann', password: 'mary ann password', familyCode: 'Pickle Court Forever' });
+    const root = document.getElementById('app');
+    const old = m.store.emptyProgress('old-device-1', 'Phone');
+    localStorage.setItem(m.store.STORAGE_KEY, JSON.stringify(old));
+    const app = { settings: { ...m.settings.DEFAULT_SETTINGS }, scheduler: m.sched.makeScheduler({ enableFuzz: false }), people: m.people.loadPeople(), person: null, progress: null, index: null, deckSource: null, deckError: null, sync: {} };
+    let done = null;
+    m.views.renderSignIn(root, app, { migrating: m.people.hasLegacyProgress(), onDone: (p) => (done = p) });
+    assert.match(root.textContent, /Court Sense now keeps a separate record for each person\. The reviews already on this device go to the account you sign in to\./);
+    for (const [username, password, message] of [
+      ['!!!', 'long enough', 'Type a name with at least one plain letter or digit.'],
+      ['Mary Ann', 'short', 'Use at least 8 characters.'],
+      ['Mary Ann', 'not her password', 'That password is not right.'],
+      ['Mary Anne', 'mary ann password', 'No account with that name yet. Check the spelling, or create an account.'],
+    ]) {
+      submitForm(root, { username, password });
+      await until(() => statusOf(root).textContent === message, message, 10000);
+      assert.equal(done, null);
+    }
+    submitForm(root, { username: 'Mary Ann', password: 'mary ann password' });
+    await until(() => done, 'the sign-in', 10000);
+    assert.equal(done.id, 'mary-ann');
+    assert.equal(app.person.name, 'Mary Ann');
+    assert.equal(app.progress.person_id, 'mary-ann');
+    assert.equal(app.progress.device_id, 'old-device-1', 'the old record was adopted, device id included');
+    assert.equal(localStorage.getItem(m.store.STORAGE_KEY), null);
+    assert.equal(m.people.loadPeople().current, 'mary-ann');
+    assert.ok(worker.account.sessionFor('mary-ann'), 'the session is kept on the device');
+    assert.equal(app.deckSource, 'github', 'the sync that ends the sign-in loaded the deck');
+    assert.equal(app.index.cards.size, deck.cards.length);
+    assert.ok(gh.store.has('progress/mary-ann/old-device-1.json'), 'and uploaded the adopted record');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('the sign-in screen for someone already on the device fills in their name in both modes, and Cancel goes back', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  const root = document.getElementById('app');
+  location.hash = '#/signin/tester';
+  m.views.renderSignInPage(root, app, 'tester');
+  assert.equal(root.querySelector('input[name="username"]').value, 'Tester');
+  clickLink(root, 'Create an account');
+  assert.equal(root.querySelector('input[name="username"]').value, 'Tester', 'also when the password was reset and the account is made again');
+  assert.deepEqual(buttonsIn(root.querySelector('main')), ['Create account', 'Cancel']);
+  [...root.querySelectorAll('main button')].find((b) => b.textContent === 'Cancel').click();
+  assert.equal(location.hash, '#/settings');
+  m.views.renderSignInPage(root, app);
+  assert.equal(root.querySelector('input[name="username"]').value, '', 'adding someone new starts blank');
+});
+
+test('Settings: the Account section says who is signed in and asks for no repository or token', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const account = await import('../app/src/store/account.js');
+  const app = makeApp(m);
+  const root = document.getElementById('app');
+  m.views.renderSettings(root, app);
+  for (const name of ['owner', 'repo', 'branch', 'deckPath', 'progressDir', 'token']) assert.equal(root.querySelector(`input[name="${name}"]`), null, `no ${name} field`);
+  const legends = [...root.querySelectorAll('legend')].map((l) => l.textContent);
+  assert.ok(legends.includes('Account') && !legends.includes('Data repository'), legends.join(', '));
+  const accountSet = [...root.querySelectorAll('fieldset')].find((f) => f.querySelector('legend').textContent === 'Account');
+  assert.match(accountSet.textContent, /Tester is not signed in, so nothing syncs\./);
+  const signIn = [...accountSet.querySelectorAll('a')].find((a) => a.textContent === 'Sign in');
+  assert.equal(signIn.getAttribute('href'), '#/signin/tester');
+  assert.ok(accountSet.querySelector('input[name="deviceLabel"]') && accountSet.querySelector('input[name="autoSync"]'), 'the device name and the sync checkbox stay');
+  const status = root.querySelector('form [role="status"]');
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Sync now').click();
+  await until(() => status.textContent === 'Sign in first.', 'the sign-in reminder');
+
+  account.saveSession('tester', `v1.tester.${'A'.repeat(43)}`);
+  m.views.renderSettings(root, app);
+  const signedIn = [...root.querySelectorAll('fieldset')].find((f) => f.querySelector('legend').textContent === 'Account');
+  assert.match(signedIn.textContent, /Signed in as Tester\. Your progress syncs to your account\./);
+  assert.ok(![...signedIn.querySelectorAll('a')].some((a) => a.textContent === 'Sign in'));
+  assert.ok(!/Sign out/.test(root.textContent), 'there is no Sign out');
+  assert.ok(buttonsIn(root).includes('Save settings') && buttonsIn(root).includes('Sync now'));
+});
+
+test('people on a device: adding one through sign-in switches to them, each keeps their own progress, and Home says who is playing', { skip }, async () => {
   setupDom();
   globalThis.confirm = () => true;
   const m = await modules();
+  const { fakeGitHub } = await import('./fake-github.mjs');
   const app = makeApp(m);
+  const realFetch = globalThis.fetch;
+  const gh = fakeGitHub({ 'deck/deck.json': JSON.stringify(deck) });
+  const worker = await useWorker(gh);
+  await worker.signIn('tester');
   let synced = 0;
   app.autoSync = () => synced++;
-  const root = document.getElementById('app');
-  m.runSession(root, app, {});
-  answerUntilSummary(root, app);
-  const testerLogs = app.progress.logs.length;
-  assert.ok(testerLogs > 0);
-  m.views.renderHome(root, app);
-  assert.equal(root.querySelector('.who').textContent, 'Playing as Tester. Add a person.');
-  m.views.renderSettings(root, app);
-  assert.match(root.textContent, /Tester: \d+ reviews recorded/);
-  const list = root.querySelector('.people');
-  assert.equal(list.querySelectorAll('li').length, 1);
-  assert.equal(list.querySelector('li').textContent, 'Testerplaying now');
-  root.querySelector('input[name="newPerson"]').value = 'Anna';
-  list.closest('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
-  assert.equal(app.person.id, 'anna');
-  assert.equal(app.progress.person_id, 'anna');
-  assert.equal(app.progress.logs.length, 0, 'Anna starts fresh');
-  assert.equal(app.progress.device_id, 'test-device', 'on the same device');
-  assert.equal(synced, 1, 'her folder syncs');
-  assert.equal(m.planBatch(app.index, app.progress, app.settings).newCount, deck.cards.length, 'every card is new to Anna');
-  m.views.renderHome(root, app);
-  assert.equal(root.querySelector('.who').textContent, 'Playing as Anna. Switch to Tester.');
-  root.querySelector('.who a').click();
-  assert.equal(app.person.id, 'tester');
-  assert.equal(app.progress.logs.length, testerLogs, 'Tester’s reviews are intact');
-  assert.equal(root.querySelector('.who').textContent, 'Playing as Tester. Switch to Anna.');
-  assert.equal(m.store.loadProgress(localStorage, 'anna').logs.length, 0);
-  m.views.renderSettings(root, app);
-  const anna = [...root.querySelectorAll('.people li')].find((li) => li.textContent.startsWith('Anna'));
-  assert.equal(anna.querySelector('.btn').textContent, 'Switch');
-  anna.querySelector('.btn.quiet').click();
-  assert.deepEqual(
-    app.people.people.map((p) => p.id),
-    ['tester'],
-  );
-  assert.equal(localStorage.getItem(m.store.progressKey('anna')), null, 'her record on this device went with her');
-  assert.equal(root.querySelectorAll('.people li').length, 1);
-  assert.match(root.querySelector('.people').closest('fieldset').textContent, /Anna was removed/);
+  try {
+    const root = document.getElementById('app');
+    m.runSession(root, app, {});
+    answerUntilSummary(root, app);
+    const testerLogs = app.progress.logs.length;
+    assert.ok(testerLogs > 0);
+    m.views.renderHome(root, app);
+    assert.equal(root.querySelector('.who').textContent, 'Playing as Tester. Add a person.');
+    m.views.renderSettings(root, app);
+    assert.match(root.textContent, /Tester: \d+ reviews recorded/);
+    assert.match(root.textContent, /Each person signs in with their own account\. Adding someone switches to them\./);
+    const list = root.querySelector('.people');
+    assert.equal(list.querySelectorAll('li').length, 1);
+    assert.equal(list.querySelector('li').textContent, 'Testerplaying now');
+    assert.equal(list.querySelectorAll('button').length, 0, 'no Remove and no Sign out for the person using the device');
+    assert.equal(root.querySelector('input[name="newPerson"]'), null, 'no name-only add');
+    const add = [...root.querySelectorAll('a')].find((a) => a.textContent === 'Add a person');
+    assert.equal(add.getAttribute('href'), '#/signin');
+
+    // An answer Anna gave on this device earlier and never rated.
+    const card = deck.cards[0];
+    m.store.savePending({ person_id: 'anna', card_id: card.id, rating: m.sched.Rating.Good, correct: true, reviewed_at: '2026-11-02T12:00:00.000Z' });
+    location.hash = '#/signin';
+    m.views.renderSignInPage(root, app);
+    assert.ok(buttonsIn(root.querySelector('main')).includes('Cancel'), 'adding someone can be cancelled');
+    clickLink(root, 'Create an account');
+    submitForm(root, { username: 'Anna', password: 'anna password 1', familyCode: 'pickle court forever' });
+    await until(() => location.hash === '#/', 'the sign-in to finish', 10000);
+    assert.equal(app.person.id, 'anna');
+    assert.equal(app.progress.person_id, 'anna');
+    assert.deepEqual(
+      app.progress.logs.map((l) => l.card_id),
+      [card.id],
+      'Anna has only her own answer, recorded from where she left it unrated',
+    );
+    assert.equal(app.progress.device_id, 'test-device', 'on the same device');
+    assert.equal(gh.calls.filter((c) => c.method === 'PUT' && c.url.includes('/progress/anna/')).length, 1, 'her folder syncs once');
+    assert.equal(synced, 0, 'the sign-in did the sync');
+    assert.equal(m.planBatch(app.index, app.progress, app.settings).newCount, deck.cards.length - 1, 'every other card is new to Anna');
+    m.views.renderHome(root, app);
+    assert.equal(root.querySelector('.who').textContent, 'Playing as Anna. Switch to Tester.');
+    root.querySelector('.who a').click();
+    assert.equal(app.person.id, 'tester');
+    assert.equal(app.progress.logs.length, testerLogs, 'Tester’s reviews are intact');
+    assert.equal(root.querySelector('.who').textContent, 'Playing as Tester. Switch to Anna.');
+    assert.equal(m.store.loadProgress(localStorage, 'anna').logs.length, 1);
+    m.views.renderSettings(root, app);
+    const anna = [...root.querySelectorAll('.people li')].find((li) => li.textContent.startsWith('Anna'));
+    assert.deepEqual(buttonsIn(anna), ['Switch', 'Remove'], 'Remove is offered for someone else, and there is no Sign out');
+    anna.querySelector('.btn.quiet').click();
+    assert.deepEqual(
+      app.people.people.map((p) => p.id),
+      ['tester'],
+    );
+    assert.equal(localStorage.getItem(m.store.progressKey('anna')), null, 'her record on this device went with her');
+    assert.equal(worker.account.sessionFor('anna'), null, 'and her session');
+    assert.ok(worker.account.sessionFor('tester'), 'Tester stays signed in');
+    assert.ok(gh.store.has('progress/anna/test-device.json'), 'the copy in her account stays');
+    assert.equal(root.querySelectorAll('.people li').length, 1);
+    assert.match(root.querySelector('.people').closest('fieldset').textContent, /Anna was removed/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test('home, cards, preview and settings render; settings save', { skip }, async () => {
@@ -520,7 +671,17 @@ test('home, cards, preview and settings render; settings save', { skip }, async 
   m.views.renderHome(root, app);
   assert.match(root.textContent, /Start/);
   assert.match(root.textContent, /batches of 10/);
-  assert.match(root.textContent, /sample deck/);
+  assert.match(root.textContent, /This is the sample deck: a few cards written to exercise the app\. Sign in to load the real deck\./);
+  assert.match(root.textContent, /Not signed in, so nothing syncs\. Open Settings to sign in\./);
+  app.deckSource = 'cache';
+  app.deckError = 'Reading deck/deck.json failed (502).';
+  const account = await import('../app/src/store/account.js');
+  account.saveSession('tester', `v1.tester.${'A'.repeat(43)}`);
+  m.views.renderHome(root, app);
+  assert.match(root.textContent, /Your deck could not be loaded, so the copy saved on this device is in use\. Reading deck\/deck\.json failed \(502\)\./);
+  assert.ok(!/from GitHub|Not signed in/.test(root.textContent), 'signed in, and no mention of GitHub');
+  app.deckSource = 'sample';
+  app.deckError = null;
   m.views.renderCards(root, app);
   assert.equal(root.querySelectorAll('.card-list li').length, deck.cards.length);
   const p = m.views.renderPreview(root, app, 'c-backhands-td-1', 'C');
@@ -532,7 +693,7 @@ test('home, cards, preview and settings render; settings save', { skip }, async 
   root.querySelector('input[name="newPerDay"]').value = '8';
   root.querySelector('input[name="batchSize"]').value = '15';
   root.querySelector('select[name="chooseTimeScale"]').value = '1.5';
-  root.querySelector('input[name="owner"]').value = 'jeremy';
+  root.querySelector('input[name="deviceLabel"]').value = 'Phone';
   root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
   assert.equal(app.settings.newPerDay, 8);
   assert.equal(app.settings.batchSize, 15);
@@ -540,12 +701,14 @@ test('home, cards, preview and settings render; settings save', { skip }, async 
   root.querySelector('input[name="newPerDay"]').value = '';
   root.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
   assert.equal(app.settings.newPerDay, null, 'blank means no limit');
-  assert.equal(JSON.parse(localStorage.getItem('piq.sync.v1')).owner, 'jeremy');
+  assert.equal(app.settings.deviceLabel, 'Phone');
+  assert.equal(app.progress.device_label, 'Phone');
+  assert.equal(localStorage.getItem('piq.sync.v1'), null, 'no repository settings are written');
 });
 
 // Waits for an async click handler: polls until the condition holds.
-async function until(cond, what) {
-  for (let i = 0; i < 200 && !cond(); i++) await new Promise((r) => setTimeout(r, 5));
+async function until(cond, what, ms = 1000) {
+  for (let i = 0; i < ms / 5 && !cond(); i++) await new Promise((r) => setTimeout(r, 5));
   assert.ok(cond(), `timed out waiting for ${what}`);
 }
 

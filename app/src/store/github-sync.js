@@ -13,22 +13,7 @@
 // STATUS: written against the documented API but not yet exercised against
 // GitHub. Phase 3 in docs/PRD.md covers testing it.
 
-export const SYNC_KEY = 'piq.sync.v1';
 const API = 'https://api.github.com';
-
-export function loadSyncConfig(storage = globalThis.localStorage) {
-  try {
-    return JSON.parse(storage?.getItem(SYNC_KEY) ?? 'null');
-  } catch {
-    return null;
-  }
-}
-
-export function saveSyncConfig(cfg, storage = globalThis.localStorage) {
-  storage?.setItem(SYNC_KEY, JSON.stringify(cfg));
-}
-
-export const isConfigured = (cfg) => !!(cfg?.owner && cfg?.repo && cfg?.token);
 
 function b64EncodeUtf8(str) {
   const bytes = new TextEncoder().encode(str);

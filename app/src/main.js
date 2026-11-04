@@ -1,13 +1,14 @@
 // Court Sense entry point: load settings, the person using this device and
-// their progress, and the deck, then route.
+// their progress, and the deck, then route. On a device where nobody has
+// signed in, the sign-in screen comes first and is the only way in.
 
 import { installRendererStyles } from './court/theme.js';
 import { loadSettings } from './store/settings.js';
 import { loadPeople, currentPerson, hasLegacyProgress } from './store/people.js';
-import { activatePerson, startPerson } from './people.js';
+import { activatePerson } from './people.js';
 import { makeScheduler } from './srs/scheduler.js';
 import { loadDeck, indexDeck } from './deck.js';
-import { renderHome, renderCards, renderPreview, renderSettings, renderProgress, renderWelcome } from './ui/views.js';
+import { renderHome, renderCards, renderPreview, renderSettings, renderProgress, renderSignIn, renderSignInPage } from './ui/views.js';
 import { runSession, finalizePending } from './ui/session.js';
 import { canSync, syncNow, syncedAt } from './sync.js';
 import { sessionFor } from './store/account.js';
@@ -38,6 +39,8 @@ function route() {
     app.teardown = runSession(root, app, { onBatchEnd: () => autoSync() }).destroy;
   } else if (name === 'settings') {
     renderSettings(root, app);
+  } else if (name === 'signin') {
+    renderSignInPage(root, app, decodeURIComponent(a ?? ''));
   } else if (name === 'progress') {
     renderProgress(root, app);
   } else if (name === 'cards') {
@@ -61,17 +64,12 @@ async function autoSync() {
   if (routeName()[0] === '') route();
 }
 
-// Nobody is named on this device yet: ask once, before anything else. On an
-// upgraded device the record kept so far goes under the name typed.
-function askWhoIsThis() {
+// Nobody is on this device yet: sign in, or create an account, before anything
+// else. On an upgraded device the record kept so far goes to the account signed
+// in to. The sign-in ends with a sync, which also loads the deck.
+function signInFirst() {
   return new Promise((resolve) => {
-    renderWelcome(root, {
-      migrating: hasLegacyProgress(),
-      onSubmit: (name) => {
-        startPerson(app, name);
-        resolve();
-      },
-    });
+    renderSignIn(root, app, { migrating: hasLegacyProgress(), onDone: resolve });
   });
 }
 
@@ -87,9 +85,10 @@ async function boot() {
   app.scheduler = makeScheduler({ requestRetention: app.settings.requestRetention, maximumInterval: app.settings.maxIntervalDays });
   app.autoSync = autoSync;
   app.people = loadPeople();
-  if (currentPerson(app.people)) activatePerson(app, app.people.current);
-  else await askWhoIsThis();
-  // A sign-in's sync may already have loaded the deck through the Worker.
+  const signedInNow = !currentPerson(app.people);
+  if (signedInNow) await signInFirst();
+  else activatePerson(app, app.people.current);
+  // The first sign-in's sync loaded the deck through the Worker unless it failed.
   if (!app.index) {
     const { deck, source, error } = await loadDeck({ session: sessionFor(app.person.id) });
     app.index = indexDeck(deck);
@@ -99,7 +98,7 @@ async function boot() {
   finalizePending(app); // an answer given last time but never rated
   window.addEventListener('hashchange', route);
   route();
-  autoSync();
+  if (!signedInNow) autoSync(); // a first sign-in has just synced
   registerServiceWorker();
 }
 
