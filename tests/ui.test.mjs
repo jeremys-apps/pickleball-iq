@@ -542,3 +542,55 @@ test('home, cards, preview and settings render; settings save', { skip }, async 
   assert.equal(app.settings.newPerDay, null, 'blank means no limit');
   assert.equal(JSON.parse(localStorage.getItem('piq.sync.v1')).owner, 'jeremy');
 });
+
+// Waits for an async click handler: polls until the condition holds.
+async function until(cond, what) {
+  for (let i = 0; i < 200 && !cond(); i++) await new Promise((r) => setTimeout(r, 5));
+  assert.ok(cond(), `timed out waiting for ${what}`);
+}
+
+test('Settings, Sync now: the status line reports the reviews and the deck the sync brought', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const { fakeGitHub } = await import('./fake-github.mjs');
+  const app = makeApp(m);
+  const other = m.store.emptyProgress('laptop-22222', 'Laptop', 'tester');
+  const { state } = app.scheduler.review(app.scheduler.newState(new Date('2026-11-01T12:00:00.000Z')), m.sched.Rating.Good, new Date('2026-11-01T12:00:00.000Z'));
+  m.store.recordReview(other, 'c-backhands-td-1', state, { rating: m.sched.Rating.Good, reviewed_at: '2026-11-01T12:00:00.000Z' });
+  const gh = fakeGitHub({ 'deck/deck.json': JSON.stringify(deck), 'progress/tester/laptop-22222.json': JSON.stringify(other) });
+  localStorage.setItem('piq.sync.v1', JSON.stringify({ owner: 'me', repo: 'piq-data', branch: 'main', token: 'github_pat_test' }));
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = gh.fetchImpl;
+  try {
+    const root = document.getElementById('app');
+    m.views.renderSettings(root, app);
+    const status = root.querySelector('form [role="status"]');
+    [...root.querySelectorAll('button')].find((b) => b.textContent === 'Sync now').click();
+    await until(() => /^Synced/.test(status.textContent), 'the sync to finish');
+    assert.equal(status.textContent, `Synced. 1 reviews across your devices; the deck has ${deck.cards.length} cards.`);
+    assert.equal(app.deckSource, 'github');
+    assert.ok(gh.store.has('progress/tester/test-device.json'), "this device's file was written");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('Settings, Sync now: a failed sync shows the reason in the status line', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const app = makeApp(m);
+  localStorage.setItem('piq.sync.v1', JSON.stringify({ owner: 'me', repo: 'piq-data', branch: 'main', token: 'github_pat_test' }));
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ message: 'Bad credentials' }), { status: 401 });
+  try {
+    const root = document.getElementById('app');
+    m.views.renderSettings(root, app);
+    const status = root.querySelector('form [role="status"]');
+    [...root.querySelectorAll('button')].find((b) => b.textContent === 'Sync now').click();
+    await until(() => /failed/.test(status.textContent), 'the error');
+    assert.match(status.textContent, /\(401\)/);
+    assert.equal(app.deckSource, 'sample', 'the deck in use is unchanged');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

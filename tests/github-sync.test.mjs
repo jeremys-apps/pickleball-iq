@@ -2,43 +2,10 @@
 // our request shapes and the multi-device flow, not GitHub itself.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { makeGitHubClient, syncProgress, pullDeck, progressFolder } from '../app/src/store/github-sync.js';
 import { emptyProgress, recordReview, mergeProgress } from '../app/src/store/progress.js';
 import { makeScheduler, Rating } from '../app/src/srs/scheduler.js';
-
-const sha = (t) => createHash('sha1').update(t).digest('hex');
-const resp = (status, body) => new Response(body, { status });
-
-function fakeGitHub(initial = {}) {
-  const store = new Map(Object.entries(initial).map(([p, t]) => [p, { text: t, sha: sha(t) }]));
-  const calls = [];
-  const fetchImpl = async (url, opts = {}) => {
-    const method = opts.method ?? 'GET';
-    calls.push({ url, method, headers: opts.headers, body: opts.body });
-    const u = new URL(url);
-    const m = u.pathname.match(/^\/repos\/[^/]+\/[^/]+\/contents\/?(.*)$/);
-    const path = decodeURIComponent(m[1]);
-    if (method === 'GET') {
-      if (store.has(path)) {
-        const f = store.get(path);
-        if (opts.headers.Accept.includes('raw')) return resp(200, f.text);
-        return resp(200, JSON.stringify({ type: 'file', name: path.split('/').pop(), path, sha: f.sha }));
-      }
-      const kids = [...store.keys()].filter((k) => k.startsWith(path + '/'));
-      if (kids.length) return resp(200, JSON.stringify(kids.map((k) => ({ type: 'file', name: k.split('/').pop(), path: k, sha: store.get(k).sha }))));
-      return resp(404, JSON.stringify({ message: 'Not Found' }));
-    }
-    const body = JSON.parse(opts.body);
-    const existing = store.get(path);
-    if (existing && body.sha !== existing.sha) return resp(409, JSON.stringify({ message: 'sha does not match' }));
-    if (!existing && body.sha) return resp(422, JSON.stringify({ message: 'sha given for a new file' }));
-    const text = Buffer.from(body.content, 'base64').toString('utf8');
-    store.set(path, { text, sha: sha(text) });
-    return resp(existing ? 200 : 201, JSON.stringify({ content: { path } }));
-  };
-  return { fetchImpl, store, calls };
-}
+import { fakeGitHub, resp, sha } from './fake-github.mjs';
 
 const s = makeScheduler({ enableFuzz: false });
 const review = (p, id, rating, iso) => {
@@ -104,4 +71,70 @@ test('missing deck gives a message that says what to do', async () => {
 test('rejected token produces a clear error', async () => {
   const client = makeGitHubClient(cfg, async () => resp(401, JSON.stringify({ message: 'Bad credentials' })));
   await assert.rejects(() => client.getText('deck/deck.json'), /token was rejected/);
+});
+
+test('requests take the shapes the contents API documents', async () => {
+  const gh = fakeGitHub({ 'progress/jeremy/a.json': '{"x":1}', 'my notes/a b.json': '{}' });
+  const client = makeGitHubClient(cfg, gh.fetchImpl);
+  assert.equal(await client.getText('progress/jeremy/a.json'), '{"x":1}');
+  const files = await client.list('progress/jeremy');
+  await client.putText('progress/jeremy/b.json', 'Jeremy’s phone', { message: 'progress: jeremy, Phone' });
+  await client.putText('progress/jeremy/a.json', '{"x":2}', { sha: files[0].sha, message: 'progress: jeremy' });
+  assert.equal(await client.getText('my notes/a b.json'), '{}');
+  const [get, list, create, update, spaced] = gh.calls;
+  const base = 'https://api.github.com/repos/me/piq-data/contents';
+  assert.equal(get.url, `${base}/progress/jeremy/a.json?ref=main`, 'reads name the branch');
+  assert.equal(get.method, 'GET');
+  assert.equal(get.headers.Accept, 'application/vnd.github.raw+json', 'files come back raw');
+  assert.equal(get.headers.Authorization, 'Bearer github_pat_test');
+  assert.equal(get.headers['X-GitHub-Api-Version'], '2022-11-28');
+  assert.equal(list.url, `${base}/progress/jeremy?ref=main`);
+  assert.equal(list.headers.Accept, 'application/vnd.github+json', 'listings come back as JSON');
+  assert.equal(create.url, `${base}/progress/jeremy/b.json`, 'writes carry the branch in the body, not the URL');
+  assert.equal(create.method, 'PUT');
+  assert.equal(create.headers['Content-Type'], 'application/json');
+  const created = JSON.parse(create.body);
+  assert.deepEqual(Object.keys(created).sort(), ['branch', 'content', 'message'], 'a new file has no sha');
+  assert.equal(created.branch, 'main');
+  assert.equal(created.message, 'progress: jeremy, Phone');
+  assert.equal(Buffer.from(created.content, 'base64').toString('utf8'), 'Jeremy’s phone', 'UTF-8 survives base64');
+  assert.equal(JSON.parse(update.body).sha, files[0].sha, 'an update names the sha it replaces');
+  assert.equal(spaced.url, `${base}/my%20notes/a%20b.json?ref=main`, 'each path segment is encoded');
+});
+
+test('a file that changed between the listing and the write is written after one refresh', async () => {
+  const path = 'progress/jeremy/phone-111111.json';
+  const mine = emptyProgress('phone-111111', 'Phone', 'jeremy');
+  const gh = fakeGitHub({ [path]: JSON.stringify(mine) });
+  let raced = false;
+  const fetchImpl = async (url, opts = {}) => {
+    if (opts.method === 'PUT' && !raced) {
+      raced = true; // another tab on this device wrote the file first
+      const other = JSON.stringify({ ...mine, device_label: 'Other tab' });
+      gh.store.set(path, { text: other, sha: sha(other) });
+    }
+    return gh.fetchImpl(url, opts);
+  };
+  review(mine, 'c-1', Rating.Good, '2026-11-01T12:00:00.000Z');
+  await syncProgress(makeGitHubClient(cfg, fetchImpl), mine, { dir: 'progress/jeremy', merge });
+  const puts = gh.calls.filter((c) => c.method === 'PUT');
+  assert.equal(puts.length, 2, 'one refused write, then one with the fresh sha');
+  assert.notEqual(JSON.parse(puts[0].body).sha, JSON.parse(puts[1].body).sha);
+  assert.equal(JSON.parse(gh.store.get(path).text).logs.length, 1, 'the review landed');
+});
+
+test('a file that keeps changing under the write fails after one refresh, with the conflict in the error', async () => {
+  const path = 'progress/jeremy/phone-111111.json';
+  const mine = emptyProgress('phone-111111', 'Phone', 'jeremy');
+  const gh = fakeGitHub({ [path]: JSON.stringify(mine) });
+  let n = 0;
+  const fetchImpl = async (url, opts = {}) => {
+    if (opts.method === 'PUT') {
+      const other = JSON.stringify({ ...mine, device_label: `Other tab ${++n}` });
+      gh.store.set(path, { text: other, sha: sha(other) });
+    }
+    return gh.fetchImpl(url, opts);
+  };
+  await assert.rejects(() => syncProgress(makeGitHubClient(cfg, fetchImpl), mine, { dir: 'progress/jeremy', merge }), /\(409\)/);
+  assert.equal(gh.calls.filter((c) => c.method === 'PUT').length, 2, 'it refreshes once, not forever');
 });
