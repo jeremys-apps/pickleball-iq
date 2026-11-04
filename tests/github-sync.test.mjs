@@ -73,6 +73,43 @@ test('rejected token produces a clear error', async () => {
   await assert.rejects(() => client.getText('deck/deck.json'), /token was rejected/);
 });
 
+test('a given base replaces the GitHub address; reads still name the branch and writes carry it in the body', async () => {
+  const calls = [];
+  const fetchImpl = async (url, opts = {}) => {
+    calls.push({ url, opts });
+    if (opts.method === 'PUT') return resp(201, JSON.stringify({ content: { path: 'p', sha: 'abc' } }));
+    return resp(200, url.includes('.json') ? '{}' : '[]');
+  };
+  const base = 'https://court-sense.example.workers.dev/contents';
+  const client = makeGitHubClient({ base, token: 'v1.anna.sig', hints: {} }, fetchImpl);
+  await client.getText('progress/anna/phone 1.json');
+  await client.list('progress/anna');
+  await client.putText('progress/anna/phone-333333.json', '{}', { message: 'progress: anna, Phone' });
+  assert.deepEqual(
+    calls.map((c) => c.url),
+    [`${base}/progress/anna/phone%201.json?ref=main`, `${base}/progress/anna?ref=main`, `${base}/progress/anna/phone-333333.json`],
+  );
+  assert.equal(calls[0].opts.headers.Authorization, 'Bearer v1.anna.sig', 'the session goes where the token went');
+  assert.equal(calls[1].opts.headers.Accept, 'application/vnd.github+json');
+  assert.deepEqual(JSON.parse(calls[2].opts.body), { message: 'progress: anna, Phone', content: Buffer.from('{}').toString('base64'), branch: 'main' });
+});
+
+test("empty hints leave the service's own message alone, and every failure carries its status", async () => {
+  const base = 'https://court-sense.example.workers.dev/contents';
+  const answer = (status, body) => async () => resp(status, typeof body === 'string' ? body : JSON.stringify(body));
+  const signedOut = makeGitHubClient({ base, token: 'v1.anna.sig', hints: {} }, answer(401, { message: 'You are signed out. Sign in again in Settings.' }));
+  await assert.rejects(signedOut.getText('deck/deck.json'), { message: 'Reading deck/deck.json failed (401). You are signed out. Sign in again in Settings.', status: 401 });
+  const forbidden = makeGitHubClient({ base, token: 'v1.ben.sig', hints: {} }, answer(403, { message: 'Not allowed.' }));
+  await assert.rejects(forbidden.list('progress/anna'), { message: 'Listing progress/anna failed (403). Not allowed.', status: 403 });
+  const silent = makeGitHubClient({ base, token: 'v1.anna.sig', hints: {} }, answer(500, 'not json'));
+  await assert.rejects(silent.putText('progress/anna/a.json', '{}', { message: 'm' }), { message: 'Writing progress/anna/a.json failed (500).', status: 500 });
+  const github = makeGitHubClient(cfg, answer(401, { message: 'Bad credentials' }));
+  await assert.rejects(github.getText('deck/deck.json'), {
+    message: 'Reading deck/deck.json failed (401). The token was rejected. Create a new one and paste it in Settings. Bad credentials',
+    status: 401,
+  });
+});
+
 test('requests take the shapes the contents API documents', async () => {
   const gh = fakeGitHub({ 'progress/jeremy/a.json': '{"x":1}', 'my notes/a b.json': '{}' });
   const client = makeGitHubClient(cfg, gh.fetchImpl);

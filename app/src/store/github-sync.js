@@ -39,13 +39,27 @@ function b64EncodeUtf8(str) {
 
 const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
 
-export function makeGitHubClient({ owner, repo, branch = 'main', token }, fetchImpl = globalThis.fetch) {
+// Text added to a failure, by status, when the credential is a GitHub token.
+const TOKEN_HINTS = Object.freeze({
+  401: 'The token was rejected. Create a new one and paste it in Settings.',
+  403: 'The token lacks access. It needs Contents: Read and write on this repository.',
+  404: 'Not found. Check the owner, repository, branch and path.',
+});
+
+// base is where the contents API lives: GitHub's own by default, or the sign-in
+// Worker's /contents, which answers the same requests. hints are added to a
+// failure's message by status; the Worker's own messages need none. A failure
+// carries its status, so a caller can tell a refused session from no network.
+export function makeGitHubClient(
+  { owner, repo, branch = 'main', token, base = `${API}/repos/${owner}/${repo}/contents`, hints = TOKEN_HINTS },
+  fetchImpl = globalThis.fetch,
+) {
   const headers = (accept) => ({
     Authorization: `Bearer ${token}`,
     Accept: accept,
     'X-GitHub-Api-Version': '2022-11-28',
   });
-  const url = (path) => `${API}/repos/${owner}/${repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`;
+  const url = (path) => `${base}/${encodePath(path)}?ref=${encodeURIComponent(branch)}`;
 
   async function check(res, what) {
     if (res.ok) return res;
@@ -55,15 +69,9 @@ export function makeGitHubClient({ owner, repo, branch = 'main', token }, fetchI
     } catch {
       /* ignore */
     }
-    const hint =
-      res.status === 401
-        ? 'The token was rejected. Create a new one and paste it in Settings.'
-        : res.status === 403
-          ? 'The token lacks access. It needs Contents: Read and write on this repository.'
-          : res.status === 404
-            ? 'Not found. Check the owner, repository, branch and path.'
-            : '';
-    throw new Error(`${what} failed (${res.status}). ${hint} ${detail}`.trim());
+    const err = new Error([`${what} failed (${res.status}).`, hints[res.status], detail].filter(Boolean).join(' '));
+    err.status = res.status;
+    throw err;
   }
 
   return {
@@ -84,7 +92,7 @@ export function makeGitHubClient({ owner, repo, branch = 'main', token }, fetchI
     },
     // Create or update a file. sha is required when updating.
     async putText(path, text, { sha, message }) {
-      const res = await fetchImpl(`${API}/repos/${owner}/${repo}/contents/${encodePath(path)}`, {
+      const res = await fetchImpl(`${base}/${encodePath(path)}`, {
         method: 'PUT',
         headers: { ...headers('application/vnd.github+json'), 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, content: b64EncodeUtf8(text), branch, ...(sha ? { sha } : {}) }),
