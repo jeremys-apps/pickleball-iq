@@ -1,0 +1,14 @@
+{
+  "name": "court-sense-server",
+  "private": true,
+  "type": "module",
+  "description": "Sign-in Worker for Court Sense: holds the GitHub token, creates accounts with the family code, and passes each person's deck and progress requests through to the data repo.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.36.0"
+  }
+}

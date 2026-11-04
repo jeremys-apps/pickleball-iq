@@ -1,0 +1,24 @@
+# Court Sense sign-in Worker. Deploy from this folder: npx wrangler deploy.
+# Secrets, set once each with npx wrangler secret put <NAME> (never in a file):
+#   GITHUB_TOKEN    fine-grained token: only the data repo, Contents read and write
+#   SESSION_SECRET  32 random bytes, base64; changing it signs everyone out
+#   FAMILY_CODE     what the family types to create an account
+name = "court-sense"
+main = "src/worker.js"
+compatibility_date = "2026-11-03"
+workers_dev = true
+
+[vars]
+DATA_REPO = "ViciousJ/pickleball-iq-data"
+BRANCH = "main"
+ALLOWED_ORIGINS = "https://jeremys-apps.github.io,http://localhost:8000"
+
+# At most 10 sign-in or sign-up tries a minute per address, counted per
+# Cloudflare location. The Worker runs without it if the binding is missing.
+[[ratelimits]]
+name = "SIGN_IN_LIMIT"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60

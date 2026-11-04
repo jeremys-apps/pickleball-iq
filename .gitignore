@@ -9,3 +9,6 @@ __pycache__/
 .DS_Store
 # Real decks never live in this repo (see CLAUDE.md)
 app/data/deck.json
+# Wrangler's local state and local secrets for the sign-in Worker (server/)
+.wrangler/
+.dev.vars

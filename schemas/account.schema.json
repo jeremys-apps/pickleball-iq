@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://piq.local/schemas/account.schema.json",
+  "title": "Account",
+  "description": "One person's sign-in record, accounts/<id>.json in the private data repo, written by the sign-in Worker when someone creates an account with the family code. It holds no password and no key: the device stretches the password into a key (PBKDF2-HMAC-SHA-256, salt \"court-sense/v1/\" + id, 600,000 rounds, 32 bytes) and the Worker keeps SHA-256 of salt + key. Deleting the file resets the password; the person's progress under progress/<id>/ is untouched, and their sessions keep working.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "created_at",
+    "salt",
+    "hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "description": "The person's id: their name as a slug, and their folder under progress/. Permanent once used."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "description": "The name as typed when the account was created, shown in the app."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "salt": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$",
+      "description": "16 random bytes, base64url without padding."
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$",
+      "description": "SHA-256 of the salt bytes followed by the key bytes, base64url without padding."
+    }
+  }
+}
