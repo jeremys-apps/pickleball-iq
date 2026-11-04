@@ -1,5 +1,6 @@
-// Deck loading: your private data repo first, then the last copy saved on this
-// device, then the bundled sample deck.
+// Deck loading: the private data repo through the sign-in Worker when someone
+// is signed in, then the last copy saved on this device, then the bundled
+// sample deck.
 //
 // The saved copy lives in Cache Storage, not localStorage (D23): a full-corpus
 // deck runs to several MB, and localStorage is capped near 5 MB on iOS Safari
@@ -7,7 +8,8 @@
 // and as the fallback where the Cache API is missing (tests, old browsers,
 // insecure origins, some private windows).
 
-import { loadSyncConfig, isConfigured, makeGitHubClient, pullDeck } from './store/github-sync.js';
+import { pullDeck } from './store/github-sync.js';
+import { makeAccountClient } from './store/account.js';
 import { peopleOf } from './names.js';
 
 export const DECK_CACHE_KEY = 'piq.deck.cache.v1'; // localStorage: migration source and no-Cache-API fallback
@@ -94,12 +96,12 @@ export async function readCachedDeck({ caches = globalThis.caches, storage = glo
   return deck;
 }
 
-export async function loadDeck({ storage = globalThis.localStorage, caches = globalThis.caches, fetchImpl = globalThis.fetch, samplePath = 'data/deck.sample.json' } = {}) {
-  const cfg = loadSyncConfig(storage);
+// session: the signed-in person's, or null for nobody (the copy, then the sample).
+export async function loadDeck({ storage = globalThis.localStorage, caches = globalThis.caches, fetchImpl = globalThis.fetch, samplePath = 'data/deck.sample.json', session = null, api } = {}) {
   let error = null;
-  if (isConfigured(cfg)) {
+  if (session) {
     try {
-      const deck = await pullDeck(makeGitHubClient(cfg, fetchImpl), cfg.deckPath || 'deck/deck.json');
+      const deck = await pullDeck(makeAccountClient(session, { ...(api ? { api } : {}), fetchImpl }));
       await cacheDeck(deck, { caches, storage });
       return { deck, source: 'github', error };
     } catch (e) {

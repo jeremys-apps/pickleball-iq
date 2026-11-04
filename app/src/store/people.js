@@ -10,6 +10,7 @@
 //   { current: 'jeremy', people: [{ id: 'jeremy', name: 'Jeremy', created_at: iso }] }
 
 import { STORAGE_KEY, PENDING_KEY, DEVICE_KEY, SCHEMA_VERSION, progressKey, pendingKey } from './progress.js';
+import { clearSession } from './account.js';
 
 export const PEOPLE_KEY = 'piq.people.v1';
 export const MAX_ID_LENGTH = 40;
@@ -72,14 +73,16 @@ export function setCurrent(reg, id) {
   return { ...reg, current: id };
 }
 
-// Takes a person off this device along with their record here. Copies synced
-// to the data repo are untouched. The person using the device now stays.
+// Takes a person off this device along with their record and session here.
+// Copies synced to the data repo are untouched. The person using the device now
+// stays.
 export function removePerson(reg, id, storage = globalThis.localStorage) {
   if (id === reg.current) throw new Error('Switch to someone else before removing the person using this device.');
   if (!personById(reg, id)) return reg;
   try {
     storage?.removeItem(progressKey(id));
     storage?.removeItem(pendingKey(id));
+    clearSession(id, storage);
   } catch {
     /* storage blocked */
   }

@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cacheDeck, readCachedDeck, loadDeck, DECK_CACHE_KEY, DECK_CACHE_NAME, DECK_CACHE_REQUEST } from '../app/src/deck.js';
-import { saveSyncConfig } from '../app/src/store/github-sync.js';
+import { ACCOUNT_API } from '../app/src/store/account.js';
 
 function memoryStorage() {
   const m = new Map();
@@ -110,20 +110,20 @@ test('a corrupt localStorage copy is discarded, not migrated', async () => {
   assert.equal(storage.getItem(DECK_CACHE_KEY), null);
 });
 
-test('loadDeck: GitHub, then the saved copy, then the sample', async () => {
+test('loadDeck: the data repo through the Worker, then the saved copy, then the sample', async () => {
   const sample = { schema_version: 1, cards: [{ id: 'sample' }] };
   const sampleFetch = async (path) => {
     assert.equal(path, 'data/deck.sample.json');
     return new Response(JSON.stringify(sample));
   };
 
-  // Nothing configured, nothing saved: the sample.
+  // Nobody signed in, nothing saved: the sample.
   let r = await loadDeck({ storage: memoryStorage(), caches: fakeCaches().caches, fetchImpl: sampleFetch });
   assert.equal(r.source, 'sample');
   assert.deepEqual(r.deck, sample);
   assert.equal(r.error, null);
 
-  // Nothing configured, a saved copy: the copy, and no fetch at all.
+  // Nobody signed in, a saved copy: the copy, and no fetch at all.
   let f = fakeCaches();
   let storage = memoryStorage();
   await cacheDeck(deck, { caches: f.caches, storage });
@@ -131,28 +131,41 @@ test('loadDeck: GitHub, then the saved copy, then the sample', async () => {
   assert.equal(r.source, 'cache');
   assert.deepEqual(r.deck, deck);
 
-  // Configured and reachable: GitHub, and the copy is refreshed into Cache Storage.
+  // Old token settings on the device are not used.
+  storage.setItem('piq.sync.v1', JSON.stringify({ owner: 'me', repo: 'piq-data', branch: 'main', token: 'github_pat_test' }));
+  r = await loadDeck({ storage, caches: f.caches, fetchImpl: async () => assert.fail('no fetch expected') });
+  assert.equal(r.source, 'cache');
+
+  // Signed in and reachable: the deck through the Worker, and the copy is refreshed into Cache Storage.
   f = fakeCaches();
   storage = memoryStorage();
   storage.setItem(DECK_CACHE_KEY, JSON.stringify(deck));
-  saveSyncConfig({ owner: 'me', repo: 'piq-data', branch: 'main', token: 'github_pat_test' }, storage);
-  const github = async (url, opts) => {
-    assert.match(url, /\/repos\/me\/piq-data\/contents\/deck%2Fdeck\.json|\/repos\/me\/piq-data\/contents\/deck\/deck\.json/);
+  const session = `v1.jeremy.${'A'.repeat(43)}`;
+  const worker = async (url, opts) => {
+    assert.equal(url, `${ACCOUNT_API}/contents/deck/deck.json?ref=main`);
+    assert.equal(opts.headers.Authorization, `Bearer ${session}`);
     assert.ok(opts.headers.Accept.includes('raw'));
     return new Response(JSON.stringify(newer), { status: 200 });
   };
-  r = await loadDeck({ storage, caches: f.caches, fetchImpl: github });
+  r = await loadDeck({ storage, caches: f.caches, fetchImpl: worker, session });
   assert.equal(r.source, 'github');
   assert.deepEqual(r.deck, newer);
+  assert.equal(r.error, null);
   assert.deepEqual(JSON.parse(f.stored()), newer, 'Cache Storage holds the pulled deck');
   assert.equal(storage.getItem(DECK_CACHE_KEY), null, 'old localStorage copy gone');
 
-  // Configured but unreachable: the saved copy, with the error reported.
+  // Signed in but unreachable: the saved copy, with the error reported.
   const offline = async () => {
     throw new TypeError('Failed to fetch');
   };
-  r = await loadDeck({ storage, caches: f.caches, fetchImpl: offline });
+  r = await loadDeck({ storage, caches: f.caches, fetchImpl: offline, session });
   assert.equal(r.source, 'cache');
   assert.deepEqual(r.deck, newer);
   assert.match(r.error, /Failed to fetch/);
+
+  // A session the Worker refuses: the saved copy, with the Worker's message.
+  const refused = async () => new Response(JSON.stringify({ message: 'You are signed out. Sign in again in Settings.' }), { status: 401 });
+  r = await loadDeck({ storage, caches: f.caches, fetchImpl: refused, session });
+  assert.equal(r.source, 'cache');
+  assert.match(r.error, /\(401\)\. You are signed out\. Sign in again in Settings\.$/);
 });

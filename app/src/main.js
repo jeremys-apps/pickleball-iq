@@ -9,7 +9,8 @@ import { makeScheduler } from './srs/scheduler.js';
 import { loadDeck, indexDeck } from './deck.js';
 import { renderHome, renderCards, renderPreview, renderSettings, renderProgress, renderWelcome } from './ui/views.js';
 import { runSession, finalizePending } from './ui/session.js';
-import { canSync, syncNow } from './sync.js';
+import { canSync, syncNow, syncedAt } from './sync.js';
+import { sessionFor } from './store/account.js';
 
 const root = document.getElementById('app');
 
@@ -49,11 +50,11 @@ function route() {
 }
 
 async function autoSync() {
-  if (!app.settings.autoSync || !canSync()) return;
+  if (!app.settings.autoSync || !canSync(app)) return;
   app.sync = { state: 'running', message: 'Syncing...' };
   try {
     await syncNow(app);
-    app.sync = { state: 'ok', message: `Synced at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.` };
+    app.sync = { state: 'ok', message: syncedAt() };
   } catch (e) {
     app.sync = { state: 'error', message: `Sync failed. ${e.message}` };
   }
@@ -85,14 +86,16 @@ async function boot() {
   app.settings = loadSettings();
   app.scheduler = makeScheduler({ requestRetention: app.settings.requestRetention, maximumInterval: app.settings.maxIntervalDays });
   app.autoSync = autoSync;
-  const deckLoading = loadDeck(); // needs no person; loads while a name is typed
   app.people = loadPeople();
   if (currentPerson(app.people)) activatePerson(app, app.people.current);
   else await askWhoIsThis();
-  const { deck, source, error } = await deckLoading;
-  app.index = indexDeck(deck);
-  app.deckSource = source;
-  app.deckError = error;
+  // A sign-in's sync may already have loaded the deck through the Worker.
+  if (!app.index) {
+    const { deck, source, error } = await loadDeck({ session: sessionFor(app.person.id) });
+    app.index = indexDeck(deck);
+    app.deckSource = source;
+    app.deckError = error;
+  }
   finalizePending(app); // an answer given last time but never rated
   window.addEventListener('hashchange', route);
   route();

@@ -549,6 +549,26 @@ async function until(cond, what) {
   assert.ok(cond(), `timed out waiting for ${what}`);
 }
 
+// The sign-in Worker in front of a fake GitHub (or anything with a fetchImpl),
+// installed as the page's fetch, and a session for the person on the device.
+const WORKER_SECRET = 'test-session-secret-0123456789';
+const workerEnv = {
+  GITHUB_TOKEN: 'github_pat_worker',
+  SESSION_SECRET: WORKER_SECRET,
+  FAMILY_CODE: 'Pickle Court Forever',
+  DATA_REPO: 'me/piq-data',
+  BRANCH: 'main',
+  ALLOWED_ORIGINS: 'https://jeremys-apps.github.io',
+};
+async function useWorker(upstream) {
+  const [{ handle }, { signSession }, account] = await Promise.all([import('../server/src/worker.js'), import('../server/src/auth.js'), import('../app/src/store/account.js')]);
+  globalThis.fetch = async (url, init = {}) => {
+    assert.ok(String(url).startsWith(`${account.ACCOUNT_API}/`), `the page calls only the Worker, not ${url}`);
+    return handle(new Request(url, init), workerEnv, { fetchImpl: upstream.fetchImpl });
+  };
+  return { account, signIn: async (id) => account.saveSession(id, await signSession(WORKER_SECRET, id)) };
+}
+
 test('Settings, Sync now: the status line reports the reviews and the deck the sync brought', { skip }, async () => {
   setupDom();
   const m = await modules();
@@ -558,9 +578,9 @@ test('Settings, Sync now: the status line reports the reviews and the deck the s
   const { state } = app.scheduler.review(app.scheduler.newState(new Date('2026-11-01T12:00:00.000Z')), m.sched.Rating.Good, new Date('2026-11-01T12:00:00.000Z'));
   m.store.recordReview(other, 'c-backhands-td-1', state, { rating: m.sched.Rating.Good, reviewed_at: '2026-11-01T12:00:00.000Z' });
   const gh = fakeGitHub({ 'deck/deck.json': JSON.stringify(deck), 'progress/tester/laptop-22222.json': JSON.stringify(other) });
-  localStorage.setItem('piq.sync.v1', JSON.stringify({ owner: 'me', repo: 'piq-data', branch: 'main', token: 'github_pat_test' }));
   const realFetch = globalThis.fetch;
-  globalThis.fetch = gh.fetchImpl;
+  const worker = await useWorker(gh);
+  await worker.signIn('tester');
   try {
     const root = document.getElementById('app');
     m.views.renderSettings(root, app);
@@ -579,16 +599,18 @@ test('Settings, Sync now: a failed sync shows the reason in the status line', { 
   setupDom();
   const m = await modules();
   const app = makeApp(m);
-  localStorage.setItem('piq.sync.v1', JSON.stringify({ owner: 'me', repo: 'piq-data', branch: 'main', token: 'github_pat_test' }));
   const realFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({ message: 'Bad credentials' }), { status: 401 });
+  // GitHub refuses the Worker's own token: the Worker answers 502.
+  const worker = await useWorker({ fetchImpl: async () => new Response(JSON.stringify({ message: 'Bad credentials' }), { status: 401 }) });
+  await worker.signIn('tester');
   try {
     const root = document.getElementById('app');
     m.views.renderSettings(root, app);
     const status = root.querySelector('form [role="status"]');
     [...root.querySelectorAll('button')].find((b) => b.textContent === 'Sync now').click();
     await until(() => /failed/.test(status.textContent), 'the error');
-    assert.match(status.textContent, /\(401\)/);
+    assert.match(status.textContent, /\(502\)\. Sync is not working on the server\. Your progress is safe on this device\./);
+    assert.ok(worker.account.sessionFor('tester'), 'a server failure signs nobody out');
     assert.equal(app.deckSource, 'sample', 'the deck in use is unchanged');
   } finally {
     globalThis.fetch = realFetch;
