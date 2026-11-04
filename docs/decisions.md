@@ -233,3 +233,102 @@ camera mode and hand), so it moved
 under the picture beside Play and Watch the play, extending D24. `preferred_view`
 stays in the card schema so existing cards validate, but the app no longer reads
 it.
+
+**D31. Sign-in goes through a free Cloudflare Worker that holds the only GitHub
+token.** Family members should set up a phone with a username and a password,
+not the data repository settings and a token (Jeremy, 2026-11-03), and Jeremy
+chose a free Cloudflare Worker to make that possible (PRD Q14). Phones never
+hold a token, so a lost phone or a guessed password cannot open the data repo,
+transcripts included; the Worker enforces what each person reaches; there is one
+token to rotate instead of one per device; an emailed reset can be added later;
+and it costs nothing. The Data repository fields and the per-device tokens are
+gone. Rejected: (a) no server, with each person's connection settings encrypted
+with their password and published beside the app: the encrypted files would be
+public, a short password falls to offline guessing, the token stays on every
+phone, and email is impossible; (b) the Oracle VM: it needs a domain, TLS and
+patching, and Oracle reclaims idle Always Free instances; (c) Supabase or
+Firebase: progress would leave the data repo, and free projects pause when idle;
+(d) a GitHub account per family member: not a username and a password; (e) a
+setup link carrying the token: no sign-in, and the token sits in message
+history; (f) the token fields kept under an Advanced fold: two sync paths to
+test, and the token risk stays on any device that uses them. The token never
+expires (Jeremy, 2026-11-03): it lives only in the Worker's secrets, and an
+expiry would mainly add a yearly outage. GitHub still revokes a token unused for
+a year or pushed to a public repository; a new one is one
+`npx wrangler secret put GITHUB_TOKEN` away. Supersedes D5's token reached from
+the browser and D27's "accounts (out of scope)".
+
+**D32. The Worker is a path-checked pass-through of the GitHub contents API.**
+`syncProgress`, `pullDeck` and the merge stay on the device unchanged, so the
+tested sync logic and the file layout carry over; the Worker is small enough to
+read whole, and the fake GitHub that tests the sync tests it too. A session
+reaches the deck and its own person's folder, and every other path is refused.
+The Worker never parses deck or progress bodies (reads stream, a write is
+forwarded as bytes), so its CPU stays within the free plan's 10 ms however large
+they grow. Rejected: merging on the server (FSRS replay in the Worker, CPU
+limits, logic in two places) and a purpose-built API (a second client on the
+device for the same three operations).
+
+**D33. People create accounts in the app with the family code; the username is
+the person's name; switching needs no password.** Jeremy chose a family code
+over creating accounts himself (PRD Q16), after weighing that a shared code can
+leak. Account records live in the data repo (`accounts/<id>.json`), which keeps
+all state in one private place that git shows and fixes, with no Cloudflare
+storage to set up. The username's slug is the person's id, so ids and folders
+stay as they were and `jeremy` keeps his history. One-tap switching keeps a
+shared family device easy. Every device starts at sign-in, and Add a person
+signs someone in; the name-only start and add are gone (PRD Q22), since the real
+deck needs an account anyway, and a phone where nobody has signed in cannot get
+past sign-in offline. Rejected: Workers KV (invisible to git, one more resource,
+1,000 writes a day); a separate username and display name (a second identifier
+tied to permanent ids); a password on every switch; a "Use without an account"
+link (a second path that only ever shows the sample deck).
+
+**D34. Passwords are stretched on the device; the Worker stores a salted hash
+of the result.** The free plan's 10 ms of CPU rules out slow hashing in the
+Worker, so PBKDF2 with SHA-256 runs on the device at 600,000 iterations
+(OWASP's figure), salted with the person's id: about a quarter of a second in
+laptop Chrome (2026-11-03), and expected to stay under a second on a phone. The
+Worker never sees a password; it keeps a salted SHA-256 of the key, so a leaked
+record still costs 600,000 iterations per guess. Passwords have at least 8
+characters, checked on the device. Sign-in says whether the name or the password
+was wrong: in a family a clear message is worth more than hiding which names
+have accounts, and a rate limit on sign-in slows anyone probing. Changing the
+derivation would change every key, so it would need a new salt label
+(`court-sense/v2/`) and every account made again. Rejected: hashing in the
+Worker (CPU); a fast unsalted hash (cracks quickly); a server pepper (one more
+secret whose loss locks everyone out, for records already in a private repo);
+one message for both mistakes.
+
+**D35. Sessions are signed tokens with no expiry, checked by their signature
+alone.** A phone stays signed in like an installed app. There is no session
+store and no account read per request, so each request costs one GitHub call,
+and a password reset never signs a device out, so no device stops syncing (PRD
+Q23). The cost: deleting an account record only stops new sign-ins under that
+name. To cut off one person, Jeremy changes `SESSION_SECRET`, which signs
+everyone out once; a device signed out this way keeps its record, unsynced
+reviews included, and uploads them after the next sign-in. Rejected: checking
+every request against the account record (it cuts off one person alone, but a
+reset would sign that person's other devices out until they signed in again); a
+session store in KV; expiring sessions with refresh (more device logic for a
+family app).
+
+**D36. "Forgot your password?" means ask Jeremy: he deletes the account record,
+and the person creates the account again under the same name.** No email for now
+(PRD Q15). Jeremy's condition (2026-11-03) is that a reset must not cost anyone
+their progress, and this design meets it by construction: the account record
+holds only the password check, progress lives under `progress/<id>/`, which a
+reset never touches, and the person's devices stay signed in through the reset
+and keep syncing (D35). Safeguards: the sign-in screen opened from Settings fills
+in the person's name in both modes, so the account comes back under the same id;
+the Forgot line says to create the account again with the same name; a failure
+on the server is a 502, which never signs a device out; and Remove stays the only
+thing that erases a device's record, and it asks first. Jeremy can reset from
+GitHub's website on his phone, and the person picks the new password, so there
+are no temporary passwords and no admin page. Rejected: a reset command that
+sets a temporary password (it keeps progress just as well, but adds a command
+and a change-password screen); emailed resets (not now; they would need a
+sending domain verified with an email service). Accepted cost: between the reset
+and the new sign-up, anyone with the family code could take the name; nothing is
+deleted even then, and Jeremy deletes the wrong record and changes
+`SESSION_SECRET` so the person can create theirs.

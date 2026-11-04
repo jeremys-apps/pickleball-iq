@@ -1,17 +1,19 @@
-// Sync through a PRIVATE GitHub repo using the REST contents API.
+// Sync through a PRIVATE GitHub repo using the REST contents API, which the app
+// reaches through the sign-in Worker (server/). The Worker holds the only GitHub
+// token and passes a signed-in person's requests through, for the deck and that
+// person's own folder only; the device sends its session where a token would go
+// (store/account.js).
 //
 // Layout of the data repo (for example you/pickleball-iq-data):
 //   deck/deck.json                         built by `python pipeline/piq.py build-deck`
 //   progress/<person_id>/<device_id>.json  one folder per person, one file per
 //                                          device; a device writes only its own
 //                                          file and reads only its person's folder
+//   accounts/<person_id>.json              written by the Worker at sign-up
 //
-// Token: a fine-grained personal access token limited to that one repository,
-// with Contents: Read and write. It is stored in this browser's localStorage,
-// so use an expiring token and revoke it if a device is lost.
-//
-// STATUS: written against the documented API but not yet exercised against
-// GitHub. Phase 3 in docs/PRD.md covers testing it.
+// STATUS: tested against a fake GitHub (tests/fake-github.mjs), and the Worker
+// against real GitHub on 2026-11-03. Phase 3 in docs/PRD.md covers the first
+// real syncs.
 
 const API = 'https://api.github.com';
 

@@ -42,9 +42,11 @@ The app succeeds if it does these things:
 | G5 | Carry lessons onto the court: short external-focus cues, and a closing "take this to the court" cue each session. |
 | G6 | Keep podcast-derived content and progress private, and publish nothing copyrighted. |
 
-Out of scope: accounts or a server backend, social features, analysis of your own
-match video, redistribution of podcast audio or transcripts, a general pickleball
-encyclopedia, and app-store builds (the installable web app covers the need).
+Out of scope: a server backend beyond the small sign-in Worker that reaches the
+data repository (section 9), accounts for anyone outside the family, social
+features, analysis of your own match video, redistribution of podcast audio or
+transcripts, a general pickleball encyclopedia, and app-store builds (the
+installable web app covers the need).
 
 ## 3. User
 
@@ -56,7 +58,10 @@ with a GPU if one is available.
 
 Family members can train on the same deck. Each person has their own record,
 kept apart on every device and in the data repository (section 8.12); the app
-still speaks to one person at a time.
+still speaks to one person at a time. Each creates an account in the app with a
+family code Jeremy shares, so setting up a phone is opening the app's address
+and typing a username and a password (AC-12). Nobody else needs to know git or
+GitHub.
 
 ## 4. Content sources and trust rules
 
@@ -143,8 +148,9 @@ flowchart LR
     I --> J[validate + build-deck]
   end
   J --> K[(Private data repo: deck/deck.json)]
-  K <--> L[App on GitHub Pages: phone and laptop]
-  L <--> M[(Private data repo: progress/person/device.json)]
+  K --> W[Sign-in Worker on Cloudflare: holds the only GitHub token]
+  W <--> L[App on GitHub Pages: phone and laptop]
+  W <--> M[(Private data repo: progress/person/device.json, accounts/person.json)]
 ```
 
 Code repository layout:
@@ -154,16 +160,17 @@ app/                 the web app (no build step; served as-is)
   src/court/         deterministic renderer: geometry, camera, trajectory, views, playback
   src/srs/           FSRS scheduler wrapper and aid-fading stages
   src/stats.js       progress statistics derived from the review log
-  src/store/         progress, settings, GitHub sync
-  src/ui/            card view, session, views, renderer lab
+  src/store/         progress, settings, people, accounts and sessions, sync
+  src/ui/            card view, session, views, sign-in, renderer lab
   data/              sample deck (illustrative content only)
   vendor/, fonts/    ts-fsrs 5.4.2 (MIT), Barlow (OFL), self-hosted
-schemas/             JSON Schemas for every file the pipeline and app exchange
+server/              sign-in Worker (Cloudflare): accounts, sessions, the path-checked pass-through to the data repo
+schemas/             JSON Schemas for every file the pipeline, the app and the Worker exchange
 pipeline/            piq.py CLI, config, tests
 prompts/             rulebooks for each Claude step
 .claude/skills/      Claude Code skills that wrap the prompts
 tools/               scene checker, reference renders, service-worker manifest
-tests/               node --test suites (renderer, scheduler, progress, sync, UI)
+tests/               node --test suites (renderer, scheduler, progress, sync, sign-in Worker, UI)
 docs/                this PRD and supporting notes
 ```
 
@@ -399,22 +406,48 @@ replaces it; it lives in the synced settings, newest wins.
 
 | Id | Requirement | Status |
 |---|---|---|
-| A-11 | Several people can use one deck without touching each other's progress. A device asks for a name once, keeps one record per person, and shows who is playing on Home with a way to switch. A person's id is their name as a slug, so the same name on two devices is the same person; ids are permanent. Sync reads and writes only the current person's folder, and merges and imports refuse another person's record. Removing a person from a device erases only that device's copy. | Built |
+| A-11 | Several people can use one deck without touching each other's progress. A device keeps one record per person signed in on it and shows who is playing on Home with a way to switch. A person's id is their username as a slug, so the same name on two devices is the same person; ids are permanent. Sync reads and writes only the current person's folder, and merges and imports refuse another person's record. Removing a person from a device erases only that device's copy and session. | Built |
+| A-12 | A device connects with a username and a password and nothing else, and nobody uses it without an account. The username's slug is the person's id, so a name reaches the folder it always reached. Each person signed in on a device keeps a session there; switching between them needs no password. | Built; first real use pending (Phase 3) |
+| A-13 | People create their own accounts in the app with the family code; without it nobody can. Passwords have at least 8 characters. | Built; first real use pending |
+| A-14 | "Forgot your password?" says to ask Jeremy. He deletes the account record and the person creates the account again under the same name. No progress is lost: the data repo's copy is never touched, and the person's devices stay signed in and keep syncing. No email. | Built; first real use pending |
+| A-15 | A free Cloudflare Worker holds the only GitHub token, which never expires. It gives the deck to anyone signed in and a progress folder to its person alone, and refuses every other path. The app stays on GitHub Pages. | Deployed 2026-11-03 and checked against real GitHub; the never-expiring token goes in at rollout |
 
-The name is asked for before anything else on a device where nobody is named
-yet. On a device upgraded from the single-user version, the record already
-there goes under the first name typed, and the device keeps its id. Device
-settings (batch size, camera, the token) stay per device, so the people on a
-shared device share them. There is no rename: a name with a typo is removed and
-added again, which costs nothing while the record is empty.
+Sign-in comes before anything else on a device where nobody has signed in, with
+Create an account one link away. On a device upgraded from the single-user
+version, the record already there goes to the first account signed in, and the
+device keeps its id. On a device that had people before accounts existed, each
+person keeps their record and studies as before, and Home asks them to sign in
+to sync. Device settings (batch size, camera, the device's name) stay per
+device, so the people on a shared device share them. There is no rename and no
+Sign out: a username with a typo is a different, empty account, which Remove
+takes off the device.
 
 ## 9. Sync, hosting and privacy
 
 The app shell is public on GitHub Pages; it contains no podcast content. The
-deck and progress live in a **private** data repository that the app reads and
-writes through the GitHub contents API with a fine-grained personal access token:
-only that one repository, Contents read and write, with an expiry date and a
-reminder to rotate it. The token is stored only in the browser.
+deck and progress live in a **private** data repository. A small Cloudflare
+Worker on the free plan (`server/`, D31, D32) holds the only GitHub token, a
+fine-grained token limited to that repository with Contents read and write and
+no expiry; it lives in the Worker's secrets and never reaches a device. People
+sign in to the Worker, and a session reaches, through the GitHub contents API,
+the deck and that person's own progress folder, nothing else: `accounts/`,
+`work/`, `content/` and other people's folders are refused. A device keeps only
+the sessions of the people signed in on it.
+
+Accounts (D33 to D36). Anyone with the family code creates an account in the
+app: a username, whose slug is their id and their progress folder, and a
+password of at least 8 characters. The device stretches the password with PBKDF2
+(600,000 rounds, salted with the id) and sends only the result; the Worker keeps
+a salted hash of it in `accounts/<id>.json` in the data repository and never
+sees the password. A session is a signed token naming the person; it does not
+expire, and it stays valid until the Worker's session key changes. Sign-in and
+sign-up are rate-limited per address. No email is asked for or stored. "Forgot
+your password?" says to ask Jeremy: he deletes `accounts/<id>.json` (GitHub's
+website works from a phone), and the person creates the account again under the
+same name with the family code. A reset never touches progress, and the
+person's devices stay signed in through it. To cut someone off, Jeremy changes
+the session key: everyone signs in again once, and each device keeps its
+unsynced reviews until then.
 
 Each person has a folder, and in it each device writes its own file
 (`progress/<person_id>/<device_id>.json`), so two devices never edit the same
@@ -423,21 +456,27 @@ person's folder, merges them (review logs are unioned; where both devices
 reviewed a card, its state is rebuilt by replaying the combined log through
 FSRS), writes this device's file, and pulls the deck. Sync runs when the app
 opens, after each session and after a switch of person, and on demand in
-Settings. Resetting progress is local only; delete the person's folder in the
-data repo to reset everywhere. Family members' devices use the same repository;
-give each device its own token, so any one can be revoked on its own.
+Settings; a first sign-in ends with one. Resetting progress is local only;
+delete the person's folder in the data repo to reset everywhere. When the Worker
+refuses a session, the device forgets it and keeps the person's record, unsynced
+reviews included, until they sign in again; a failure on the server changes
+nothing on the device. The free plan allows 100,000 requests a day and 10 ms of
+CPU per request; a sync is a handful of requests, and the Worker never parses
+the deck or a progress file, so its CPU does not grow with them.
 
 Threats worth knowing about. Any script running on the app's origin can read the
-token, so the app loads nothing from third parties (fonts and libraries are
-self-hosted) and ships a Content-Security-Policy that restricts scripts to its
-own origin and network calls to `api.github.com`. Browser storage is shared by
+sessions kept there, so the app loads nothing from third parties (fonts and
+libraries are self-hosted) and ships a Content-Security-Policy that restricts
+scripts to its own origin and network calls to the Worker. A stolen session
+reaches only its person's progress and the deck, never the data repository
+itself. Browser storage is shared by
 origin, not by path, and every Pages project site under one account is served
 from the same origin, `<user>.github.io`. Because the account already hosts
 another Pages project (Q7), Court Sense gets its own origin: a free GitHub
 organization owns the public app repository, so the app is served from
 `<org>.github.io` and shares storage with nothing else. The private data
-repository stays under the personal account, where the token is scoped to it
-alone. A custom subdomain would also work, but if the personal account's user
+repository stays under the personal account, where the Worker's token is scoped
+to it alone. A custom subdomain would also work, but if the personal account's user
 site has a custom domain, its project sites are served under that domain too.
 
 ## 10. Phases
@@ -456,8 +495,13 @@ cards look right in the lab from both cameras (AC-7).
 **Phase 2, app MVP: built.** Remaining: use it daily on an iPhone (Safari and
 installed) and in laptop Chrome, and fix whatever real use reveals.
 
-**Phase 3, sync: built, tested against a fake.** Remaining: a real private repo,
-two devices, a deliberate same-card review on both, and a token-expiry drill.
+**Phase 3, sync: built, with sign-in through the Worker (deployed 2026-11-03 and
+checked against real GitHub).** Remaining: the first real syncs through the
+Worker on two devices, with a deliberate same-card review on both (AC-5); a
+family member's phone set up from nothing (AC-12); and two drills: a new session
+key (every device signs in again and nothing is lost) and a password reset
+(devices keep syncing, and the account made again shows everything). Devices no
+longer hold a token, so the token-expiry drill no longer applies.
 
 **Phase 4, full corpus.** Run all episodes (about 120, roughly 70 hours of audio)
 with the headless loop, review the queue in batches, merge and generate.
@@ -495,17 +539,19 @@ a weak-topic practice mode.
 | AC-2 | A full session on the sample deck runs to the summary on a phone and on a laptop, entirely by touch or entirely by keyboard. | Passing in jsdom; confirm on real devices |
 | AC-3 | Timed cards lock choices until the freeze, show the clock, and record a timeout as a miss with a suggested Again. | Passing in jsdom; confirm on devices |
 | AC-4 | The app loads and runs a session with the network off after one online visit. | To verify on devices |
-| AC-5 | With a real private repo, reviews made on the phone appear on the laptop after sync and vice versa, including one card reviewed on both. | To verify |
+| AC-5 | Through the sign-in Worker and the real private repo, reviews made on the phone appear on the laptop after sync and vice versa, including one card reviewed on both. | To verify |
 | AC-6 | The pilot deck's cards show correct provenance, and no card cites a speaker without an allowed endorsement. | Passed 2026-09-30: third listening sample right on speaker 10 of 10, label 10 of 10, faithfulness 9 of 10; `build-deck` filters nothing because every source carries an allowed endorsement |
 | AC-7 | Every pilot scene passes `tools/check-scenes.mjs` with no errors and looks right in the lab from both cameras. | Checker clean on all 40 scenes; the lab look is pending |
 | AC-8 | Closing the app after answering but before rating records the answer at the next start. | Passing in tests |
 | AC-9 | Batches continue with no cap; practice ahead appears once everything has been seen. | Passing in tests |
 | AC-10 | A mirrored scene renders as the exact mirror image of the original and passes the same scene checks. | Passing in tests |
 | AC-11 | No choice card keeps its correct answer in one position, and cards with more than three wrong answers change their choices between consecutive showings. | Passing in tests |
+| AC-12 | On a phone that has never opened the app, typing a username and a password (and the family code for a new account) brings up the real deck and the person's progress. | Passing in tests against a fake GitHub; to verify on a family member's phone |
 
 ## 12. Decisions on the open questions
 
-Decided by Jeremy in September 2026.
+Decided by Jeremy in September 2026 (Q1 to Q8) and on 2026-11-03 (Q14 to Q16,
+Q22, Q23).
 
 | Id | Question | Decision |
 |---|---|---|
@@ -517,6 +563,11 @@ Decided by Jeremy in September 2026.
 | Q6 | Animate timed cards despite reduced motion? | No. Respect the system setting. |
 | Q7 | Isolate the token from other Pages sites? | Yes, another Pages project exists. Serve the app from its own GitHub organization. |
 | Q8 | Allow principles sourced only from episode descriptions? | No. |
+| Q14 | Where does the GitHub token live, and is a server acceptable? | A free Cloudflare Worker holds the only token, which never expires; phones keep only a sign-in (D31). |
+| Q15 | Emailed password resets? | Not now. "Forgot your password?" says to ask Jeremy (D36); email can be added to the Worker later without changing how people sign in. |
+| Q16 | Who creates accounts? | People themselves, in the app, with a family code Jeremy shares (D33). |
+| Q22 | Can someone use the app without an account? | No. Every device starts at sign-in, and Add a person signs someone in (D33). |
+| Q23 | Are sessions checked by their signature alone, or against the account record on every request? | Signature alone, so a password reset never signs a device out; cutting someone off means a new session key, which signs everyone out once (D35). |
 
 ## 13. Risks
 
@@ -526,7 +577,10 @@ Decided by Jeremy in September 2026.
 | Claude mislabels an endorsement. | Conservative defaults, validator cross-checks, review queue, provenance with timestamps on every card. |
 | Scenes misplace players or heights. | Formation and height tables, the scene checker, the lab, and `inferred` flags. |
 | Aids become a crutch. | Stage fading down to no path and no map at maturity. |
-| Token exposure. | Single-repo fine-grained token with expiry, no third-party scripts, CSP, shared-origin warning. |
+| Token exposure. | The only token lives in the Worker's secrets and reaches only the data repository; devices hold sessions that reach one person's folder and the deck; no third-party scripts, CSP, the app on its own origin. GitHub revokes a token left unused for a year: the Worker then answers with a server failure, nobody is signed out, and a new token is one command. |
+| The family code leaks. | Change `FAMILY_CODE`, delete strangers' account records and progress folders, and change `SESSION_SECRET`, which ends their sessions and signs the family out once. |
+| Someone guesses a password. | At least 8 characters, stretched on the device; sign-in rate-limited per address; a session reaches only its person's progress and the deck. |
+| The free plan's daily cap of 100,000 Worker requests runs out. | A family's syncs use a handful of requests each; if someone hammers the Worker, sync waits for midnight UTC while study continues offline. |
 | Browser storage cleared on iOS. | Install to the home screen, sync after each session, export as a manual backup. |
 | Two people's reviews land in one record. | A record per person on every device and a folder per person in the data repo; sync reads one folder; merges and imports refuse another person's record. |
 | Browser storage fills up: a full-corpus deck of several MB, progress growing 2 to 5 MB a year. | Deck copy in Cache Storage, off the 5 MB localStorage (D23); progress size shown in Settings; progress moves to IndexedDB when it nears 2 MB (plan E3). |

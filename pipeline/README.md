@@ -42,6 +42,7 @@ pickleball-iq-data/       PRIVATE
   content/                principles.json, scenes.json, cards.json
   deck/deck.json          what the app loads
   progress/               written by the app, one folder per person, one file per device
+  accounts/               written by the sign-in Worker, one record per person; delete one to reset that password
 ```
 
 Create it once:

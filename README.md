@@ -12,7 +12,7 @@ Start with [docs/PRD.md](docs/PRD.md). Working conventions for Claude Code are i
 
 ```bash
 npm install          # only jsdom, for the UI tests
-npm test             # renderer, scheduler, progress, sync and UI tests
+npm test             # renderer, scheduler, progress, sync, sign-in Worker and UI tests
 npm run serve        # http://localhost:8000 (the app) and /lab.html (renderer lab)
 
 # On Windows, run these in Git Bash, and use: source .venv/Scripts/activate
@@ -34,22 +34,34 @@ preview any of them at each aid level, including the timed occlusion card.
 ## Deploy the app
 
 0. Put the code under git if it is not yet: `git init -b main`, commit everything (`node_modules`, `.venv` and real decks are ignored), and push it to a new repository.
-1. Create a free GitHub organization from your personal account (a namespace you own, not a second login) and transfer or push this repository there. It contains no podcast content, so make it public: GitHub Pages is free only for public repositories. The organization gives the app its own origin, `<org>.github.io`, so its stored token is not shared with the other Pages project on your account (PRD section 9).
+1. Create a free GitHub organization from your personal account (a namespace you own, not a second login) and transfer or push this repository there. It contains no podcast content, so make it public: GitHub Pages is free only for public repositories. The organization gives the app its own origin, `<org>.github.io`, so the sign-in sessions it stores are not shared with the other Pages project on your account (PRD section 9).
 2. Settings, Pages, Source: **GitHub Actions**. The workflow in `.github/workflows/pages.yml` publishes `app/`. Run it once by hand from the Actions tab after switching the source; pushes made before the switch fail at the deploy step.
 3. Create the private data repository under your personal account (see `pipeline/README.md`) and a fine-grained
-   token limited to it with Contents read and write and an expiry date.
-4. Open the app, type your name when it asks, then go to Settings, enter the repository and token, and name the device.
-   Repeat on the second device, with the same name.
-5. On the phone, use Share, Add to Home Screen, so it runs full screen and keeps its storage.
+   token limited to it with Contents read and write and no expiration. It goes only into the sign-in Worker, never onto a device.
+4. Deploy the sign-in Worker (`server/`) on a free Cloudflare account: `cd server && npm install && npx wrangler login && npx wrangler deploy`, picking a `workers.dev` subdomain when asked. Then `npx wrangler secret put` three times: `GITHUB_TOKEN` (the token), `SESSION_SECRET` (32 random bytes, for example the output of `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`) and `FAMILY_CODE` (a few words you give the family). The Worker's address goes in `ACCOUNT_API` (`app/src/store/account.js`) and in `connect-src` in `app/index.html`; the app's origin goes in `ALLOWED_ORIGINS` (`server/wrangler.toml`). Later deploys are `npx wrangler deploy`.
+5. Open the app and create your account: your name as the username, a password and the family code. Create yours before you share the code, so nobody else can take your name and the progress filed under it. On your other devices, sign in with the same username and password.
+6. On the phone, use Share, Add to Home Screen, so it runs full screen and keeps its storage.
 
 ## Family
 
-Several people can share one deck. Each person types their name once per device
-(the same name on every device they use), and the app keeps a record per person
-on the device and a folder per person in the data repository, so nobody's
-reviews touch anyone else's. On a shared device, Home says who is playing and
-Settings lists the people with Switch, Remove and Add. Give each person's device
-its own token, so any one can be revoked without the others.
+Several people can share one deck. Each person creates an account in the app,
+with their name as the username, a password of at least 8 characters and the
+family code, then signs in on every device they use. The app keeps a record per
+person on the device and a folder per person in the data repository, so nobody's
+reviews touch anyone else's. On a shared device, Home says who is playing, and
+Settings lists the people with Switch, Remove and Add a person, which signs
+someone in. Switching needs no password.
+
+A forgotten password: delete `accounts/<name>.json` in the data repository
+(GitHub's website works from a phone), and the person creates the account again
+under the same name with the family code. Their progress is kept: a reset never
+touches `progress/`, and their devices stay signed in.
+
+To cut someone off, delete their account record and change the session key
+(`cd server && npx wrangler secret put SESSION_SECRET`, with a new value).
+Everyone signs in again once, and nobody loses a review. If the family code
+leaks, change `FAMILY_CODE` as well, and delete any account records and progress
+folders you do not recognize.
 
 
 
@@ -57,7 +69,8 @@ its own token, so any one can be revoked without the others.
 
 ```
 app/        the web app (renderer, scheduler, UI, lab, service worker)
-schemas/    JSON Schemas for tips, principles, scenes, cards, deck, progress
+server/     the sign-in Worker (Cloudflare): accounts, sessions, the path-checked pass-through to the data repo
+schemas/    JSON Schemas for tips, principles, scenes, cards, deck, progress, accounts
 pipeline/   piq.py: feeds, download, transcribe, prepare, review, validate, build-deck
 prompts/    rules for each Claude step
 .claude/    Claude Code skills
