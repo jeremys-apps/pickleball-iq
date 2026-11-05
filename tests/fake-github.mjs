@@ -1,8 +1,9 @@
 // An in-memory fake of the GitHub contents API, shared by the sync and Worker
 // tests. It checks request shapes and multi-device flows, not GitHub itself.
 // Like GitHub, it answers a write with a stale sha with 409, a write without a
-// sha over an existing file with 422, and lists folders with more fields than
-// the app uses, download links included.
+// sha over an existing file with 422, lists folders with more fields than the
+// app uses, download links included, and answers a file asked for as JSON with
+// its sha and its content in base64, broken into lines.
 import { createHash } from 'node:crypto';
 
 export const sha = (t) => createHash('sha1').update(t).digest('hex');
@@ -34,7 +35,8 @@ export function fakeGitHub(initial = {}) {
       if (store.has(path)) {
         const f = store.get(path);
         if (opts.headers.Accept.includes('raw')) return resp(200, f.text);
-        return resp(200, JSON.stringify(entry(path, f)));
+        const content = (Buffer.from(f.text, 'utf8').toString('base64').match(/.{1,60}/g) ?? []).join('\n');
+        return resp(200, JSON.stringify({ ...entry(path, f), encoding: 'base64', content: content && `${content}\n` }));
       }
       const kids = [...store.keys()].filter((k) => k.startsWith(path + '/'));
       if (kids.length) return resp(200, JSON.stringify(kids.map((k) => entry(k, store.get(k)))));

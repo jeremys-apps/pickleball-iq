@@ -92,6 +92,65 @@ test('sign-up refuses a name that is taken and keeps the first record', async ()
   assert.equal(gh.store.get('accounts/anna.json').text, first);
 });
 
+test('a blank or broken account record counts as deleted: sign-in finds no account, and the account is made again over it, keeping the progress', async () => {
+  const progress = JSON.stringify({ schema_version: 1, device_id: 'phone-1', updated_at: '2026-11-05T00:00:00.000Z', cards: {}, logs: [] });
+  // Emptied on GitHub's website, cut short, or edited by hand: none holds a salt and a hash.
+  for (const broken of ['\n', '', '   ', '{', 'null', '[]', '"Anna"', '{}', '{"salt": "x"}', '{"schema_version": 1, "id": "anna", "name": "Anna"}']) {
+    const gh = fakeGitHub({ 'accounts/anna.json': broken, 'progress/anna/phone-1.json': progress });
+    const what = `over ${JSON.stringify(broken)}`;
+    const signIn = await call(gh, 'POST', '/sessions', { body: { id: 'anna', key: keyOf(1) } });
+    assert.equal(signIn.status, 404, `sign-in ${what}`);
+    assert.equal((await signIn.json()).message, 'No account with that name yet. Check the spelling, or create an account.');
+    const wrongCode = await call(gh, 'POST', '/accounts', { body: { id: 'anna', name: 'Anna', key: keyOf(2), family_code: 'pickle court' } });
+    assert.equal(wrongCode.status, 403, `the family code still comes first ${what}`);
+    assert.equal(gh.store.get('accounts/anna.json').text, broken);
+
+    const made = await call(gh, 'POST', '/accounts', { body: { id: 'anna', name: 'Anna', key: keyOf(2), family_code: 'Pickle Court Forever' } });
+    assert.equal(made.status, 201, `sign-up ${what}`);
+    const rec = JSON.parse(gh.store.get('accounts/anna.json').text);
+    assert.equal(await keyMatches(rec, keyOf(2)), true, `the new record replaced the old file ${what}`);
+    const replace = JSON.parse(gh.calls.filter((c) => c.method === 'PUT').pop().bodyText);
+    assert.equal(replace.sha, sha(broken), 'replaced by its own sha, so nothing written meanwhile is overwritten');
+    assert.equal(replace.message, 'account: anna');
+    assert.equal((await call(gh, 'POST', '/sessions', { body: { id: 'anna', key: keyOf(2) } })).status, 200);
+    assert.equal(gh.store.get('progress/anna/phone-1.json').text, progress, 'the progress is untouched');
+  }
+});
+
+test('a broken record is replaced only by its own sha: an account made in the meantime is kept', async () => {
+  const gh = fakeGitHub({ 'accounts/anna.json': '\n' });
+  const elsewhere = fakeGitHub();
+  await account(elsewhere, 'anna', 'Anna', 3);
+  const real = elsewhere.store.get('accounts/anna.json').text;
+  // Someone else's sign-up lands right after the Worker reads the broken file's sha.
+  const fetchImpl = async (url, opts = {}) => {
+    const res = await gh.fetchImpl(url, opts);
+    if ((opts.method ?? 'GET') === 'GET' && !opts.headers.Accept.includes('raw') && url.includes('/accounts/anna.json')) {
+      gh.store.set('accounts/anna.json', { text: real, sha: sha(real) });
+    }
+    return res;
+  };
+  const res = await call({ fetchImpl }, 'POST', '/accounts', { body: { id: 'anna', name: 'Anna', key: keyOf(2), family_code: 'Pickle Court Forever' } });
+  assert.equal(res.status, 409);
+  assert.equal((await res.json()).message, 'There is already an account with that name. Sign in instead.');
+  assert.equal(gh.store.get('accounts/anna.json').text, real, 'the account made meanwhile is kept');
+});
+
+test('if the account file vanishes between a refused write and the read, the account is created', async () => {
+  const gh = fakeGitHub();
+  let refused = false;
+  const fetchImpl = async (url, opts = {}) => {
+    if (opts.method === 'PUT' && !refused) {
+      refused = true;
+      return resp(422, JSON.stringify({ message: 'Invalid request. "sha" wasn\'t supplied.' }));
+    }
+    return gh.fetchImpl(url, opts);
+  };
+  const res = await call({ fetchImpl }, 'POST', '/accounts', { body: { id: 'anna', name: 'Anna', key: keyOf(2), family_code: 'Pickle Court Forever' } });
+  assert.equal(res.status, 201);
+  assert.equal(await keyMatches(JSON.parse(gh.store.get('accounts/anna.json').text), keyOf(2)), true);
+});
+
 test('sign-up and sign-in refuse malformed input without touching GitHub', async () => {
   const gh = fakeGitHub();
   const good = { id: 'anna', name: 'Anna', key: keyOf(1), family_code: 'Pickle Court Forever' };
@@ -285,8 +344,21 @@ test("when GitHub refuses the Worker's token or fails, the answer is 502 and nev
       throw new TypeError('fetch failed');
     };
     assert.equal((await call(unreachable, 'GET', '/contents/deck/deck.json', { session })).status, 502);
-    const corrupt = async () => resp(200, 'not json');
-    assert.equal((await call(corrupt, 'POST', '/sessions', { body: { id: 'anna', key: keyOf(1) } })).status, 502);
+    // A sign-up meets a file under the name, and GitHub's answer about it cannot
+    // be read: nothing is replaced. (An account file that reads as anything but
+    // a record holds no account; see the blank-record test.)
+    const puts = [];
+    const unreadable = async (url, opts = {}) => {
+      if (opts.method === 'PUT') {
+        puts.push(url);
+        return resp(422, JSON.stringify({ message: 'Invalid request. "sha" wasn\'t supplied.' }));
+      }
+      return resp(200, 'not json');
+    };
+    const res = await call(unreadable, 'POST', '/accounts', { body: { id: 'anna', name: 'Anna', key: keyOf(1), family_code: 'Pickle Court Forever' } });
+    assert.equal(res.status, 502);
+    assert.equal((await res.json()).message, SERVER_DOWN);
+    assert.equal(puts.length, 1, 'only the refused create; no replacing write');
   } finally {
     console.error = quietError;
   }

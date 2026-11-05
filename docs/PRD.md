@@ -409,7 +409,7 @@ replaces it; it lives in the synced settings, newest wins.
 | A-11 | Several people can use one deck without touching each other's progress. A device keeps one record per person signed in on it and shows who is playing on Home with a way to switch. A person's id is their username as a slug, so the same name on two devices is the same person; ids are permanent. Sync reads and writes only the current person's folder, and merges and imports refuse another person's record. Removing a person from a device erases only that device's copy and session. | Built |
 | A-12 | A device connects with a username and a password and nothing else, and nobody uses it without an account. The username's slug is the person's id, so a name reaches the folder it always reached. Each person signed in on a device keeps a session there; switching between them needs no password. | Built; first real use pending (Phase 3) |
 | A-13 | People create their own accounts in the app with the family code; without it nobody can. Passwords have at least 8 characters. | Built; first real use pending |
-| A-14 | "Forgot your password?" says to ask Jeremy. He deletes the account record and the person creates the account again under the same name. No progress is lost: the data repo's copy is never touched, and the person's devices stay signed in and keep syncing. No email. | Built; first real use pending |
+| A-14 | "Forgot your password?" says to ask Jeremy. He deletes the account record (emptying it works too) and the person creates the account again under the same name. No progress is lost: the data repo's copy is never touched, and the person's devices stay signed in and keep syncing. No email. | Built; first real use pending |
 | A-15 | A free Cloudflare Worker holds the only GitHub token, which never expires. It gives the deck to anyone signed in and a progress folder to its person alone, and refuses every other path. The app stays on GitHub Pages. | Deployed 2026-11-03 and checked against real GitHub; the never-expiring token goes in at rollout |
 
 Sign-in comes before anything else on a device where nobody has signed in, with
@@ -443,11 +443,12 @@ sees the password. A session is a signed token naming the person; it does not
 expire, and it stays valid until the Worker's session key changes. Sign-in and
 sign-up are rate-limited per address. No email is asked for or stored. "Forgot
 your password?" says to ask Jeremy: he deletes `accounts/<id>.json` (GitHub's
-website works from a phone), and the person creates the account again under the
-same name with the family code. A reset never touches progress, and the
-person's devices stay signed in through it. To cut someone off, Jeremy changes
-the session key: everyone signs in again once, and each device keeps its
-unsynced reviews until then.
+website works from a phone; emptying the file works too, since a file that
+holds no account counts as deleted), and the person creates the account again
+under the same name with the family code. A reset never touches progress, and
+the person's devices stay signed in through it. To cut someone off, Jeremy
+changes the session key: everyone signs in again once, and each device keeps
+its unsynced reviews until then.
 
 Each person has a folder, and in it each device writes its own file
 (`progress/<person_id>/<device_id>.json`), so two devices never edit the same

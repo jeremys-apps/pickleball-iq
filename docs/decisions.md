@@ -331,4 +331,10 @@ and a change-password screen); emailed resets (not now; they would need a
 sending domain verified with an email service). Accepted cost: between the reset
 and the new sign-up, anyone with the family code could take the name; nothing is
 deleted even then, and Jeremy deletes the wrong record and changes
-`SESSION_SECRET` so the person can create theirs.
+`SESSION_SECRET` so the person can create theirs. Amended 2026-11-05: an account
+file that holds no record (blank, cut short, or edited by hand) counts as
+deleted, so emptying it on GitHub's website resets the password too. The reset
+drill found Delete file easy to miss on a phone, and a file emptied instead had
+left the name stuck: sign-in said the server was down, and sign-up that the name
+was taken. Sign-up now replaces such a file by its own sha, taken from the same
+answer as its content, so a real record is never overwritten.

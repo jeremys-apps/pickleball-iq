@@ -52,10 +52,14 @@ reviews touch anyone else's. On a shared device, Home says who is playing, and
 Settings lists the people with Switch, Remove and Add a person, which signs
 someone in. Switching needs no password.
 
-A forgotten password: delete `accounts/<name>.json` in the data repository
-(GitHub's website works from a phone), and the person creates the account again
-under the same name with the family code. Their progress is kept: a reset never
-touches `progress/`, and their devices stay signed in.
+A forgotten password: delete the person's account file in the data repository,
+`accounts/<name>.json` (for Mary Ann, `accounts/mary-ann.json`), and the person
+creates the account again under the same name with the family code. On GitHub's
+website, which works from a phone: open the file, open the ⋯ menu at the top
+right of the file, choose Delete file, then Commit changes. Emptying the file
+and committing works too: a file that holds no account counts as deleted. Their
+progress is kept: a reset never touches `progress/`, and their devices stay
+signed in.
 
 To cut someone off, delete their account record and change the session key
 (`cd server && npx wrangler secret put SESSION_SECRET`, with a new value).
