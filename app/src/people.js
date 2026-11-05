@@ -27,10 +27,11 @@ export function startPerson(app, name, storage = globalThis.localStorage) {
   return activatePerson(app, person.id, storage);
 }
 
-// The account id a typed name gives: its slug, the person's id everywhere.
+// The account id a typed name gives: its slug, the person's id everywhere. A
+// name that gives none is a mistake in the name field.
 function accountId(name) {
   const id = slugify(String(name ?? '').trim());
-  if (!id) throw new Error('Type a name with at least one plain letter or digit.');
+  if (!id) throw Object.assign(new Error('Type a name with at least one plain letter or digit.'), { field: 'name' });
   return id;
 }
 

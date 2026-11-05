@@ -29,3 +29,19 @@ test('hover styles apply only where a pointer can hover, so a tap never leaves a
   const bare = all.filter(([p, body]) => !hoverOnly(p) && (p + body).includes(':hover')).map(([p]) => p);
   assert.deepEqual(bare, []);
 });
+
+test("sign-in errors are red, the colour of a wrong answer, under a field and under the buttons, in both themes", () => {
+  const all = blocks(css);
+  const colorOf = (selector) =>
+    all
+      .filter(([p]) => p.split(',').map((s) => s.trim()).includes(selector))
+      .map(([, body]) => (body.match(/(?:^|;)\s*color:\s*([^;]+)/) ?? [])[1]?.trim())
+      .filter(Boolean)
+      .pop();
+  // These outrank the grey of a field's hint (.form label small) and of .note.
+  assert.equal(colorOf('.form label small.error'), 'var(--bad)');
+  assert.equal(colorOf('.note.error'), 'var(--bad)');
+  const themes = all.filter(([p, body]) => p === ':root' || (/prefers-color-scheme:\s*dark/.test(p) && body.includes(':root')));
+  assert.equal(themes.length, 2);
+  for (const [p, body] of themes) assert.match(body, /--bad:\s*#[0-9A-Fa-f]{6}/, `${p} defines the red`);
+});

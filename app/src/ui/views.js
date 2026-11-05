@@ -501,11 +501,43 @@ export function renderSignIn(root, app, { mode = 'sign-in', name = '', migrating
       label,
     );
   const switchTo = (next) => () => renderSignIn(root, app, { mode: next, name: username.value, migrating, onDone, onCancel });
+
+  // A mistake in one field shows right under it, in red, in place of its hint;
+  // any other error shows in the status line, also in red.
+  const fields = {};
+  const field = (key, label, input, hint) => {
+    fields[key] = { input, error: h('small', { class: 'error', role: 'alert', hidden: true }), hint: hint ? h('small', {}, hint) : null };
+    return h('label', {}, label, input, fields[key].error, fields[key].hint);
+  };
+  function clearErrors() {
+    for (const f of Object.values(fields)) {
+      f.error.hidden = true;
+      f.error.textContent = '';
+      if (f.hint) f.hint.hidden = false;
+      f.input.removeAttribute('aria-invalid');
+    }
+    status.classList.remove('error');
+  }
+  function showError(err) {
+    const f = fields[err.field];
+    if (!f) {
+      status.textContent = err.message;
+      status.classList.add('error');
+      return;
+    }
+    status.textContent = '';
+    f.error.textContent = err.message;
+    f.error.hidden = false;
+    if (f.hint) f.hint.hidden = true;
+    f.input.setAttribute('aria-invalid', 'true');
+  }
+
   let busy = false;
   async function submit() {
     if (busy) return;
     busy = true;
     submitButton.disabled = true;
+    clearErrors();
     status.textContent = 'Signing in...';
     try {
       const person = creating
@@ -514,7 +546,7 @@ export function renderSignIn(root, app, { mode = 'sign-in', name = '', migrating
       status.textContent = '';
       onDone?.(person);
     } catch (err) {
-      status.textContent = err.message;
+      showError(err);
       busy = false;
       submitButton.disabled = false;
     }
@@ -528,9 +560,9 @@ export function renderSignIn(root, app, { mode = 'sign-in', name = '', migrating
         submit();
       },
     },
-    h('label', {}, 'Username', username, h('small', {}, USERNAME_HINT)),
-    h('label', {}, 'Password', password, creating ? h('small', {}, 'At least 8 characters.') : null),
-    creating ? h('label', {}, 'Family code', code, h('small', {}, 'Jeremy gives this to the family.')) : null,
+    field('name', 'Username', username, USERNAME_HINT),
+    field('password', 'Password', password, creating ? 'At least 8 characters.' : null),
+    creating ? field('familyCode', 'Family code', code, 'Jeremy gives this to the family.') : null,
     h('div', { class: 'row' }, submitButton, onCancel ? h('button', { class: 'btn', type: 'button', onclick: () => onCancel() }, 'Cancel') : null),
     status,
     creating

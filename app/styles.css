@@ -126,6 +126,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .count b { display: block; font-family: var(--font-head); font-weight: 700; font-size: 2.75rem; line-height: 1; }
 .count span { color: var(--muted); font-size: var(--step--1); }
 .note { color: var(--muted); font-size: var(--step--1); }
+.note.error { color: var(--bad); font-weight: 500; }
 .banner { border-left: 3px solid var(--blue); padding: 8px 12px; background: var(--raised); border-radius: 0 var(--radius) var(--radius) 0; }
 .banner.warn { border-color: var(--bad); }
 
@@ -226,6 +227,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .form { display: grid; gap: 14px; max-width: 560px; }
 .form label { display: grid; gap: 4px; font-weight: 500; }
 .form label small { color: var(--muted); font-weight: 400; }
+/* A mistake in a field: red under it, in place of its hint. */
+.form label small.error { color: var(--bad); font-weight: 500; }
 .form input[type='text'], .form input[type='password'], .form input[type='number'], .form select, .form textarea {
   min-height: 44px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--rule); background: var(--raised);
 }

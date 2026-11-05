@@ -450,6 +450,34 @@ const submitForm = (root, values) => {
   for (const [name, value] of Object.entries(values)) root.querySelector(`input[name="${name}"]`).value = value;
   root.querySelector('main form').dispatchEvent(new window.Event('submit', { cancelable: true }));
 };
+// The error shown under a sign-in field, or null.
+const fieldOf = (root, name) => root.querySelector(`input[name="${name}"]`).closest('label');
+const errorUnder = (root, name) => {
+  const el = fieldOf(root, name).querySelector('.error');
+  return el && !el.hidden ? el : null;
+};
+// Exactly one field shows an error: this one, with that message, right under the
+// field and in place of its hint, with the field marked invalid. The line under
+// the buttons holds nothing.
+function assertOnlyError(root, name, message) {
+  for (const input of root.querySelectorAll('main form input')) {
+    const shown = errorUnder(root, input.name);
+    if (input.name === name) {
+      assert.equal(shown?.textContent, message, `"${message}" sits under ${name}`);
+      assert.equal(shown.previousElementSibling, input, 'right under the field');
+      assert.equal(input.getAttribute('aria-invalid'), 'true');
+      const hint = [...fieldOf(root, name).querySelectorAll('small')].find((s) => !s.classList.contains('error'));
+      assert.ok(!hint || hint.hidden, "the error takes the hint's place");
+    } else {
+      assert.equal(shown, null, `no error under ${input.name}`);
+      assert.notEqual(input.getAttribute('aria-invalid'), 'true', `${input.name} is not marked invalid`);
+      const hint = [...fieldOf(root, input.name).querySelectorAll('small')].find((s) => !s.classList.contains('error'));
+      assert.ok(!hint || !hint.hidden, `the hint under ${input.name} stays`);
+    }
+  }
+  assert.equal(statusOf(root).textContent, '');
+  assert.ok(!statusOf(root).classList.contains('error'));
+}
 const FORGOT = 'Ask Jeremy to reset your password. Once he has, create your account again with the same name, and your progress is kept.';
 
 test('the first screen is Sign in, with Create an account and Forgot your password, and no way in without an account', { skip }, async () => {
@@ -514,14 +542,15 @@ test('signing in on the first screen through the Worker makes the person current
     let done = null;
     m.views.renderSignIn(root, app, { migrating: m.people.hasLegacyProgress(), onDone: (p) => (done = p) });
     assert.match(root.textContent, /Court Sense now keeps a separate record for each person\. The reviews already on this device go to the account you sign in to\./);
-    for (const [username, password, message] of [
-      ['!!!', 'long enough', 'Type a name with at least one plain letter or digit.'],
-      ['Mary Ann', 'short', 'Use at least 8 characters.'],
-      ['Mary Ann', 'not her password', 'That password is not right.'],
-      ['Mary Anne', 'mary ann password', 'No account with that name yet. Check the spelling, or create an account.'],
+    for (const [username, password, field, message] of [
+      ['!!!', 'long enough', 'username', 'Type a name with at least one plain letter or digit.'],
+      ['Mary Ann', 'short', 'password', 'Use at least 8 characters.'],
+      ['Mary Ann', 'not her password', 'password', 'That password is not right.'],
+      ['Mary Anne', 'mary ann password', 'username', 'No account with that name yet. Check the spelling, or create an account.'],
     ]) {
       submitForm(root, { username, password });
-      await until(() => statusOf(root).textContent === message, message, 10000);
+      await until(() => errorUnder(root, field)?.textContent === message, message, 10000);
+      assertOnlyError(root, field, message);
       assert.equal(done, null);
     }
     submitForm(root, { username: 'Mary Ann', password: 'mary ann password' });
@@ -536,6 +565,53 @@ test('signing in on the first screen through the Worker makes the person current
     assert.equal(app.deckSource, 'github', 'the sync that ends the sign-in loaded the deck');
     assert.equal(app.index.cards.size, deck.cards.length);
     assert.ok(gh.store.has('progress/mary-ann/old-device-1.json'), 'and uploaded the adopted record');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('Create an account: each mistake shows in red under its own field, and an error of no field stays under the buttons', { skip }, async () => {
+  setupDom();
+  const m = await modules();
+  const { fakeGitHub } = await import('./fake-github.mjs');
+  const realFetch = globalThis.fetch;
+  const gh = fakeGitHub({ 'deck/deck.json': JSON.stringify(deck) });
+  let worker = await useWorker(gh);
+  try {
+    await worker.account.createAccount({ id: 'mary-ann', name: 'Mary Ann', password: 'mary ann password', familyCode: 'Pickle Court Forever' });
+    const root = document.getElementById('app');
+    const app = { settings: { ...m.settings.DEFAULT_SETTINGS }, scheduler: m.sched.makeScheduler({ enableFuzz: false }), people: m.people.loadPeople(), person: null, progress: null, index: null, deckSource: null, deckError: null, sync: {} };
+    let done = null;
+    m.views.renderSignIn(root, app, { mode: 'create', onDone: (p) => (done = p) });
+    const right = { username: 'Ben', password: 'ben password 1', familyCode: 'Pickle Court Forever' };
+    for (const [values, field, message] of [
+      [{ ...right, password: 'short' }, 'password', 'Use at least 8 characters.'],
+      [{ ...right, familyCode: 'pickle court' }, 'familyCode', 'That family code is not right.'],
+      [{ ...right, username: 'Mary Ann' }, 'username', 'There is already an account with that name. Sign in instead.'],
+      [{ ...right, username: '???' }, 'username', 'Type a name with at least one plain letter or digit.'],
+    ]) {
+      submitForm(root, values);
+      await until(() => errorUnder(root, field)?.textContent === message, message, 10000);
+      assertOnlyError(root, field, message);
+      assert.equal(done, null);
+    }
+
+    // No connection: no field is at fault, so the line under the buttons says so, in red.
+    globalThis.fetch = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+    submitForm(root, right);
+    await until(() => /^Could not reach/.test(statusOf(root).textContent), 'the connection message', 10000);
+    assert.ok(statusOf(root).classList.contains('error'), 'in red');
+    for (const name of Object.keys(right)) assert.equal(errorUnder(root, name), null, `the earlier error under ${name} is gone`);
+
+    // The next try starts clean: the progress line is not red.
+    worker = await useWorker(gh);
+    submitForm(root, right);
+    assert.equal(statusOf(root).textContent, 'Signing in...');
+    assert.ok(!statusOf(root).classList.contains('error'));
+    await until(() => done, 'the new account', 10000);
+    assert.equal(done.id, 'ben');
   } finally {
     globalThis.fetch = realFetch;
   }

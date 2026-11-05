@@ -35,11 +35,18 @@ function toBase64url(bytes) {
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function accountError(message, status) {
+// field: the one a person would correct (name, password or familyCode), when
+// one field is at fault, so the screen can show the message there.
+function accountError(message, status, field) {
   const e = new Error(message);
   if (status !== undefined) e.status = status;
+  if (field) e.field = field;
   return e;
 }
+
+// The field each of the Worker's refusals is about, by status.
+const SIGN_IN_FIELDS = Object.freeze({ 404: 'name', 401: 'password' });
+const SIGN_UP_FIELDS = Object.freeze({ 403: 'familyCode', 409: 'name' });
 
 // The key for a password: 32 bytes, base64url without padding (43 characters).
 // Web Crypto exists only in secure contexts (https, or localhost).
@@ -57,14 +64,15 @@ export async function deriveKey(password, id, subtle = globalThis.crypto?.subtle
 // Characters as a person counts them: an emoji is one, an accented letter one.
 function checkPassword(password) {
   if (typeof password !== 'string' || [...password.normalize('NFC')].length < MIN_PASSWORD_LENGTH) {
-    throw accountError(ACCOUNT_MESSAGES.tooShort);
+    throw accountError(ACCOUNT_MESSAGES.tooShort, undefined, 'password');
   }
 }
 
-// POSTs to the Worker. Its own messages say what went wrong; anything else,
-// no answer included, is the sign-in service being out of reach. The error
-// carries the status, 0 when nothing answered.
-async function post(path, body, { api = ACCOUNT_API, fetchImpl = globalThis.fetch } = {}) {
+// POSTs to the Worker. Its own messages say what went wrong, and fields names
+// the field each refusal is about; anything else, no answer included, is the
+// sign-in service being out of reach. The error carries the status, 0 when
+// nothing answered.
+async function post(path, body, { api = ACCOUNT_API, fetchImpl = globalThis.fetch } = {}, fields = {}) {
   let res;
   try {
     res = await fetchImpl(`${api}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -78,8 +86,8 @@ async function post(path, body, { api = ACCOUNT_API, fetchImpl = globalThis.fetc
     /* not the Worker's answer */
   }
   if (!res.ok) {
-    const message = typeof data?.message === 'string' && data.message ? data.message : ACCOUNT_MESSAGES.unreachable;
-    throw accountError(message, res.status);
+    const fromWorker = typeof data?.message === 'string' && data.message;
+    throw accountError(fromWorker ? data.message : ACCOUNT_MESSAGES.unreachable, res.status, fromWorker ? fields[res.status] : undefined);
   }
   const person = data?.person;
   if (typeof data?.session !== 'string' || typeof person?.id !== 'string') throw accountError(ACCOUNT_MESSAGES.unreachable, res.status);
@@ -89,13 +97,13 @@ async function post(path, body, { api = ACCOUNT_API, fetchImpl = globalThis.fetc
 // -> { session, person: { id, name } }
 export async function signIn({ id, password }, opts = {}) {
   checkPassword(password);
-  return post('/sessions', { id, key: await deriveKey(password, id) }, opts);
+  return post('/sessions', { id, key: await deriveKey(password, id) }, opts, SIGN_IN_FIELDS);
 }
 
 // -> { session, person: { id, name } }
 export async function createAccount({ id, name, password, familyCode }, opts = {}) {
   checkPassword(password);
-  return post('/accounts', { id, name, key: await deriveKey(password, id), family_code: familyCode }, opts);
+  return post('/accounts', { id, name, key: await deriveKey(password, id), family_code: familyCode }, opts, SIGN_UP_FIELDS);
 }
 
 function readSessions(storage) {

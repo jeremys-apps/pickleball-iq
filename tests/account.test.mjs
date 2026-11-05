@@ -109,38 +109,44 @@ test('sign-in and account creation send the name id and the key, never the passw
   assert.equal(ACCOUNT_API, 'https://court-sense.jeremys-apps.workers.dev');
 });
 
-test('a password under 8 characters is refused before any request', async () => {
+test('a password under 8 characters is refused before any request, as a mistake in the password field', async () => {
   const w = answering(200, { session: 'x', person: { id: 'anna', name: 'Anna' } });
   const opts = { api: API, fetchImpl: w.fetchImpl };
   assert.equal(MIN_PASSWORD_LENGTH, 8);
   for (const password of ['', 'seven77', '       ', '\u{1F3D3}\u{1F3D3}\u{1F3D3}\u{1F3D3}', undefined, null]) {
-    await assert.rejects(signIn({ id: 'anna', password }, opts), { message: TOO_SHORT }, `sign-in with ${JSON.stringify(password)}`);
-    await assert.rejects(createAccount({ id: 'anna', name: 'Anna', password, familyCode: CODE }, opts), { message: TOO_SHORT });
+    await assert.rejects(signIn({ id: 'anna', password }, opts), { message: TOO_SHORT, field: 'password' }, `sign-in with ${JSON.stringify(password)}`);
+    await assert.rejects(createAccount({ id: 'anna', name: 'Anna', password, familyCode: CODE }, opts), { message: TOO_SHORT, field: 'password' });
   }
   assert.equal(w.calls.length, 0, 'nothing was sent; four emoji are four characters');
   await signIn({ id: 'anna', password: 'eight888' }, opts);
   assert.equal(w.calls.length, 1, 'eight characters are enough');
 });
 
-test("the Worker's messages reach the caller with their status; no connection gives the sign-in service message", async () => {
+test("the Worker's messages reach the caller with their status and the field at fault; no connection gives the sign-in service message", async () => {
   const opts = (fetchImpl) => ({ api: API, fetchImpl });
   const who = { id: 'anna', password: 'anna password 1' };
   const fresh = { ...who, name: 'Anna', familyCode: 'wrong code' };
+  // The field is the one a person would correct: name, password or familyCode; none when no field is at fault.
   const cases = [
-    [() => signIn(who, opts(answering(404, { message: 'No account with that name yet. Check the spelling, or create an account.' }).fetchImpl)), 404, 'No account with that name yet. Check the spelling, or create an account.'],
-    [() => signIn(who, opts(answering(401, { message: 'That password is not right.' }).fetchImpl)), 401, 'That password is not right.'],
-    [() => signIn(who, opts(answering(429, { message: 'Too many tries. Wait a minute and try again.' }).fetchImpl)), 429, 'Too many tries. Wait a minute and try again.'],
-    [() => createAccount(fresh, opts(answering(403, { message: 'That family code is not right.' }).fetchImpl)), 403, 'That family code is not right.'],
-    [() => createAccount(fresh, opts(answering(409, { message: 'There is already an account with that name. Sign in instead.' }).fetchImpl)), 409, 'There is already an account with that name. Sign in instead.'],
-    [() => signIn(who, opts(answering(502, { message: 'Sync is not working on the server. Your progress is safe on this device.' }).fetchImpl)), 502, 'Sync is not working on the server. Your progress is safe on this device.'],
-    [() => signIn(who, opts(answering(502, '<html>Bad gateway</html>').fetchImpl)), 502, UNREACHABLE],
-    [() => signIn(who, opts(answering(200, { ok: true }).fetchImpl)), 200, UNREACHABLE],
-    [() => signIn(who, opts(async () => { throw new TypeError('Failed to fetch'); })), 0, UNREACHABLE],
+    [() => signIn(who, opts(answering(404, { message: 'No account with that name yet. Check the spelling, or create an account.' }).fetchImpl)), 404, 'No account with that name yet. Check the spelling, or create an account.', 'name'],
+    [() => signIn(who, opts(answering(401, { message: 'That password is not right.' }).fetchImpl)), 401, 'That password is not right.', 'password'],
+    [() => signIn(who, opts(answering(429, { message: 'Too many tries. Wait a minute and try again.' }).fetchImpl)), 429, 'Too many tries. Wait a minute and try again.', undefined],
+    [() => createAccount(fresh, opts(answering(403, { message: 'That family code is not right.' }).fetchImpl)), 403, 'That family code is not right.', 'familyCode'],
+    [() => createAccount(fresh, opts(answering(409, { message: 'There is already an account with that name. Sign in instead.' }).fetchImpl)), 409, 'There is already an account with that name. Sign in instead.', 'name'],
+    [() => createAccount(fresh, opts(answering(429, { message: 'Too many tries. Wait a minute and try again.' }).fetchImpl)), 429, 'Too many tries. Wait a minute and try again.', undefined],
+    [() => signIn(who, opts(answering(502, { message: 'Sync is not working on the server. Your progress is safe on this device.' }).fetchImpl)), 502, 'Sync is not working on the server. Your progress is safe on this device.', undefined],
+    [() => signIn(who, opts(answering(502, '<html>Bad gateway</html>').fetchImpl)), 502, UNREACHABLE, undefined],
+    // Not the Worker (Cloudflare's own pages): no field is at fault, whatever the status.
+    [() => signIn(who, opts(answering(404, '<html>There is nothing here yet</html>').fetchImpl)), 404, UNREACHABLE, undefined],
+    [() => createAccount(fresh, opts(answering(403, '<html>Access denied</html>').fetchImpl)), 403, UNREACHABLE, undefined],
+    [() => signIn(who, opts(answering(200, { ok: true }).fetchImpl)), 200, UNREACHABLE, undefined],
+    [() => signIn(who, opts(async () => { throw new TypeError('Failed to fetch'); })), 0, UNREACHABLE, undefined],
   ];
-  for (const [run, status, message] of cases) {
+  for (const [run, status, message, field] of cases) {
     await assert.rejects(run(), (e) => {
       assert.equal(e.message, message);
       assert.equal(e.status, status);
+      assert.equal(e.field, field, `${message} (${status}) belongs to ${field ?? 'no field'}`);
       return true;
     });
   }
