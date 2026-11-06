@@ -22,6 +22,16 @@ function blocks(text) {
   return out;
 }
 
+// The last value a top-level rule naming `selector` gives `property`.
+function declared(all, selector, property) {
+  const re = new RegExp(`(?:^|;)\\s*${property}:\\s*([^;]+)`);
+  return all
+    .filter(([p]) => p.split(',').map((s) => s.trim()).includes(selector))
+    .map(([, body]) => (body.match(re) ?? [])[1]?.trim())
+    .filter(Boolean)
+    .pop();
+}
+
 test('hover styles apply only where a pointer can hover, so a tap never leaves a choice looking selected', () => {
   const hoverOnly = (prelude) => /^@media\s*\(\s*hover\s*:\s*hover\s*\)/.test(prelude);
   const all = blocks(css);
@@ -32,16 +42,23 @@ test('hover styles apply only where a pointer can hover, so a tap never leaves a
 
 test("sign-in errors are red, the colour of a wrong answer, under a field and under the buttons, in both themes", () => {
   const all = blocks(css);
-  const colorOf = (selector) =>
-    all
-      .filter(([p]) => p.split(',').map((s) => s.trim()).includes(selector))
-      .map(([, body]) => (body.match(/(?:^|;)\s*color:\s*([^;]+)/) ?? [])[1]?.trim())
-      .filter(Boolean)
-      .pop();
+  const colorOf = (selector) => declared(all, selector, 'color');
   // These outrank the grey of a field's hint (.form label small) and of .note.
   assert.equal(colorOf('.form label small.error'), 'var(--bad)');
   assert.equal(colorOf('.note.error'), 'var(--bad)');
   const themes = all.filter(([p, body]) => p === ':root' || (/prefers-color-scheme:\s*dark/.test(p) && body.includes(':root')));
   assert.equal(themes.length, 2);
   for (const [p, body] of themes) assert.match(body, /--bad:\s*#[0-9A-Fa-f]{6}/, `${p} defines the red`);
+});
+
+test("Play and Watch again stop the picture a little below a phone's status bar", () => {
+  // Play scrolls the card to the top of the screen and Watch again scrolls the
+  // court into view (ui.test.mjs). Full screen on an iPhone, the status bar sits
+  // over the top of the page; env() gives its height, and 0 where there is none.
+  const all = blocks(css);
+  for (const selector of ['.card-view', '.court']) {
+    const margin = declared(all, selector, 'scroll-margin-top');
+    assert.match(margin ?? '', /^calc\(env\(safe-area-inset-top, 0px\) \+ \d+px\)$/, `${selector} clears the status bar`);
+    assert.ok(Number(margin.match(/(\d+)px\)$/)[1]) >= 8, `${selector} leaves a little room below it`);
+  }
 });

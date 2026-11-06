@@ -259,6 +259,26 @@ test('a timed card reveals the moment of contact, not the starting setup', { ski
   api.destroy();
 });
 
+test('Play scrolls the card to the top of the screen, and Watch again scrolls the court into view', { skip }, async () => {
+  // The stylesheet keeps both a little below a phone's status bar (styles.test.mjs).
+  const w = setupDom();
+  const scrolled = [];
+  w.HTMLElement.prototype.scrollIntoView = function (o) {
+    scrolled.push([['.card-view', '.court'].find((s) => this.matches(s)) ?? this.className, o?.block]);
+  };
+  const m = await modules();
+  const app = makeApp(m);
+  const host = document.getElementById('app');
+  const card = app.index.cards.get('c-occlusion-floater-1');
+  const api = m.mountCard(host, { card, index: app.index, stage: m.sched.STAGES.A, settings: app.settings, scheduler: app.scheduler, onDone: () => {} });
+  host.querySelector('.court .motion .play').click();
+  assert.deepEqual(scrolled, [['.card-view', 'start']]);
+  host.querySelector('.option').click();
+  host.querySelector('.motion .replay').click();
+  assert.deepEqual(scrolled, [['.card-view', 'start'], ['.court', 'nearest']]);
+  api.destroy();
+});
+
 function answerUntilSummary(root, app, max = 60) {
   for (let guard = 0; guard < max && !root.querySelector('.summary'); guard++) {
     root.querySelector('.play:not([hidden])')?.click(); // timed card: reduced motion freezes at once
