@@ -24,7 +24,8 @@ import { sourceLines } from './provenance.js';
 const RATING_LABELS = { [Rating.Again]: 'Again', [Rating.Hard]: 'Hard', [Rating.Good]: 'Good', [Rating.Easy]: 'Easy' };
 // A replay has two halves: their shot comes to you (REPLAY_MS) with the answer
 // hidden, a beat at contact (HOLD_MS), then your answer shot flies to its target
-// (ANSWER_MS) with its path growing behind the ball.
+// (ANSWER_MS) with its path growing behind the ball. Choosing an answer plays the
+// second half: a timed card first plays on from the freeze to the moment of contact.
 const REPLAY_MS = 900;
 const HOLD_MS = 150;
 const ANSWER_MS = 1000;
@@ -151,22 +152,31 @@ export function mountCard(root, ctx) {
 
   function replay() {
     courtEl.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    stopMotion(); // a replay started while your shot flies takes over from it
     if (timed) player.play(0, { toEnd: true }); // its end hands over to flyAnswer
     else replayStatic();
   }
 
-  // Their shot arrives with the answer hidden; then the answer flies.
+  // Their shot arrives with the answer hidden; then, once you have answered, the
+  // answer flies. Before an answer (R on a card without a clock) the ball stays
+  // where you meet it, so a replay never shows where the answer goes.
   function replayStatic() {
     if (!scene) return;
-    if (reducedMotion) return flyAnswer(frameFromScene(scene));
+    if (reducedMotion) return theirShotArrived();
     animate(
       REPLAY_MS / (stage.speed || 1),
       (t) => {
         frame = frameFromScene(scene, t, { reveal: false });
         draw();
       },
-      () => flyAnswer(frameFromScene(scene)),
+      theirShotArrived,
     );
+  }
+
+  function theirShotArrived() {
+    if (answered) return flyAnswer(frameFromScene(scene));
+    frame = frameFromScene(scene);
+    draw();
   }
 
   // The second half of a replay, from `base`, the frame at contact: the target
@@ -179,6 +189,9 @@ export function mountCard(root, ctx) {
       return;
     }
     const speed = stage.speed || 1;
+    // The first frame now, so the picture never shows the whole answer before the flight.
+    frame = answerFrame(scene, base, 0);
+    draw();
     animate(
       ANSWER_MS / speed,
       (k) => {
@@ -203,6 +216,13 @@ export function mountCard(root, ctx) {
     raf = requestAnimationFrame(step);
   }
 
+  // Stops whatever moves: a flight or replay of this view's own, and the timed player.
+  function stopMotion() {
+    if (raf != null) cancelAnimationFrame(raf);
+    raf = null;
+    player?.stop();
+  }
+
   if (timed) {
     player = createPlayer(scene, {
       speed: stage.speed,
@@ -212,7 +232,8 @@ export function mountCard(root, ctx) {
         draw();
       },
       onFreeze: (f) => {
-        // Watch again ran to the end: the answer flies from the moment of contact.
+        // After an answer the play ran to the end, from the choice or from Watch
+        // again: the answer flies from the moment of contact.
         if (answered) return flyAnswer(player.contactFrame());
         frame = f;
         draw();
@@ -292,10 +313,12 @@ export function mountCard(root, ctx) {
       if ((o.id === choiceId || o.correct) && o.feedback) b.append(h('span', { class: 'fb' }, namer.name(o.feedback)));
     }
     if (timed) {
-      // The reveal shows the moment of contact: players where the lead-in moved
-      // them and the shot coming to you with its bounce, not the starting setup.
-      player.stop();
-      frame = player.contactFrame();
+      // The play goes on from the freeze to the moment of contact, with the
+      // players where the lead-in moves them and the shot coming to you with its
+      // bounce; its end hands over to flyAnswer.
+      player.play(player.compiled.freezeAt, { toEnd: true });
+    } else if (scene) {
+      flyAnswer(frameFromScene(scene));
     }
     view.classList.add('is-revealed');
     draw();
@@ -408,8 +431,7 @@ export function mountCard(root, ctx) {
     document.removeEventListener('keydown', onKey);
     mq?.removeEventListener?.('change', onMq);
     clearTimeout(timeoutId);
-    if (raf != null) cancelAnimationFrame(raf);
-    player?.stop();
+    stopMotion();
   }
 
   const side = h('div', { class: 'side' }, panelEl, hint, h('p', { class: 'prompt' }, promptText), mc ? optionsEl : showBtn, afterEl);

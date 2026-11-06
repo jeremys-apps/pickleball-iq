@@ -13,13 +13,14 @@ try {
 }
 const skip = !JSDOM && 'run npm install to enable UI tests';
 
-function setupDom() {
+// Reduced motion is on unless a test asks otherwise, so animations jump to their end.
+function setupDom({ reducedMotion = true } = {}) {
   const dom = new JSDOM('<!doctype html><html><head></head><body><div id="app"></div></body></html>', {
     url: 'http://localhost/',
     pretendToBeVisual: true,
   });
   const w = dom.window;
-  const mm = (q) => ({ matches: q.includes('reduced-motion'), addEventListener() {}, removeEventListener() {} });
+  const mm = (q) => ({ matches: reducedMotion && q.includes('reduced-motion'), addEventListener() {}, removeEventListener() {} });
   w.matchMedia = mm;
   Object.assign(globalThis, {
     window: w,
@@ -68,6 +69,41 @@ function makeApp(m) {
   };
 }
 
+// Animation frames on a clock the test moves. The card view and the timed player
+// look up performance.now and requestAnimationFrame each time they use them, so
+// both follow this clock. step() moves it on and runs the frames that were waiting.
+function steppedFrames() {
+  let clock = 1000;
+  let nextId = 1;
+  const queue = new Map();
+  const saved = { raf: globalThis.requestAnimationFrame, caf: globalThis.cancelAnimationFrame };
+  performance.now = () => clock;
+  globalThis.requestAnimationFrame = (cb) => {
+    queue.set(nextId, cb);
+    return nextId++;
+  };
+  globalThis.cancelAnimationFrame = (id) => queue.delete(id);
+  return {
+    pending: () => queue.size,
+    step(ms = 16) {
+      clock += ms;
+      const due = [...queue.values()];
+      queue.clear();
+      for (const cb of due) cb(clock);
+    },
+    restore() {
+      delete performance.now;
+      globalThis.requestAnimationFrame = saved.raf;
+      globalThis.cancelAnimationFrame = saved.caf;
+    },
+  };
+}
+
+const near = (a, b, tol = 0.01) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) <= tol;
+const groundGap = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const answerPoints = (svg) =>
+  [...svg.querySelectorAll('.piq-reveal polyline.piq-answer')].reduce((n, p) => n + p.getAttribute('points').trim().split(/\s+/).length, 0);
+
 test('multiple-choice card: answer, reveal, rate', { skip }, async () => {
   setupDom();
   const m = await modules();
@@ -91,6 +127,12 @@ test('multiple-choice card: answer, reveal, rate', { skip }, async () => {
   assert.equal(buttons.length, 4, 'one correct phrasing and three wrong answers from the pool');
   assert.equal(buttons.filter(isRight).length, 1, 'exactly one correct choice on screen');
   const wrong = buttons.find((b) => !isRight(b));
+  // Reduced motion in this test, so every play jumps to its end. R before a choice
+  // replays their shot only, and the ball rests where you meet it.
+  const ballY = () => host.querySelector('.hero svg .piq-ball').getAttribute('cy');
+  const atContact = ballY();
+  document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'r' }));
+  assert.equal(ballY(), atContact, 'R before a choice never flies your shot');
   wrong.click();
   assert.ok(host.querySelector('.card-view').classList.contains('is-revealed'));
   assert.equal(host.querySelector('.verdict').textContent, 'Not quite');
@@ -100,15 +142,15 @@ test('multiple-choice card: answer, reveal, rate', { skip }, async () => {
   assert.equal(fold.open, false, 'sources are folded away until asked for');
   assert.match(fold.querySelector('.source').textContent, /Sample content/);
   assert.equal(host.querySelector('.court .motion .replay').textContent, 'Watch the play', 'the replay sits under the picture');
-  // Reduced motion in this test: Watch the play jumps to the finished picture, the
-  // answer having flown from the contact point to where it lands.
-  const ballY = () => host.querySelector('.hero svg .piq-ball').getAttribute('cy');
-  const before = ballY();
+  // The choice flew your shot from where you meet the ball to where it lands.
+  const svg = () => host.querySelector('.hero svg');
+  assert.ok(svg().querySelector('.piq-reveal polyline.piq-answer'), 'the answer path is drawn');
+  assert.ok(svg().querySelector('[class*="piq-path"]'), 'their shot stays as a trail');
+  const landed = ballY();
+  assert.notEqual(landed, atContact, 'the ball ends where the answer lands');
   host.querySelector('.court .motion .replay').click();
-  const svg = host.querySelector('.hero svg');
-  assert.ok(svg.querySelector('.piq-reveal polyline.piq-answer'), 'the answer path is drawn');
-  assert.ok(svg.querySelector('[class*="piq-path"]'), 'their shot stays as a trail');
-  assert.notEqual(ballY(), before, 'the ball ends where the answer lands');
+  assert.ok(svg().querySelector('.piq-reveal polyline.piq-answer'), 'Watch the play ends with the answer path');
+  assert.equal(ballY(), landed, 'and with the ball where the answer lands');
   assert.equal(host.querySelector('.rating.suggested b').textContent, 'Again');
   host.querySelector('.rating.suggested').click();
   assert.equal(result.rating, 1);
@@ -237,7 +279,7 @@ test('timed cards freeze earlier as they mature, and the time-to-choose setting 
   stretched.destroy();
 });
 
-test('a timed card reveals the moment of contact, not the starting setup', { skip }, async () => {
+test("a timed card's answer flies from the moment of contact, not from the starting setup", { skip }, async () => {
   setupDom();
   const m = await modules();
   const app = makeApp(m);
@@ -248,15 +290,156 @@ test('a timed card reveals the moment of contact, not the starting setup', { ski
   const opp2x = () => api.frame().players.find((p) => p.id === 'opp2').x;
   assert.equal(opp2x(), 15, 'before Play, the starting setup');
   host.querySelector('.court .motion .play').click(); // reduced motion in this test: freezes at once
+  // and the choice plays on to the end at once
   [...host.querySelectorAll('.option')].find((b) => card.options.find((o) => o.id === b.dataset.id)?.correct).click();
   assert.ok(Math.abs(opp2x() - 14.2) < 0.01, 'the opponent stays where the lead-in moved him');
-  assert.deepEqual(api.frame().reveal, scene.answer_overlay, 'the answer shows');
+  const f = api.frame();
+  assert.deepEqual(f.reveal, { ...scene.answer_overlay, shot_t: 1 }, 'the whole answer shows');
+  assert.equal(f.ball.answer, true, 'your shot has flown');
+  const ft = (p) => [p.x, p.y, p.z_in / 12];
+  assert.ok(near(f.contact, ft(scene.ball.now)), 'from where you meet the ball');
+  assert.ok(near(f.ball.pos, ft(scene.answer_overlay.shot.to)), 'to where it lands');
   const last = scene.timeline.segments.at(-1).to;
-  assert.deepEqual(api.frame().ball.pos.map((v) => Math.round(v * 10) / 10), [last.x, last.y, Math.round((last.z_in / 12) * 10) / 10], 'the ball sits at contact');
+  assert.ok(f.trails.some((t) => near(t.arc.p1, ft(last))), 'their shot stays drawn up to you');
   host.querySelector('.motion .replay').click(); // Watch again: reduced motion runs to the end at once
   assert.equal(api.frame().ball.answer, true, 'the answer shot has flown');
   assert.ok(Math.abs(opp2x() - 14.2) < 0.01, 'and the players are still where the lead-in left them');
   api.destroy();
+});
+
+test('choosing an answer flies your shot: the target shows, then the ball flies to it with its path growing behind it', { skip }, async () => {
+  setupDom({ reducedMotion: false });
+  const frames = steppedFrames();
+  try {
+    const m = await modules();
+    const app = makeApp(m);
+    const host = document.getElementById('app');
+    const card = app.index.cards.get('c-dink-fp-1');
+    const shot = app.index.scenes.get(card.scene_id).answer_overlay.shot;
+    const api = m.mountCard(host, { card, index: app.index, stage: m.sched.STAGES.A, settings: app.settings, scheduler: app.scheduler, onDone: () => {} });
+    const hero = () => host.querySelector('.hero svg');
+    const contact = api.frame().contact;
+    host.querySelector('.option').click();
+    let f = api.frame();
+    assert.equal(f.ball.answer, true, 'at once the ball in the picture is your shot');
+    assert.ok(near(f.ball.pos, contact), 'still where you meet it');
+    assert.equal(f.reveal.shot_t, 0);
+    assert.ok(hero().querySelector('.piq-reveal .piq-answer-zone'), 'the target shows');
+    assert.equal(answerPoints(hero()), 0, 'and no path yet');
+    const seen = [];
+    for (let guard = 0; guard < 500 && frames.pending(); guard++) {
+      frames.step();
+      seen.push({ t: api.frame().reveal.shot_t, points: answerPoints(hero()) });
+    }
+    assert.equal(frames.pending(), 0, 'the flight ends');
+    assert.equal(seen[0].t, 0, 'a beat at contact before the ball flies');
+    assert.ok(seen.every((s, i) => !i || (s.t >= seen[i - 1].t && s.points >= seen[i - 1].points)), 'the ball and its path only go forward');
+    assert.ok(seen.some((s) => s.t > 0 && s.t < 1 && s.points > 0), 'the ball is seen in flight with its path behind it');
+    assert.equal(seen.at(-1).t, 1);
+    assert.ok(seen.at(-1).points > seen.find((s) => s.points > 0).points, 'the path grows');
+    f = api.frame();
+    assert.ok(near(f.ball.pos, [shot.to.x, shot.to.y, shot.to.z_in / 12]), 'the ball ends where your shot lands');
+    api.destroy();
+  } finally {
+    frames.restore();
+  }
+});
+
+test('a timed card plays on from the freeze to the moment of contact once you choose, then your shot flies', { skip }, async () => {
+  setupDom({ reducedMotion: false });
+  const frames = steppedFrames();
+  try {
+    const m = await modules();
+    const app = makeApp(m);
+    const host = document.getElementById('app');
+    const card = app.index.cards.get('c-occlusion-floater-1');
+    const scene = app.index.scenes.get(card.scene_id);
+    const api = m.mountCard(host, { card, index: app.index, stage: m.sched.STAGES.C, settings: app.settings, scheduler: app.scheduler, onDone: () => {} });
+    const options = () => [...host.querySelectorAll('.option')];
+    host.querySelector('.court .motion .play').click();
+    for (let guard = 0; guard < 500 && options()[0].disabled; guard++) frames.step();
+    assert.ok(!options()[0].disabled, 'the picture froze and the choices opened');
+    assert.equal(frames.pending(), 0, 'nothing moves while you choose');
+    const last = scene.timeline.segments.at(-1).to;
+    const contact = [last.x, last.y, last.z_in / 12];
+    const frozenGap = groundGap(api.frame().ball.pos, contact);
+    assert.ok(frozenGap > 1, 'at this stage the picture freezes before their shot reaches you');
+    options()[0].click();
+    const seen = [];
+    for (let guard = 0; guard < 500 && frames.pending(); guard++) {
+      frames.step();
+      const f = api.frame();
+      seen.push({ answer: !!f.ball.answer, gap: groundGap(f.ball.pos, contact), t: f.reveal?.shot_t });
+    }
+    const n = seen.findIndex((s) => s.answer);
+    assert.ok(n > 1, 'their shot plays on first');
+    const incoming = seen.slice(0, n);
+    assert.ok(incoming.every((s, i) => s.gap < (i ? incoming[i - 1].gap : frozenGap)), 'and keeps coming to you');
+    const flight = seen.slice(n);
+    assert.ok(flight.every((s) => s.answer), 'then only your shot');
+    assert.equal(flight[0].t, 0);
+    assert.ok(flight.some((s) => s.t > 0 && s.t < 1), 'in flight');
+    assert.equal(flight.at(-1).t, 1);
+    assert.ok(Math.abs(api.frame().players.find((p) => p.id === 'opp2').x - 14.2) < 0.01, 'the players stay where the lead-in left them');
+    api.destroy();
+  } finally {
+    frames.restore();
+  }
+});
+
+test('before you choose, R replays their shot and the ball rests where you meet it: your shot never flies', { skip }, async () => {
+  setupDom({ reducedMotion: false });
+  const frames = steppedFrames();
+  try {
+    const m = await modules();
+    const app = makeApp(m);
+    const host = document.getElementById('app');
+    const card = app.index.cards.get('c-dink-fp-1');
+    const api = m.mountCard(host, { card, index: app.index, stage: m.sched.STAGES.A, settings: app.settings, scheduler: app.scheduler, onDone: () => {} });
+    const contact = api.frame().contact;
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'r' }));
+    assert.ok(frames.pending() > 0, 'their shot plays');
+    let flew = false;
+    for (let guard = 0; guard < 500 && frames.pending(); guard++) {
+      frames.step();
+      flew ||= !!api.frame().ball.answer;
+    }
+    assert.equal(flew, false, 'your shot never flies before you choose');
+    assert.ok(near(api.frame().ball.pos, contact), 'the ball rests where you meet it');
+    assert.ok([...host.querySelectorAll('.option')].every((b) => !b.disabled), 'and you can still choose');
+    api.destroy();
+  } finally {
+    frames.restore();
+  }
+});
+
+test("Watch again during your shot's flight starts the play over, with nothing else moving", { skip }, async () => {
+  setupDom({ reducedMotion: false });
+  const frames = steppedFrames();
+  try {
+    const m = await modules();
+    const app = makeApp(m);
+    const host = document.getElementById('app');
+    const card = app.index.cards.get('c-occlusion-floater-1');
+    const api = m.mountCard(host, { card, index: app.index, stage: m.sched.STAGES.A, settings: app.settings, scheduler: app.scheduler, onDone: () => {} });
+    const options = () => [...host.querySelectorAll('.option')];
+    host.querySelector('.court .motion .play').click();
+    for (let guard = 0; guard < 500 && options()[0].disabled; guard++) frames.step();
+    options()[0].click();
+    host.querySelector('.motion .replay').click();
+    const flying = () => api.frame().ball.answer && api.frame().reveal.shot_t > 0;
+    for (let guard = 0; guard < 500 && !flying(); guard++) frames.step();
+    assert.ok(flying(), 'your shot is in flight');
+    host.querySelector('.motion .replay').click();
+    for (let i = 0; i < 20; i++) {
+      frames.step();
+      assert.ok(frames.pending() <= 1, 'one animation at a time');
+      assert.notEqual(api.frame().ball.answer, true, 'their shot comes again first');
+    }
+    api.destroy();
+  } finally {
+    frames.restore();
+  }
 });
 
 test('Play scrolls the card to the top of the screen, and Watch again scrolls the court into view', { skip }, async () => {

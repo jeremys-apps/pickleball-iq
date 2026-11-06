@@ -247,7 +247,7 @@ at the five-month mark).
 
 | Type | What happens |
 |---|---|
-| `scenario_mc` | A court picture and three or four choices. The answer appears on the court and on a top-down map. |
+| `scenario_mc` | A court picture and three or four choices. The answer plays out on the court and on a top-down map. |
 | `timed_decision` | Lead-in shots play, the picture freezes before contact, and the choices unlock with a draining clock. The question and choices can be read before Play with no time limit; the clock covers only choosing. Running out counts as a miss. |
 | `text_mc` | Three or four choices without a court picture, for form fixes and rules of thumb. |
 | `why` | Recall the reason behind a principle, then show the answer and self-rate. |
@@ -258,11 +258,16 @@ After every answer the card shows the explanation, the focus cue, a closed
 Source info fold with the sources in plain words ("Mircea Morariu (senior pro).
 4.0 to Pro, "…", at 00:14:32.") and any additional note from Claude (the fold
 says when a note is inside), a Watch the play button under the picture, and the
-rating buttons. Watch the play shows their shot arriving with the answer hidden,
-then your answer shot flying from the contact point to its target with its path
-growing behind the ball; on a timed card the button reads Watch again (D25).
-Play and the replay share that spot under the picture, with the view toggle
-beside them on a phone, so nothing is drawn over the court (D24, D30).
+rating buttons. On a court card the answer plays out as soon as you choose: a
+timed card plays on from the freeze to the moment of contact, then your answer
+shot flies from the contact point to its target with its path growing behind
+the ball, and an answer that is only where to move shows its arrows (D37).
+Watch the play shows the whole exchange again, their shot arriving with the
+answer hidden and then your shot; on a timed card the button reads Watch again
+(D25). Play and the replay share that spot under the picture, with the view
+toggle beside them on a phone, so nothing is drawn over the court (D24, D30).
+Play brings the card to the top of the screen and Watch again brings the court
+into view, both a little below a phone's status bar (D37).
 
 A person a card names gets their full name at the first mention, reading top
 to bottom, and the first name after that (D29).
@@ -367,7 +372,7 @@ Color is never the only signal (the correct choice is also marked, verdicts are
 text). Buttons are real buttons, the answer area is announced to screen readers,
 and every view works with the keyboard. With the system's reduced-motion setting,
 timed cards skip the animation and freeze at once, which removes the timing
-challenge (open question Q6).
+challenge (open question Q6), and an answer skips straight to its finished picture.
 
 ### 8.9 Renderer lab
 

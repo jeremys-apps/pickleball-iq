@@ -338,3 +338,21 @@ drill found Delete file easy to miss on a phone, and a file emptied instead had
 left the name stuck: sign-in said the server was down, and sign-up that the name
 was taken. Sign-up now replaces such a file by its own sha, taken from the same
 answer as its content, so a real record is never overwritten.
+
+**D37. Choosing an answer plays it out, and the picture stops below the phone's
+status bar.** On his phone the green arrow simply appeared when he chose, and
+Jeremy asked for the second half of the play instead (2026-11-05). Now a timed
+card plays on from the freeze to the moment of contact, with the players where
+the lead-in moves them, and then on every court card your shot flies from the
+contact point to its target with the green path growing behind the ball, as
+Watch the play and Watch again already did (D25). An answer that is only where
+to move still shows its arrows at once: a move has no flight, and most moves in
+the deck are yours, so playing one out would move the camera. With reduced
+motion the finished picture shows at once. Watch again during the flight starts
+the play over; on a timed card it used to leave the flight running beside it.
+Before an answer, R on a card without a clock replays their shot and stops at
+contact; it used to fly the answer as well, showing where it goes. In the same
+round, Play and Watch again stop the picture 12 px below the status bar: full
+screen on an iPhone, the time, a timer and the Dynamic Island sat over the far
+court. The margin is the safe-area inset, which is 0 where nothing covers the
+page.
